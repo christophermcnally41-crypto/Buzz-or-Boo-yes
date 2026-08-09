@@ -13,6 +13,7 @@ import * as WebBrowser from 'expo-web-browser';
 WebBrowser.maybeCompleteAuthSession();
 
 const AUTH_TOKEN_KEY = 'auth_session_token';
+const AUTH_USER_CACHE_KEY = 'auth_cached_user';
 const ISSUER_URL =
   process.env.EXPO_PUBLIC_ISSUER_URL ?? 'https://replit.com/oidc';
 
@@ -68,20 +69,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Restore cached user immediately so the UI isn't blank during the
+      // network round-trip.  We then validate with the server in the background
+      // and update (or clear) the state once we get a definitive answer.
+      const cached = await SecureStore.getItemAsync(AUTH_USER_CACHE_KEY);
+      if (cached) {
+        try {
+          setUser(JSON.parse(cached) as User);
+          setIsLoading(false);
+        } catch {
+          // Ignore malformed cache; proceed to server validation.
+        }
+      }
+
       const apiBase = getApiBaseUrl();
       const res = await fetch(`${apiBase}/api/auth/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+
+      if (res.status === 401) {
+        // Session expired on the server — clear all local state so the user
+        // sees the login screen rather than stale data.
+        await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+        await SecureStore.deleteItemAsync(AUTH_USER_CACHE_KEY);
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!res.ok) {
+        // Network-level or unexpected server error — keep cached user if we
+        // already restored it so the app stays usable offline.
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await res.json() as { user: User | null };
 
       if (data.user) {
         setUser(data.user);
+        await SecureStore.setItemAsync(AUTH_USER_CACHE_KEY, JSON.stringify(data.user));
       } else {
         await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+        await SecureStore.deleteItemAsync(AUTH_USER_CACHE_KEY);
         setUser(null);
       }
     } catch {
-      setUser(null);
+      // Network unavailable — keep whatever cached state was already set.
+      setUser((prev) => prev);
     } finally {
       setIsLoading(false);
     }
@@ -180,6 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
     } finally {
       await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+      await SecureStore.deleteItemAsync(AUTH_USER_CACHE_KEY);
       setUser(null);
     }
   }, []);

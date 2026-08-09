@@ -1,13 +1,31 @@
+import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Sparkles, Home, BarChart2, User, Shield, Search, LogIn, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { formatNumber } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user: authUser, isAuthenticated, isLoading: authLoading, login, logout } = useAuth();
+  const { user: authUser, isAuthenticated, isLoading: authLoading, sessionExpired, login, logout } = useAuth();
+
+  useEffect(() => {
+    if (sessionExpired) {
+      toast({
+        title: "Session expired",
+        description: "Your session has expired. Please log in again to continue.",
+        variant: "destructive",
+        action: (
+          <ToastAction altText="Log in" onClick={login}>
+            Log in
+          </ToastAction>
+        ),
+      });
+    }
+  }, [sessionExpired, login]);
 
   const { data: platformUser } = useGetMe({
     query: { enabled: isAuthenticated, queryKey: getGetMeQueryKey() }
