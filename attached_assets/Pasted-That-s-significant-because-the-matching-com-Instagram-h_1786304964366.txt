@@ -1,0 +1,49 @@
+That's significant because **the matching .com + Instagram handle** gives you a clean starting point for the brand.
+
+And now that we've developed the product further, I like **BuzzOrBoo** even more because it works on several levels:
+
+**Buzz** = something is gaining momentum.
+**Boo** = something isn't.
+**Buzz** = what people are talking about.
+**Buzz** = local cultural intelligence.
+**Buzz or Boo?** = the actual action users take.
+
+I'd formalize the working brand as:
+
+# BUZZORBOO
+
+### **Call what's next.**
+
+And inside the product, we can develop language that's uniquely ours:
+
+**What's Buzzing** — discovery feed
+**Boston Buzz** — local feed
+**Buzz Battle** — head-to-head markets
+**Buzz Score** — probability/trend measurement
+**Buzzed It** — user's positive prediction
+**Boo'd It** — user's negative prediction
+**Early Buzz** — emerging trends
+**Biggest Movers** — rapidly changing predictions
+**My Calls** — user's active forecasts
+**Called It** — resolved predictions they nailed
+**BuzzRank** — forecaster ranking
+
+That begins creating an actual **brand vocabulary**, which is much harder for competitors to copy than simply having a prediction interface.
+
+There is one thing I'd do **right now before publicly announcing the name or spending meaningful money on branding**: run a proper trademark clearance search for **BUZZORBOO / BUZZ OR BOO / similar marks**, especially around software, social networking, market research, entertainment, forecasting, financial services, and potentially gaming. Owning the domain and Instagram handle is excellent, but it doesn't automatically establish trademark clearance.
+
+After that, I think our two workstreams should run together:
+
+**PRODUCT:** Build the **BuzzOrBoo Market Bible**, starting with the 120 markets we've created and expanding the local categories.
+
+**BRAND/UX:** Build the first BuzzOrBoo interface—logo direction, typography, navigation, prediction cards, Boston Buzz, Home, Style, profiles and BuzzRank.
+
+Then we can create an actual clickable MVP specification rather than just an idea.
+
+And I would preserve one principle from everything we've figured out today:
+
+> **BuzzOrBoo isn't an app for betting on what happens.**
+>
+> **It's where people call what's next.**
+
+That distinction should guide almost every product and branding decision from here.

@@ -20,9 +20,74 @@ tags:
     description: Forecaster rankings
   - name: admin
     description: Admin operations
+  - name: polls
+    description: Boston Says opinion polls
   - name: Auth
     description: Browser and mobile authentication endpoints.
 paths:
+  /polls:
+    get:
+      operationId: listPolls
+      tags: [polls]
+      summary: List open Boston Says polls
+      responses:
+        "200":
+          description: Polls with live tally
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PollsEnvelope"
+
+  /polls/{id}:
+    get:
+      operationId: getPoll
+      tags: [polls]
+      summary: Get a single poll with tally
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Poll with tally
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PollEnvelope"
+        "404":
+          description: Not found
+
+  /polls/{id}/vote:
+    post:
+      operationId: voteOnPoll
+      tags: [polls]
+      summary: Cast a vote on a Boston Says poll
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PollVoteInput"
+      responses:
+        "200":
+          description: Updated tally after vote
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PollVoteResult"
+        "400":
+          description: Bad request
+        "409":
+          description: Poll is closed
+
   /healthz:
     get:
       operationId: healthCheck
@@ -835,6 +900,84 @@ components:
       properties:
         error:
           type: string
+
+    PollOption:
+      type: object
+      required: [key, label]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        emoji:
+          type: [string, 'null']
+
+    Poll:
+      type: object
+      required: [id, question, options, status, createdAt, tally, totalVotes]
+      properties:
+        id:
+          type: number
+        question:
+          type: string
+        description:
+          type: [string, 'null']
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/PollOption"
+        status:
+          type: string
+        closesAt:
+          type: [string, 'null']
+        generatedMarketId:
+          type: [number, 'null']
+        createdAt:
+          type: string
+        tally:
+          type: object
+          additionalProperties:
+            type: number
+        totalVotes:
+          type: number
+
+    PollsEnvelope:
+      type: object
+      required: [polls]
+      properties:
+        polls:
+          type: array
+          items:
+            $ref: "#/components/schemas/Poll"
+
+    PollEnvelope:
+      type: object
+      required: [poll]
+      properties:
+        poll:
+          $ref: "#/components/schemas/Poll"
+
+    PollVoteInput:
+      type: object
+      required: [optionKey]
+      properties:
+        optionKey:
+          type: string
+        fingerprint:
+          type: [string, 'null']
+
+    PollVoteResult:
+      type: object
+      required: [success, tally, totalVotes]
+      properties:
+        success:
+          type: boolean
+        tally:
+          type: object
+          additionalProperties:
+            type: number
+        totalVotes:
+          type: number
 
     MarketResolution:
       type: object

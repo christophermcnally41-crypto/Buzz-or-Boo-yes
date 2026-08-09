@@ -9,6 +9,75 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List open Boston Says polls
+ */
+export const ListPollsResponse = zod.object({
+  "polls": zod.array(zod.object({
+  "id": zod.number(),
+  "question": zod.string(),
+  "description": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "emoji": zod.string().nullish()
+})),
+  "status": zod.string(),
+  "closesAt": zod.string().nullish(),
+  "generatedMarketId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "tally": zod.record(zod.string(), zod.number()),
+  "totalVotes": zod.number()
+}))
+})
+
+
+/**
+ * @summary Get a single poll with tally
+ */
+export const GetPollParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetPollResponse = zod.object({
+  "poll": zod.object({
+  "id": zod.number(),
+  "question": zod.string(),
+  "description": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "emoji": zod.string().nullish()
+})),
+  "status": zod.string(),
+  "closesAt": zod.string().nullish(),
+  "generatedMarketId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "tally": zod.record(zod.string(), zod.number()),
+  "totalVotes": zod.number()
+})
+})
+
+
+/**
+ * @summary Cast a vote on a Boston Says poll
+ */
+export const VoteOnPollParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const VoteOnPollBody = zod.object({
+  "optionKey": zod.string(),
+  "fingerprint": zod.string().nullish()
+})
+
+export const VoteOnPollResponse = zod.object({
+  "success": zod.boolean(),
+  "tally": zod.record(zod.string(), zod.number()),
+  "totalVotes": zod.number()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

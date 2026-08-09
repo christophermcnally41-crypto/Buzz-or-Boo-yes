@@ -40,6 +40,10 @@ import type {
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
   PlatformStats,
+  PollEnvelope,
+  PollVoteInput,
+  PollVoteResult,
+  PollsEnvelope,
   Prediction,
   PredictionInput,
   User,
@@ -72,6 +76,232 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListPollsUrl = () => {
+
+
+
+
+  return `/api/polls`
+}
+
+/**
+ * @summary List open Boston Says polls
+ */
+export const listPolls = async ( options?: Parameters<typeof customFetch>[1]): Promise<PollsEnvelope> => {
+
+  return customFetch<PollsEnvelope>(getListPollsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPollsQueryKey = () => {
+    return [
+    `/api/polls`
+    ] as const;
+    }
+
+
+export const getListPollsQueryOptions = <TData = Awaited<ReturnType<typeof listPolls>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPollsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPolls>>> = ({ signal }) => listPolls({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPollsQueryResult = NonNullable<Awaited<ReturnType<typeof listPolls>>>
+export type ListPollsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List open Boston Says polls
+ */
+
+export function useListPolls<TData = Awaited<ReturnType<typeof listPolls>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPollsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPollUrl = (id: number,) => {
+
+
+
+
+  return `/api/polls/${id}`
+}
+
+/**
+ * @summary Get a single poll with tally
+ */
+export const getPoll = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PollEnvelope> => {
+
+  return customFetch<PollEnvelope>(getGetPollUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPollQueryKey = (id: number,) => {
+    return [
+    `/api/polls/${id}`
+    ] as const;
+    }
+
+
+export const getGetPollQueryOptions = <TData = Awaited<ReturnType<typeof getPoll>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPoll>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPollQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPoll>>> = ({ signal }) => getPoll(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPoll>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPollQueryResult = NonNullable<Awaited<ReturnType<typeof getPoll>>>
+export type GetPollQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a single poll with tally
+ */
+
+export function useGetPoll<TData = Awaited<ReturnType<typeof getPoll>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPoll>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPollQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getVoteOnPollUrl = (id: number,) => {
+
+
+
+
+  return `/api/polls/${id}/vote`
+}
+
+/**
+ * @summary Cast a vote on a Boston Says poll
+ */
+export const voteOnPoll = async (id: number,
+    pollVoteInput: PollVoteInput, options?: Parameters<typeof customFetch>[1]): Promise<PollVoteResult> => {
+
+  return customFetch<PollVoteResult>(getVoteOnPollUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pollVoteInput)
+  }
+);}
+
+
+
+
+
+export const getVoteOnPollMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof voteOnPoll>>, TError,{id: number;data: BodyType<PollVoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof voteOnPoll>>, TError,{id: number;data: BodyType<PollVoteInput>}, TContext> => {
+
+const mutationKey = ['voteOnPoll'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof voteOnPoll>>, {id: number;data: BodyType<PollVoteInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  voteOnPoll(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VoteOnPollMutationResult = NonNullable<Awaited<ReturnType<typeof voteOnPoll>>>
+    export type VoteOnPollMutationBody = BodyType<PollVoteInput>
+    export type VoteOnPollMutationError = ErrorType<void>
+
+    /**
+ * @summary Cast a vote on a Boston Says poll
+ */
+export const useVoteOnPoll = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof voteOnPoll>>, TError,{id: number;data: BodyType<PollVoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof voteOnPoll>>,
+        TError,
+        {id: number;data: BodyType<PollVoteInput>},
+        TContext
+      > => {
+      return useMutation(getVoteOnPollMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 

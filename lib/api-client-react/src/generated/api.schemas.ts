@@ -259,6 +259,53 @@ export interface ErrorEnvelope {
   error: string;
 }
 
+export interface PollOption {
+  key: string;
+  label: string;
+  /** @nullable */
+  emoji?: string | null;
+}
+
+export type PollTally = {[key: string]: number};
+
+export interface Poll {
+  id: number;
+  question: string;
+  /** @nullable */
+  description?: string | null;
+  options: PollOption[];
+  status: string;
+  /** @nullable */
+  closesAt?: string | null;
+  /** @nullable */
+  generatedMarketId?: number | null;
+  createdAt: string;
+  tally: PollTally;
+  totalVotes: number;
+}
+
+export interface PollsEnvelope {
+  polls: Poll[];
+}
+
+export interface PollEnvelope {
+  poll: Poll;
+}
+
+export interface PollVoteInput {
+  optionKey: string;
+  /** @nullable */
+  fingerprint?: string | null;
+}
+
+export type PollVoteResultTally = {[key: string]: number};
+
+export interface PollVoteResult {
+  success: boolean;
+  tally: PollVoteResultTally;
+  totalVotes: number;
+}
+
 export interface MarketResolution {
   outcome: string;
 }

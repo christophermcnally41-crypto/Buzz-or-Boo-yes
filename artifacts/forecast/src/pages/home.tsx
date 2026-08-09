@@ -1,5 +1,6 @@
 import { useGetTrendingMarkets, useGetPlatformStats, useGetMarketCategories } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
+import { BostonSays } from "@/components/boston-says";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ArrowRight, TrendingUp, Activity, Users, Zap } from "lucide-react";
@@ -141,6 +142,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Boston Says — Opinion Polls */}
+      <BostonSays />
     </div>
   );
 }
