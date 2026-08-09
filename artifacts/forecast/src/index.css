@@ -78,78 +78,81 @@
 
 /* LIGHT MODE */
 :root {
-  /* Warm linen background */
-  --background: 45 30% 98%;
-  /* Deep ink text */
-  --foreground: 240 20% 10%;
-  
-  /* Borders - slightly darker than bg */
-  --border: 45 20% 88%;
-  --input: 45 20% 88%;
-  --ring: 235 100% 58%;
+  /* Warm putty / earthy linen background */
+  --background: 40 22% 96%;
+  /* Warm espresso — not cold blue-black */
+  --foreground: 22 18% 11%;
 
-  /* Cards - pure white for pop */
-  --card: 0 0% 100%;
-  --card-foreground: 240 20% 10%;
-  --card-border: 45 20% 88%;
+  /* Borders — warm sand */
+  --border: 38 18% 86%;
+  --input: 38 18% 86%;
+  --ring: 76 80% 40%;
+
+  /* Cards — soft warm white */
+  --card: 40 20% 99%;
+  --card-foreground: 22 18% 11%;
+  --card-border: 38 18% 86%;
 
   /* Popover matches card */
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 20% 10%;
-  --popover-border: 45 20% 88%;
+  --popover: 40 20% 99%;
+  --popover-foreground: 22 18% 11%;
+  --popover-border: 38 18% 86%;
 
-  /* Primary: Cobalt Blue */
-  --primary: 235 100% 58%;
-  --primary-foreground: 0 0% 100%;
+  /* Primary: Electric Chartreuse — the "it" color */
+  --primary: 76 82% 42%;
+  --primary-foreground: 22 18% 11%;
 
-  /* Secondary: Soft Gray */
-  --secondary: 45 10% 90%;
-  --secondary-foreground: 240 20% 10%;
+  /* Secondary: Warm Mushroom */
+  --secondary: 38 14% 88%;
+  --secondary-foreground: 22 18% 11%;
 
   /* Muted */
-  --muted: 45 25% 94%;
-  --muted-foreground: 45 5% 43%;
+  --muted: 40 18% 92%;
+  --muted-foreground: 30 8% 46%;
 
-  /* Accent: Vermilion / Orange */
-  --accent: 11 100% 57%;
+  /* Accent: Terracotta / Clay */
+  --accent: 16 62% 50%;
   --accent-foreground: 0 0% 100%;
 
   /* Destructive */
-  --destructive: 0 100% 57%;
+  --destructive: 4 72% 52%;
   --destructive-foreground: 0 0% 100%;
 
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: 240 10% 4%;
-  --foreground: 45 30% 98%;
-  
-  --border: 240 10% 15%;
-  --input: 240 10% 15%;
-  --ring: 235 100% 65%;
+  /* Deep warm espresso — not cold navy */
+  --background: 22 16% 7%;
+  --foreground: 40 22% 95%;
 
-  --card: 240 10% 6%;
-  --card-foreground: 45 30% 98%;
-  --card-border: 240 10% 15%;
+  --border: 22 12% 18%;
+  --input: 22 12% 18%;
+  --ring: 76 80% 48%;
 
-  --popover: 240 10% 6%;
-  --popover-foreground: 45 30% 98%;
-  --popover-border: 240 10% 15%;
+  --card: 22 14% 10%;
+  --card-foreground: 40 22% 95%;
+  --card-border: 22 12% 18%;
 
-  --primary: 235 100% 65%;
-  --primary-foreground: 0 0% 100%;
+  --popover: 22 14% 10%;
+  --popover-foreground: 40 22% 95%;
+  --popover-border: 22 12% 18%;
 
-  --secondary: 240 10% 15%;
-  --secondary-foreground: 45 30% 98%;
+  /* Primary: Electric Chartreuse pops on dark */
+  --primary: 76 82% 50%;
+  --primary-foreground: 22 18% 8%;
 
-  --muted: 240 10% 10%;
-  --muted-foreground: 45 5% 60%;
+  --secondary: 22 12% 18%;
+  --secondary-foreground: 40 22% 95%;
 
-  --accent: 11 100% 65%;
+  --muted: 22 12% 13%;
+  --muted-foreground: 38 10% 58%;
+
+  /* Accent: Terracotta stays warm in dark */
+  --accent: 16 62% 58%;
   --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 100% 65%;
+  --destructive: 4 72% 60%;
   --destructive-foreground: 0 0% 100%;
 }
 
