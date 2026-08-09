@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Link } from "wouter";
 import { cn, formatNumber } from "@/lib/utils";
-import { getCategoryLabel, getCategoryIcon } from "@/lib/categories";
+import { getCategoryLabel } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 import { getMarketColors } from "@/lib/market-colors";
 import { HotOrNotCard } from "./hot-or-not-card";
 import { HeadToHeadCard } from "./head-to-head-card";
@@ -41,7 +42,7 @@ export function MarketCard({ market, featured = false }: { market: Market, featu
         <CardHeader className="relative z-10 pb-4">
           <div className="flex items-start justify-between gap-4 mb-3">
             <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm border-border/50 text-xs gap-1.5 font-medium">
-              {getCategoryIcon(market.category)} {getCategoryLabel(market.category)}
+              <CategoryIcon category={market.category} className="w-3.5 h-3.5" /> {getCategoryLabel(market.category)}
             </Badge>
             {isResolved ? (
               <Badge variant={market.resolvedOutcome === 'YES' ? 'default' : 'destructive'} className="shadow-sm">

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ArrowRight, TrendingUp, Activity, Users, Zap } from "lucide-react";
 import { formatNumber, formatCompactNumber } from "@/lib/utils";
-import { getCategoryLabel, getCategoryIcon } from "@/lib/categories";
+import { getCategoryLabel } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 
 export default function Home() {
   const { data: trendingMarkets, isLoading: loadingMarkets } = useGetTrendingMarkets({ limit: 7 });
@@ -89,7 +90,7 @@ export default function Home() {
             {categories?.map((cat) => (
               <Link key={cat.category} href={`/markets?category=${cat.category}`}>
                 <div className="flex-none flex items-center gap-3 px-6 py-4 rounded-2xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer whitespace-nowrap min-w-[200px] group">
-                  <span className="text-3xl group-hover:scale-110 transition-transform">{getCategoryIcon(cat.category)}</span>
+                  <CategoryIcon category={cat.category} className="w-8 h-8 group-hover:scale-110 transition-transform" />
                   <div className="flex flex-col">
                     <span className="font-bold">{getCategoryLabel(cat.category)}</span>
                     <span className="text-xs text-muted-foreground font-mono-numbers">{cat.openMarkets} open markets</span>

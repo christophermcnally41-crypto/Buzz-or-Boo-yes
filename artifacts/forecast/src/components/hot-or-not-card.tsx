@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Link } from "wouter";
 import { cn, formatNumber } from "@/lib/utils";
-import { getCategoryIcon } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 import { getMarketColors } from "@/lib/market-colors";
 
 interface HotOrNotData {

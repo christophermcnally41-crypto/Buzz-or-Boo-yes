@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Link } from "wouter";
 import { formatNumber } from "@/lib/utils";
-import { getCategoryIcon } from "@/lib/categories";
+import { getCategoryLabel } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 import { useMemo } from "react";
 
 interface Contender {
@@ -67,7 +68,7 @@ export function MultiChoiceCard({ market }: { market: Market }) {
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-3 mb-3">
             <Badge variant="secondary" className="bg-background/80 text-xs gap-1.5 font-medium shrink-0">
-              {getCategoryIcon(market.category)} {market.category === "LOCAL_PULSE" ? "Local Pulse" : market.category}
+              <CategoryIcon category={market.category} className="w-3.5 h-3.5" /> {getCategoryLabel(market.category)}
             </Badge>
             <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
               {formatNumber(market.totalPredictions)} CALLS

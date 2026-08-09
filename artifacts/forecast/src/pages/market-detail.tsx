@@ -21,7 +21,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { getCategoryLabel, getCategoryIcon } from "@/lib/categories";
+import { getCategoryLabel } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 import { formatNumber, cn } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
 import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck } from "lucide-react";
@@ -213,7 +214,7 @@ export default function MarketDetail() {
             <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
                 <Badge variant="secondary" className="font-medium gap-1.5 py-1 px-3">
-                  {getCategoryIcon(market.category)} {getCategoryLabel(market.category)}
+                  <CategoryIcon category={market.category} className="w-4 h-4" /> {getCategoryLabel(market.category)}
                 </Badge>
                 <span className="text-muted-foreground text-sm font-medium">— {market.subcategory}</span>
               </div>
