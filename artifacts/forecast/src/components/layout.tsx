@@ -9,7 +9,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user: authUser, isAuthenticated, isLoading: authLoading, login, logout } = useAuth();
 
-  // Load platform user data (balance etc) only when authenticated
   const { data: platformUser } = useGetMe({
     query: { enabled: isAuthenticated }
   });
@@ -28,13 +27,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
-            <div className="bg-primary text-primary-foreground p-1.5 rounded-md">
-              <Sparkles className="w-5 h-5" />
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-[1.03] active:scale-95">
+            <div
+              className="p-1.5 rounded-md flex items-center justify-center"
+              style={{ background: "hsl(268 50% 22%)" }}
+            >
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="font-editorial text-2xl font-bold tracking-tight">BuzzOrBoo</span>
+            <span className="logo-glint font-editorial text-2xl tracking-tight select-none" style={{ fontWeight: 700 }}>
+              buzzorboo
+            </span>
           </Link>
 
+          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-6">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -53,18 +59,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
-            <Link
-              href="/admin"
-              className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
-                location === "/admin" ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <Shield className="w-4 h-4" />
-              Admin
-            </Link>
           </nav>
 
+          {/* Auth controls */}
           <div className="flex items-center gap-3">
             {isAuthenticated && platformUser ? (
               <>
@@ -96,6 +93,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1">
         {children}
       </main>
+
+      {/* Desktop Footer */}
+      <footer className="hidden md:block border-t border-border/50 bg-background/60 mt-8">
+        <div className="container mx-auto px-4 py-8 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded-sm" style={{ background: "hsl(268 50% 22%)" }}>
+              <Sparkles className="w-3 h-3 text-white" />
+            </div>
+            <span className="font-editorial text-base tracking-tight" style={{ WebkitTextFillColor: "hsl(268 50% 28%)", fontWeight: 600 }}>
+              buzzorboo
+            </span>
+            <span className="ml-2">Boston's cultural prediction engine.</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/markets" className="hover:text-foreground transition-colors">Markets</Link>
+            <Link href="/leaderboard" className="hover:text-foreground transition-colors">BuzzRank</Link>
+            <Link
+              href="/admin"
+              className={cn(
+                "flex items-center gap-1 hover:text-foreground transition-colors",
+                location === "/admin" ? "text-primary" : ""
+              )}
+            >
+              <Shield className="w-3 h-3" />
+              Admin
+            </Link>
+          </div>
+        </div>
+      </footer>
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background/90 backdrop-blur-lg pb-safe">

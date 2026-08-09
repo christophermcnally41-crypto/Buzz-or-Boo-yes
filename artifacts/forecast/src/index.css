@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -42,7 +42,7 @@
   --color-destructive-border: var(--destructive-border);
 
   --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-serif: 'Fraunces', serif;
+  --font-serif: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -76,6 +76,30 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Logo glint — a bright streak sweeps across the wordmark every few seconds */
+@keyframes logo-glint {
+  0%   { background-position: -200% center; }
+  35%  { background-position: 200% center; }
+  100% { background-position: 200% center; }
+}
+
+.logo-glint {
+  background: linear-gradient(
+    105deg,
+    hsl(270 50% 22%) 20%,
+    hsl(280 40% 22%) 38%,
+    hsl(260 20% 75%) 50%,
+    hsl(280 40% 22%) 62%,
+    hsl(270 50% 22%) 80%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: logo-glint 4.5s ease-in-out infinite;
+}
+
 /* LIGHT MODE */
 :root {
   /* Warm putty / earthy linen background */
@@ -86,7 +110,7 @@
   /* Borders — warm sand */
   --border: 38 18% 86%;
   --input: 38 18% 86%;
-  --ring: 76 80% 40%;
+  --ring: 268 45% 40%;
 
   /* Cards — soft warm white */
   --card: 40 20% 99%;
@@ -98,9 +122,9 @@
   --popover-foreground: 22 18% 11%;
   --popover-border: 38 18% 86%;
 
-  /* Primary: Electric Chartreuse — the "it" color */
-  --primary: 76 82% 42%;
-  --primary-foreground: 22 18% 11%;
+  /* Primary: deep obsidian purple — the new brand */
+  --primary: 268 50% 22%;
+  --primary-foreground: 0 0% 98%;
 
   /* Secondary: Warm Mushroom */
   --secondary: 38 14% 88%;
@@ -110,7 +134,7 @@
   --muted: 40 18% 92%;
   --muted-foreground: 30 8% 46%;
 
-  /* Accent: Terracotta / Clay */
+  /* Accent: keep terracotta warmth */
   --accent: 16 62% 50%;
   --accent-foreground: 0 0% 100%;
 
@@ -128,7 +152,7 @@
 
   --border: 22 12% 18%;
   --input: 22 12% 18%;
-  --ring: 76 80% 48%;
+  --ring: 268 45% 50%;
 
   --card: 22 14% 10%;
   --card-foreground: 40 22% 95%;
@@ -138,9 +162,9 @@
   --popover-foreground: 40 22% 95%;
   --popover-border: 22 12% 18%;
 
-  /* Primary: Electric Chartreuse pops on dark */
-  --primary: 76 82% 50%;
-  --primary-foreground: 22 18% 8%;
+  /* Primary: brighter jewel on dark backgrounds */
+  --primary: 268 50% 42%;
+  --primary-foreground: 0 0% 98%;
 
   --secondary: 22 12% 18%;
   --secondary-foreground: 40 22% 95%;
@@ -171,7 +195,8 @@
 
 .font-editorial {
   font-family: var(--font-serif);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  font-weight: 600;
 }
 
 .font-mono-numbers {
