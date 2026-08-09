@@ -1,0 +1,203 @@
+Yes — **71 markets is exactly what we need for the first MVP.** And I’d make sure they aren't just fun questions; every one should have a clearly definable outcome so we're testing the actual product architecture from day one.
+
+I’d split the first 71 into **Boston/City (25), Home & Interiors (23), and Fashion & Style (23)**. Here’s the first complete market library.
+
+### 🏙 BOSTON / CITY — 25 markets
+
+1. **Will Boston record measurable rain on 4+ days during a specified Monday–Sunday week?**
+   Resolution: NOAA/NWS daily observations.
+
+2. **Will Boston receive more than 1 inch of total rainfall next week?**
+   Resolution: NOAA/NWS.
+
+3. **Will Boston's high temperature reach 90°F or higher this weekend?**
+
+4. **Will Boston experience its first measurable snowfall before December 1?**
+
+5. **Will Boston receive 12+ inches of snow during a specified winter month?**
+
+6. **Will Logan Airport record a temperature below 20°F before December 15?**
+
+7. **Will Boston have a white Christmas?**
+   Define precisely: ≥1 inch snow depth at Logan at a designated observation time.
+
+8. **Will Boston's annual snowfall finish above its 30-year climatological average?**
+
+9. **Will Logan Airport report 100+ flight cancellations on a specified storm day?**
+   Resolution source defined beforehand.
+
+10. **Will the MBTA announce a new major service shutdown affecting the Green Line before a specified date?**
+
+11. **Will a named Boston restaurant open by its publicly announced opening date?**
+
+12. **Will a named Boston restaurant permanently close before year-end?**
+
+13. **Will a major new restaurant opening in Boston sell out reservations for its first Saturday night?**
+
+14. **Which Boston neighborhood will have the most notable restaurant openings this quarter?**
+    Back Bay / South End / Seaport / Fenway / Other — using predefined criteria.
+
+15. **Will a named Boston restaurant earn a specified major dining award or recognition this year?**
+
+16. **Will Boston host more than X major conventions during a specified quarter?**
+
+17. **Will a named Boston development project open by its currently announced date?**
+
+18. **Will a currently vacant named storefront have a new tenant announced before December 31?**
+
+19. **Will Boston's average advertised one-bedroom rent rise year-over-year by a specified date?**
+    Resolution: designated rental dataset.
+
+20. **Will the median Boston condo sale price be higher in Q4 than Q4 of the previous year?**
+
+21. **Will Back Bay median condo price per square foot increase year-over-year this quarter?**
+
+22. **Will a featured Boston listing sell above its original asking price?**
+
+23. **Will a featured Boston listing go under agreement within 14 days?**
+
+24. **Will a featured Boston property close for more than $50,000 above asking?**
+
+25. **Which featured Boston neighborhood will show the strongest quarterly home-price growth?**
+    Back Bay / Beacon Hill / South End / Jamaica Plain / South Boston.
+
+---
+
+### 🏠 HOME & INTERIORS — 23 markets
+
+26. **Will U.S. search interest for “dark wood furniture” exceed “light wood furniture” during a specified month?**
+
+27. **Will walnut outperform white oak in furniture-related Google search growth this year?**
+
+28. **Will chrome bathroom-fixture search interest surpass brass by year-end?**
+
+29. **Will polished nickel searches grow faster than matte black fixture searches this year?**
+
+30. **Will burgundy/oxblood become a Top-5 interior color family in a predefined design dataset next year?**
+
+31. **Will chocolate brown outperform sage green in interior-design search growth?**
+
+32. **Will butter yellow remain a Top-10 interior color search term six months from now?**
+
+33. **Will red kitchens outperform green kitchens in year-over-year search growth?**
+
+34. **Will dark kitchen cabinetry gain search share against white cabinetry this year?**
+
+35. **Will natural-stone countertops gain search share against engineered quartz?**
+
+36. **Will checkerboard flooring search interest be higher next spring than this spring?**
+
+37. **Will wall-to-wall carpet search interest increase year-over-year?**
+
+38. **Will high-gloss lacquer furniture searches rise at least 20% year-over-year?**
+
+39. **Will skirted-sofa search interest reach a new five-year high by a specified date?**
+
+40. **Will curved-sofa searches decline from their previous-year peak?**
+
+41. **Will bouclé furniture searches decline year-over-year?**
+
+42. **Will traditional furniture outperform minimalist furniture in search growth?**
+
+43. **Will maximalist interior searches outperform minimalist interior searches during a specified quarter?**
+
+44. **Will “English country interior” searches increase 25%+ year-over-year?**
+
+45. **Will “Art Deco interior” search interest exceed “mid-century modern interior” growth during a specified period?**
+
+46. **Will wallpaper continue gaining search interest year-over-year?**
+
+47. **Will patterned upholstery outperform solid upholstery in a predefined editorial dataset?**
+
+48. **Which material will grow fastest in interior-design search interest next year?**
+    Walnut / Travertine / Stainless Steel / Lacquer / Rattan.
+
+---
+
+### 👗 FASHION & STYLE — 23 markets
+
+49. **Which color family will show the greatest womenswear search growth this fall?**
+    Burgundy / Chocolate / Olive / Butter Yellow / Blue.
+
+50. **Will burgundy remain a Top-5 womenswear color by next fall?**
+
+51. **Will chocolate brown outperform black in year-over-year fashion search growth during a defined season?**
+
+52. **Will butter yellow search interest remain above its prior-year level next spring?**
+
+53. **Will powder blue outperform butter yellow in womenswear search growth?**
+
+54. **Will Pantone's next Color of the Year fall within the blue/green family?**
+
+55. **Will skinny-jeans search interest surpass wide-leg jeans before a specified date?**
+
+56. **Will straight-leg jeans outperform wide-leg jeans in year-over-year search growth?**
+
+57. **Will low-rise jeans reach a new five-year search high?**
+
+58. **Will capri pants remain above their previous-year search level next summer?**
+
+59. **Will ballet flats remain more searched than loafers during a specified spring month?**
+
+60. **Will boat shoes grow at least 25% year-over-year in U.S. fashion search interest?**
+
+61. **Will sneaker search growth underperform dress-shoe search growth during a defined period?**
+
+62. **Will silver jewelry surpass gold jewelry in search growth before year-end?**
+
+63. **Will brooch searches continue rising year-over-year?**
+
+64. **Will oversized handbags outperform mini bags in search growth?**
+
+65. **Will suede handbags outperform leather handbag growth during the fall season?**
+
+66. **Will animal-print clothing searches exceed their prior five-year peak?**
+
+67. **Will polka dots outperform stripes in womenswear search growth this year?**
+
+68. **Will sheer clothing search interest increase year-over-year during spring/summer?**
+
+69. **Will tailoring-related womenswear searches outperform athleisure growth this year?**
+
+70. **Will maximalist fashion outperform “quiet luxury” in search growth during a defined six-month period?**
+
+71. **Which aesthetic will experience the greatest search growth next year?**
+    Bohemian / Prep / Minimalist / Romantic / 1980s-inspired.
+
+---
+
+### The important thing: these shouldn't all behave identically
+
+This first 71 gives the app several **market formats**, which makes the product much more interesting.
+
+Some are binary:
+
+> **Will chrome surpass brass?**
+> YES 62% / NO 38%
+
+Some are multi-choice:
+
+> **What's the next major fashion color?**
+> Burgundy 31% / Chocolate 27% / Blue 21%...
+
+Some concern a threshold:
+
+> **Will Boston get more than 12" of snow this month?**
+
+Some concern a specific asset/property:
+
+> **Will this condo sell above $1.4M?**
+
+And some are head-to-head:
+
+> **Dark wood vs. pale oak**
+
+That variety is important because we're discovering which **kind of prediction people become obsessed with making.**
+
+There is also something I want built into these from the beginning: every market gets a hidden administrative record containing **Market ID, exact question, category, open date, close date, resolution date, resolution source, resolution formula, acceptable data, cancellation criteria, and result**.
+
+That's ultimately what separates this from a fun polling app. The question has to be **provably right or wrong**.
+
+And I would absolutely make **#22–24—the individual-property markets—a signature feature**. Imagine opening AHEAD Boston, seeing a gorgeous Back Bay listing and discovering that 4,800 Boston users collectively think there's a **76% chance it sells above asking**. That's the kind of feature people would screenshot and share.
+
+We now essentially have the seed content for **Version 1 of the product**. Next I'd turn these 71 into the actual **market database structure**, including their resolution sources, durations, point payouts, and exactly what the cards say in the app, so a developer could begin building from it.
