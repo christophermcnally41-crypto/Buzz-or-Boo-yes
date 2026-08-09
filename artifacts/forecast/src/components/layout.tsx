@@ -35,8 +35,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="logo-glint font-editorial text-2xl tracking-tight select-none" style={{ fontWeight: 700 }}>
-              buzzorboo
+            <span className="logo-glint font-editorial tracking-tight select-none" style={{ fontWeight: 700, lineHeight: 1 }}>
+              <span style={{ fontSize: "1.6rem" }}>buzz</span><span style={{ fontSize: "0.95rem", verticalAlign: "middle", letterSpacing: "0.02em" }}>or</span><span style={{ fontSize: "1.6rem" }}>boo</span>
             </span>
           </Link>
 
@@ -101,8 +101,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="p-1 rounded-sm" style={{ background: "hsl(268 50% 22%)" }}>
               <Sparkles className="w-3 h-3 text-white" />
             </div>
-            <span className="font-editorial text-base tracking-tight" style={{ WebkitTextFillColor: "hsl(268 50% 28%)", fontWeight: 600 }}>
-              buzzorboo
+            <span className="font-editorial tracking-tight leading-none" style={{ WebkitTextFillColor: "hsl(268 50% 28%)", fontWeight: 600, fontSize: "1rem" }}>
+              <span style={{ fontSize: "1.1em" }}>buzz</span><span style={{ fontSize: "0.75em", opacity: 0.7 }}>or</span><span style={{ fontSize: "1.1em" }}>boo</span>
             </span>
             <span className="ml-2">Boston's cultural prediction engine.</span>
           </div>
