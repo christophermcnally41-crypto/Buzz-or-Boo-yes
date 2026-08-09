@@ -23,7 +23,7 @@ export default function Home() {
         <div className="container mx-auto px-4 pt-20 pb-24 md:pt-32 md:pb-32 relative z-10">
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
-              <Zap className="w-4 h-4" />
+              <Zap className="w-4 h-4" style={{ color: "hsl(43 72% 48%)" }} />
               Boston's Cultural Prediction Engine
             </div>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-editorial font-bold leading-[1.05] tracking-tight text-balance mb-6 animate-slide-up" style={{ animationDelay: "100ms" }}>
