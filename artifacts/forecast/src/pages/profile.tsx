@@ -1,14 +1,23 @@
 import { useState } from "react";
 import { useParams } from "wouter";
-import { useGetUser, useGetUserPredictions, useGetUserPins } from "@workspace/api-client-react";
+import {
+  useGetUser,
+  useGetUserPredictions,
+  useGetUserPins,
+  useGetMe,
+  getGetMeQueryKey,
+} from "@workspace/api-client-react";
+import { useAuth } from "@workspace/replit-auth-web";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatNumber, cn } from "@/lib/utils";
-import { Trophy, Activity, CheckCircle2, XCircle, Pin } from "lucide-react";
+import { Trophy, Activity, CheckCircle2, XCircle, Pin, Zap } from "lucide-react";
 import { Link } from "wouter";
 import { getCategoryLabel } from "@/lib/categories";
 import { MarketCard } from "@/components/market-card";
+
+const TOPUP_THRESHOLD = 500;
 
 type Tab = "calls" | "pins";
 
@@ -16,10 +25,17 @@ export default function Profile() {
   const params = useParams();
   const userId = parseInt(params.id || "1", 10);
   const [tab, setTab] = useState<Tab>("calls");
+  const { user: authUser, isAuthenticated } = useAuth();
 
   const { data: user, isLoading: loadingUser } = useGetUser(userId);
   const { data: predictions, isLoading: loadingPredictions } = useGetUserPredictions(userId);
   const { data: pinsData, isLoading: loadingPins } = useGetUserPins(userId);
+
+  // Fetch /users/me to get top-up badge data (own profile only)
+  const isOwnProfile = isAuthenticated && authUser && parseInt(authUser.id, 10) === userId;
+  const { data: meData } = useGetMe({
+    query: { enabled: !!isOwnProfile, queryKey: getGetMeQueryKey() },
+  });
 
   if (loadingUser) {
     return <div className="min-h-screen flex items-center justify-center animate-pulse text-muted-foreground">Loading Profile...</div>;
@@ -73,6 +89,12 @@ export default function Profile() {
                 <div className="flex flex-col">
                   <span className="text-muted-foreground">Forecast Points</span>
                   <span className="text-2xl font-mono-numbers font-bold text-primary">{formatNumber(user.tokenBalance)}</span>
+                  {isOwnProfile && user.tokenBalance < TOPUP_THRESHOLD && meData && (
+                    <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                      <Zap className="w-3 h-3" />
+                      Daily top-up active — resets to {TOPUP_THRESHOLD} FP
+                    </span>
+                  )}
                 </div>
                 <div className="w-px h-10 bg-border hidden md:block" />
                 <div className="flex flex-col">

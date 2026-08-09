@@ -22,6 +22,7 @@ export const usersTable = pgTable("users", {
   weatherAccuracy: real("weather_accuracy"),
   cultureAccuracy: real("culture_accuracy"),
   rank: integer("rank"),
+  lastTopupAt: timestamp("last_topup_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

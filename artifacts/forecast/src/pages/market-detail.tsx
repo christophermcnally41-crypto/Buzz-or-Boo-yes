@@ -1,4 +1,3 @@
-import { useState, useMemo } from "react";
 import { useParams } from "wouter";
 import { 
   useGetMarket, 
@@ -27,6 +26,7 @@ import { formatNumber, cn } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
 import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck } from "lucide-react";
 import { Link } from "wouter";
+import { useState, useMemo, useEffect } from "react";
 
 interface Contender {
   key: string;
@@ -51,6 +51,7 @@ function parseMultiChoiceData(desc: string | null | undefined): MultiChoiceData 
 
 const CONTENDER_COLORS = ["#CFEA3B", "#3ECDE8", "#E87B3E", "#8B5CF6", "#EC4899"];
 
+const TOPUP_THRESHOLD = 500;
 export default function MarketDetail() {
   const params = useParams();
   const marketId = parseInt(params.id || "0", 10);
@@ -64,6 +65,10 @@ export default function MarketDetail() {
 
   const { data: predictions } = useGetMarketPredictions(marketId, {
     query: { enabled: !!marketId, queryKey: getGetMarketPredictionsQueryKey(marketId) }
+  });
+
+  const { data: meData } = useGetMe({
+    query: { enabled: isAuthenticated, queryKey: getGetMeQueryKey() }
   });
 
   const makePrediction = useMakePrediction();
@@ -96,8 +101,17 @@ export default function MarketDetail() {
     }
   };
 
+  const tokenBalance = meData?.tokenBalance ?? 0;
+  const sliderMax = isAuthenticated ? Math.min(tokenBalance, 500) : 500;
+  const sliderMin = Math.min(10, sliderMax);
+
   const [amount, setAmount] = useState([100]);
   const [isPredicting, setIsPredicting] = useState<string | null>(null);
+
+  // Clamp amount if balance changed
+  useEffect(() => {
+    if (amount[0] > sliderMax) setAmount([sliderMax]);
+  }, [sliderMax]);
 
   const isResolved = market?.status === "RESOLVED";
   const isClosed = market?.status === "CLOSED" || isResolved;
@@ -388,15 +402,22 @@ export default function MarketDetail() {
                       <Slider
                         value={amount}
                         onValueChange={setAmount}
-                        max={500}
-                        min={10}
+                        max={sliderMax}
+                        min={sliderMin}
                         step={10}
                         className="py-4"
+                        disabled={tokenBalance <= 0}
                       />
                       <div className="flex justify-between text-xs text-muted-foreground font-mono-numbers mt-2">
-                        <span>10</span>
-                        <span>500</span>
+                        <span>{sliderMin}</span>
+                        <span>{sliderMax}</span>
                       </div>
+                      {isAuthenticated && tokenBalance < TOPUP_THRESHOLD && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                          <span>⚡</span>
+                          Low balance — you'll receive a daily top-up to {TOPUP_THRESHOLD} FP when you next visit.
+                        </p>
+                      )}
                     </div>
 
                     {/* Multi-choice: contender buttons */}
@@ -412,7 +433,7 @@ export default function MarketDetail() {
                               color: i === 0 ? "#1a1a1a" : "#fff",
                             }}
                             onClick={() => handlePredict(c.key)}
-                            disabled={isPredicting !== null}
+                            disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
                           >
                             {isPredicting === c.key ? "Casting..." : c.name}
                           </Button>
@@ -426,7 +447,7 @@ export default function MarketDetail() {
                           className="h-16 text-xl rounded-xl shadow-lg transition-transform hover:-translate-y-1 border-0"
                           style={{ backgroundColor: colors.yes, color: "#fff", boxShadow: `0 8px 24px ${colors.yesSoft}` }}
                           onClick={() => handlePredict("YES")}
-                          disabled={isPredicting !== null}
+                          disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
                         >
                           {isPredicting === "YES" ? "Casting..." : "Buzzed It ⚡"}
                         </Button>
@@ -435,7 +456,7 @@ export default function MarketDetail() {
                           className="h-16 text-xl rounded-xl shadow-lg transition-transform hover:-translate-y-1 border-0"
                           style={{ backgroundColor: colors.no, color: "#fff", boxShadow: `0 8px 24px ${colors.noSoft}` }}
                           onClick={() => handlePredict("NO")}
-                          disabled={isPredicting !== null}
+                          disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
                         >
                           {isPredicting === "NO" ? "Casting..." : "Boo'd It 👎"}
                         </Button>

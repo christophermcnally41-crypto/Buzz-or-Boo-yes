@@ -11,9 +11,14 @@ import {
 
 const router: IRouter = Router();
 
+const TOPUP_THRESHOLD = 500;
+const TOPUP_TARGET = 500;
+const TOPUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 function serializeUser(u: typeof usersTable.$inferSelect) {
   return {
     ...u,
+    lastTopupAt: u.lastTopupAt ? u.lastTopupAt.toISOString() : null,
     createdAt: u.createdAt.toISOString(),
   };
 }
@@ -43,11 +48,27 @@ router.get("/users/me", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, platformId));
+  let [user] = await db.select().from(usersTable).where(eq(usersTable.id, platformId));
 
   if (!user) {
     res.status(404).json({ error: "User not found" });
     return;
+  }
+
+  // Daily top-up: if balance is below threshold and 24h have elapsed since last top-up
+  if (user.tokenBalance < TOPUP_THRESHOLD) {
+    const now = new Date();
+    const lastTopup = user.lastTopupAt;
+    const eligibleForTopup = !lastTopup || (now.getTime() - lastTopup.getTime()) >= TOPUP_INTERVAL_MS;
+
+    if (eligibleForTopup) {
+      const [updated] = await db
+        .update(usersTable)
+        .set({ tokenBalance: TOPUP_TARGET, lastTopupAt: now })
+        .where(eq(usersTable.id, platformId))
+        .returning();
+      if (updated) user = updated;
+    }
   }
 
   res.json(GetMeResponse.parse(serializeUser(user)));

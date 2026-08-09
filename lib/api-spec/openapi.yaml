@@ -804,6 +804,9 @@ components:
           type: ["number", "null"]
         rank:
           type: ["number", "null"]
+        lastTopupAt:
+          type: ["string", "null"]
+          description: ISO timestamp of the last daily top-up, or null if never topped up
         createdAt:
           type: string
 

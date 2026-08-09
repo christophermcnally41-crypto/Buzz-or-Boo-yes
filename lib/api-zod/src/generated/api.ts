@@ -285,6 +285,7 @@ export const GetMeResponse = zod.object({
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
   "rank": zod.number().nullish(),
+  "lastTopupAt": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -313,6 +314,7 @@ export const GetUserResponse = zod.object({
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
   "rank": zod.number().nullish(),
+  "lastTopupAt": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -635,10 +637,6 @@ export const InitMobileAuthTransactionResponse = zod.object({
  */
 
 
-
-
-
-
 export const ExchangeMobileAuthorizationCodeBody = zod.object({
   "code": zod.string().min(1),
   "code_verifier": zod.string().min(1),
@@ -661,5 +659,4 @@ export const LogoutMobileSessionHeader = zod.object({
 export const LogoutMobileSessionResponse = zod.object({
   "success": zod.boolean()
 })
-
 
