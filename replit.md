@@ -1,10 +1,11 @@
-# [Project name]
+# AHEAD — Cultural Prediction Platform
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A visual forecasting platform where people predict what happens next in Style, Home, City, Real Estate, Weather, and Culture — starting with Boston. Users earn virtual Forecast Points, build accuracy reputations, and compete on leaderboards. The tagline: "See what's coming."
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
+- `pnpm --filter @workspace/forecast run dev` — run the frontend (port assigned by workflow)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -14,23 +15,36 @@ _Replace the heading above with the project's name, and this line with one sente
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Frontend: React + Vite, Wouter routing, TanStack Query, Tailwind CSS v4, Fraunces + Plus Jakarta Sans fonts
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
+- DB: PostgreSQL + Drizzle ORM (tables: users, markets, predictions)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — source of truth for all API contracts
+- `lib/db/src/schema/` — DB schema (users.ts, markets.ts, predictions.ts)
+- `artifacts/api-server/src/routes/` — route handlers (markets, predictions, users, leaderboard, admin)
+- `artifacts/forecast/src/` — frontend React app
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **No auth for MVP** — user ID=1 is hardcoded as the "logged in" demo user; profiles show this user's data
+- **Virtual currency only** — 10,000 Forecast Points per user, no real money; correct predictions earn 1.8x back
+- **Categories**: STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE
+- **Market statuses**: OPEN → CLOSED → RESOLVED; predictions disabled once market closes
+- **Duplicate prediction prevention** — one prediction per user per market, enforced at DB query level
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- **Discover feed** — trending markets with giant probability numbers, platform stats, category nav
+- **Markets browse** — filter by category and status with card grid
+- **Market detail** — full YES/NO probability bars, token prediction UI, predictions list
+- **Leaderboard** — top forecasters ranked by accuracy, filterable by category with tier labels (Elite/Expert/Developing)
+- **User profile** — Forecast Points balance, per-category accuracy, prediction history
+- **Admin panel** — create markets, resolve with YES/NO outcome (auto-awards tokens to winners)
 
 ## User preferences
 
@@ -38,7 +52,11 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- After any OpenAPI spec change, run codegen before touching routes or frontend
+- `zod.int()` is not available in Zod v3 — use `type: number` in OpenAPI spec (not `type: integer`)
+- Orval split mode causes TS2308 collisions when an endpoint has BOTH path params AND query params — fix by removing query params from those endpoints or renaming operation IDs
+- `/markets/trending` and `/markets/categories` routes must be registered BEFORE `/markets/:id` in Express, otherwise `:id` captures "trending"/"categories" as a param
+- API routes are mounted at `/api` in app.ts — route files should NOT include `/api` prefix
 
 ## Pointers
 

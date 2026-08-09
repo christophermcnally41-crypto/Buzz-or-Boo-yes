@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "What's Coming — Cultural Prediction Platform"
+description = "A cultural prediction platform where users forecast trends in fashion, home design, Boston real estate, weather, and culture. Users start with 10,000 virtual tokens, make YES/NO predictions on markets, earn points for accuracy, and build reputation as trend forecasters. Features a beautiful swipeable market feed, category leaderboards, user profiles with accuracy stats, and an admin panel to create and resolve markets."
+version = "1.0.0"
+id = "artifacts/forecast"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23583
+
+[services.development]
+run = "pnpm --filter @workspace/forecast run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/forecast", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/forecast/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23583"
+BASE_PATH = "/"

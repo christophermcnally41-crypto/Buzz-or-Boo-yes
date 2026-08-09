@@ -1,0 +1,26 @@
+import { pgTable, text, serial, timestamp, integer, real } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const marketsTable = pgTable("markets", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  question: text("question").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE
+  subcategory: text("subcategory").notNull(),
+  imageUrl: text("image_url"),
+  status: text("status").notNull().default("OPEN"), // OPEN, CLOSED, RESOLVED
+  yesCount: integer("yes_count").notNull().default(0),
+  noCount: integer("no_count").notNull().default(0),
+  totalPredictions: integer("total_predictions").notNull().default(0),
+  resolutionSource: text("resolution_source"),
+  closesAt: timestamp("closes_at", { withTimezone: true }),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  resolvedOutcome: text("resolved_outcome"), // YES or NO
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertMarketSchema = createInsertSchema(marketsTable).omit({ id: true, createdAt: true });
+export type InsertMarket = z.infer<typeof insertMarketSchema>;
+export type Market = typeof marketsTable.$inferSelect;

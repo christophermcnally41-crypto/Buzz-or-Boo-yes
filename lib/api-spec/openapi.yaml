@@ -3,13 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: What's Coming — Cultural Prediction Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: markets
+    description: Prediction markets
+  - name: predictions
+    description: User predictions
+  - name: users
+    description: User profiles and stats
+  - name: leaderboard
+    description: Forecaster rankings
+  - name: admin
+    description: Admin operations
 paths:
   /healthz:
     get:
@@ -24,6 +34,327 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /markets:
+    get:
+      operationId: listMarkets
+      tags: [markets]
+      summary: List markets
+      description: List prediction markets with optional filters
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, CLOSED, RESOLVED]
+        - name: limit
+          in: query
+          schema:
+            type: number
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: number
+            default: 0
+      responses:
+        "200":
+          description: List of markets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketList"
+
+  /markets/trending:
+    get:
+      operationId: getTrendingMarkets
+      tags: [markets]
+      summary: Get trending markets
+      description: Returns the most active markets by prediction count
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Trending markets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketList"
+
+  /markets/categories:
+    get:
+      operationId: getMarketCategories
+      tags: [markets]
+      summary: Get category stats
+      description: Returns market counts and activity by category
+      responses:
+        "200":
+          description: Category breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryStat"
+
+  /markets/{id}:
+    get:
+      operationId: getMarket
+      tags: [markets]
+      summary: Get market details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Market detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /markets/{id}/predict:
+    post:
+      operationId: makePrediction
+      tags: [predictions]
+      summary: Make a prediction on a market
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictionInput"
+      responses:
+        "201":
+          description: Prediction made
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prediction"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /markets/{id}/predictions:
+    get:
+      operationId: getMarketPredictions
+      tags: [predictions]
+      summary: Get predictions for a market
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of predictions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prediction"
+
+  /stats/summary:
+    get:
+      operationId: getPlatformStats
+      tags: [markets]
+      summary: Get platform-wide stats
+      description: Total markets, predictions, users, accuracy averages
+      responses:
+        "200":
+          description: Platform summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{id}/predictions:
+    get:
+      operationId: getUserPredictions
+      tags: [predictions]
+      summary: Get predictions by user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: User predictions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserPrediction"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get top forecasters
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, OVERALL]
+        - name: limit
+          in: query
+          schema:
+            type: number
+            default: 20
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /admin/markets:
+    get:
+      operationId: adminListMarkets
+      tags: [admin]
+      summary: Admin — list all markets including drafts
+      responses:
+        "200":
+          description: All markets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketList"
+    post:
+      operationId: createMarket
+      tags: [admin]
+      summary: Admin — create a new market
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketInput"
+      responses:
+        "201":
+          description: Created market
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/markets/{id}/resolve:
+    patch:
+      operationId: resolveMarket
+      tags: [admin]
+      summary: Admin — resolve a market with an outcome
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketResolution"
+      responses:
+        "200":
+          description: Resolved market
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +365,290 @@ components:
       required:
         - status
 
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Market:
+      type: object
+      required:
+        - id
+        - title
+        - question
+        - category
+        - subcategory
+        - status
+        - yesCount
+        - noCount
+        - totalPredictions
+        - createdAt
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        question:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: string
+          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE]
+        subcategory:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [OPEN, CLOSED, RESOLVED]
+        yesCount:
+          type: number
+        noCount:
+          type: number
+        totalPredictions:
+          type: number
+        yesPercent:
+          type: number
+        noPercent:
+          type: number
+        resolutionSource:
+          type: ["string", "null"]
+        closesAt:
+          type: ["string", "null"]
+        resolvedAt:
+          type: ["string", "null"]
+        resolvedOutcome:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    MarketList:
+      type: object
+      required:
+        - markets
+        - total
+      properties:
+        markets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Market"
+        total:
+          type: number
+
+    CategoryStat:
+      type: object
+      required:
+        - category
+        - totalMarkets
+        - openMarkets
+        - totalPredictions
+      properties:
+        category:
+          type: string
+        totalMarkets:
+          type: number
+        openMarkets:
+          type: number
+        totalPredictions:
+          type: number
+
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - tokenBalance
+        - totalPredictions
+        - totalResolved
+        - createdAt
+      properties:
+        id:
+          type: number
+        username:
+          type: string
+        email:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        tokenBalance:
+          type: number
+        totalPredictions:
+          type: number
+        totalResolved:
+          type: number
+        totalCorrect:
+          type: number
+        overallAccuracy:
+          type: ["number", "null"]
+        styleAccuracy:
+          type: ["number", "null"]
+        homeAccuracy:
+          type: ["number", "null"]
+        cityAccuracy:
+          type: ["number", "null"]
+        realEstateAccuracy:
+          type: ["number", "null"]
+        weatherAccuracy:
+          type: ["number", "null"]
+        cultureAccuracy:
+          type: ["number", "null"]
+        rank:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+
+    Prediction:
+      type: object
+      required:
+        - id
+        - userId
+        - marketId
+        - choice
+        - amount
+        - createdAt
+      properties:
+        id:
+          type: number
+        userId:
+          type: number
+        marketId:
+          type: number
+        choice:
+          type: string
+          enum: [YES, NO]
+        amount:
+          type: number
+        isCorrect:
+          type: ["boolean", "null"]
+        tokensEarned:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+
+    UserPrediction:
+      type: object
+      required:
+        - id
+        - userId
+        - marketId
+        - choice
+        - amount
+        - createdAt
+      properties:
+        id:
+          type: number
+        userId:
+          type: number
+        marketId:
+          type: number
+        market:
+          $ref: "#/components/schemas/Market"
+        choice:
+          type: string
+          enum: [YES, NO]
+        amount:
+          type: number
+        isCorrect:
+          type: ["boolean", "null"]
+        tokensEarned:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+
+    LeaderboardEntry:
+      type: object
+      required:
+        - rank
+        - user
+        - accuracy
+        - totalPredictions
+        - totalCorrect
+      properties:
+        rank:
+          type: number
+        user:
+          $ref: "#/components/schemas/User"
+        accuracy:
+          type: number
+        totalPredictions:
+          type: number
+        totalCorrect:
+          type: number
+        tokensEarned:
+          type: number
+
+    PlatformStats:
+      type: object
+      required:
+        - totalMarkets
+        - openMarkets
+        - totalPredictions
+        - totalUsers
+        - resolvedMarkets
+      properties:
+        totalMarkets:
+          type: number
+        openMarkets:
+          type: number
+        resolvedMarkets:
+          type: number
+        totalPredictions:
+          type: number
+        totalUsers:
+          type: number
+        avgAccuracy:
+          type: ["number", "null"]
+
+    PredictionInput:
+      type: object
+      required:
+        - userId
+        - choice
+        - amount
+      properties:
+        userId:
+          type: number
+        choice:
+          type: string
+          enum: [YES, NO]
+        amount:
+          type: number
+
+    MarketInput:
+      type: object
+      required:
+        - title
+        - question
+        - category
+        - subcategory
+      properties:
+        title:
+          type: string
+        question:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE]
+        subcategory:
+          type: string
+        imageUrl:
+          type: string
+        resolutionSource:
+          type: string
+        closesAt:
+          type: string
+
+    MarketResolution:
+      type: object
+      required:
+        - outcome
+      properties:
+        outcome:
+          type: string
+          enum: [YES, NO]
