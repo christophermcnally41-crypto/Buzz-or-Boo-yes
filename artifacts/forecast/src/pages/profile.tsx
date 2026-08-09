@@ -138,7 +138,7 @@ export default function Profile() {
                   const isMultiChoice = pred.market?.marketFormat === "MULTI_CHOICE";
 
                   // Resolve contender name for MULTI_CHOICE markets
-                  let choiceLabel = pred.choice;
+                  let choiceLabel: string = pred.choice as string;
                   if (isMultiChoice && pred.market?.description) {
                     try {
                       const data = JSON.parse(pred.market.description);
