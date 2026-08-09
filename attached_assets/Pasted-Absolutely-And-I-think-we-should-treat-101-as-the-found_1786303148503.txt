@@ -1,0 +1,137 @@
+Absolutely. And I think we should treat **101 as the foundation, not the finish line**.
+
+What you’re describing now is a full **Local Social & Culture layer**—the stuff people actually talk about when they’re out with friends: what’s hot, what’s dying, where people are going, which neighborhood is changing, which business is blowing up, what opening actually matters.
+
+I’d build the next expansion like this:
+
+### Markets 102–120 — LOCAL SOCIAL & CULTURE
+
+**102. 🔥 THE HOT NEIGHBORHOOD**
+Which Boston neighborhood will show the greatest growth in measurable local buzz this month?
+Back Bay / South End / Seaport / Fenway / South Boston
+
+**103. 📈 NEIGHBORHOOD FACE-OFF**
+Which neighborhood gains more restaurant/bar Google reviews this month?
+**South End vs. Seaport**
+
+**104. 👀 STILL COOL?**
+Will [venue] maintain or increase its monthly Google-review volume 90 days from now?
+
+**105. 🚀 VIRAL → REAL**
+Will [viral Boston business] reach 50,000 Instagram followers before [date]?
+
+**106. 📱 CREATOR WATCH**
+Will [Boston creator] reach 100K followers before [date]?
+
+**107. ⚔️ CREATOR FACE-OFF**
+Which Boston creator gains more followers during the next 30 days?
+
+**108. 🍝 THE VIRAL DISH**
+Will social engagement around [restaurant/dish] remain above a predefined threshold 60 days from now?
+
+**109. 🥐 FOOD TREND BATTLE**
+Which Boston food trend generates more measurable search/social growth this month?
+Example: matcha vs. specialty croissants.
+
+**110. 🍸 NIGHTLIFE HEAT CHECK**
+Which Boston nightlife venue gains more Google reviews over the next four weekends?
+
+**111. 🪩 STILL PACKED?**
+Will [new bar/club] maintain a defined level of weekend review/check-in activity three months after opening?
+
+**112. 🎪 POP-UP → PERMANENT**
+Will [Boston pop-up] announce a permanent location before [date]?
+
+**113. 🏪 DIGITAL → PHYSICAL**
+Will [Boston online brand] announce its first permanent storefront before year-end?
+
+**114. 🚀 LOCAL BRAND WATCH**
+Will [Boston brand] reach X followers/reviews/locations before [date]?
+
+**115. 🎟 EVENT BREAKOUT**
+Which new Boston event series will achieve the greatest measurable attendance/sellout growth this season?
+
+**116. 💨 HOW FAST?**
+Will [event] sell out within 24 hours of tickets going on sale?
+
+**117. 📍 WHERE'S EVERYONE GOING?**
+Which Boston neighborhood's selected hospitality businesses gain the most combined reviews this weekend?
+
+**118. ☀️ SUMMER HOT SPOT**
+Which neighborhood records the strongest hospitality-buzz growth from Memorial Day through Labor Day?
+
+**119. 🏆 BOSTON BREAKOUT**
+Which nominated new local business experiences the greatest percentage growth in Google reviews over the next 90 days?
+
+**120. 👑 AHEAD 100**
+Will a business currently outside Boston's predefined Top 100 local-business ranking break into it before the next quarterly ranking?
+
+That gets us to **120**.
+
+But then I'd build out several additional families because this is where the idea becomes a *city operating system for what's next*:
+
+**Beauty & Wellness:** Which salon is surging? Which spa gets hotter? Which fitness concept expands? Will a med-spa open another location?
+
+**Shopping & Retail:** Which Newbury Street store gets more traffic/reviews? Which brand opens next? Which retailer closes? Which pop-up becomes permanent?
+
+**Arts & Entertainment:** Which exhibition draws more visitors? Will a local production extend? Which music venue has the strongest quarter?
+
+**Development:** Will that empty storefront become a restaurant? Will that construction project finish on schedule? Which announced development opens first?
+
+**Transportation:** Will a particular MBTA project finish on time? Will Logan cancellations exceed X? Will a new route launch by its announced date?
+
+And then there's a category I think could be particularly powerful:
+
+### 🗣️ "BOSTON SAYS"
+
+These wouldn't necessarily be prediction markets. They're **real-time sentiment questions sitting alongside prediction markets**.
+
+> **Best first-date restaurant right now?**
+
+> **Most overrated Boston restaurant?**
+
+> **Which neighborhood feels like it's about to blow up?**
+
+> **Best new bar?**
+
+> **Which restaurant is impossible to get into but actually worth it?**
+
+Those results don't need to settle for points because they're opinion polls.
+
+But they create **engagement and data between prediction opportunities**.
+
+Then a Boston Says result can *generate a prediction market*.
+
+For example:
+
+**BOSTON SAYS**
+
+> Most likely neighborhood to blow up next?
+
+South End 12%
+East Boston **38%**
+Dorchester 24%
+Allston 17%
+Other 9%
+
+↓
+
+AHEAD automatically creates:
+
+> **Will East Boston experience the greatest restaurant-opening growth among these neighborhoods over the next 12 months?**
+
+Now opinion becomes a **testable forecast**.
+
+That loop could be fantastic:
+
+**People talk → AHEAD identifies the signal → market opens → people predict → reality happens → forecasters are scored → rankings change → people talk about the result.**
+
+That's the community engine.
+
+And I think our next working document should become the **AHEAD Market Bible** rather than continuing to generate questions randomly. We put all **120 markets** into categories and define for every one:
+
+**Market # → Display title → Actual question → Market type → Geographic level → Duration → Resolution source → Resolution rule → Update frequency → User scoring → Example app card.**
+
+Then when we add #121, #122, #123, we're building an actual product database rather than accumulating ideas.
+
+That's the point where this starts becoming something you could literally hand to a developer and say: **“Build this.”**

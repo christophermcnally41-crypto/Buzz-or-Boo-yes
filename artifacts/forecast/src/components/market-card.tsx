@@ -7,11 +7,13 @@ import { getCategoryLabel, getCategoryIcon } from "@/lib/categories";
 import { getMarketColors } from "@/lib/market-colors";
 import { HotOrNotCard } from "./hot-or-not-card";
 import { HeadToHeadCard } from "./head-to-head-card";
+import { MultiChoiceCard } from "./multi-choice-card";
 
 export function MarketCard({ market, featured = false }: { market: Market, featured?: boolean }) {
-  // Route to specialised card formats for LOCAL PULSE markets
+  // Route to specialised card formats
   if (market.marketFormat === "HOT_OR_NOT") return <HotOrNotCard market={market} />;
   if (market.marketFormat === "HEAD_TO_HEAD") return <HeadToHeadCard market={market} />;
+  if (market.marketFormat === "MULTI_CHOICE") return <MultiChoiceCard market={market} />;
 
   const isResolved = market.status === "RESOLVED";
   const yesPercent = market.yesPercent || 50;

@@ -5,10 +5,9 @@
  * What's Coming — Cultural Prediction Platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { PredictionInputChoice } from './predictionInputChoice';
 
 export interface PredictionInput {
   userId: number;
-  choice: PredictionInputChoice;
+  choice: string;
   amount: number;
 }

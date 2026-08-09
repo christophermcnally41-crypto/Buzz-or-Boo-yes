@@ -13,4 +13,5 @@ export const MarketInputMarketFormat = {
   STANDARD: 'STANDARD',
   HOT_OR_NOT: 'HOT_OR_NOT',
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
+  MULTI_CHOICE: 'MULTI_CHOICE',
 } as const;

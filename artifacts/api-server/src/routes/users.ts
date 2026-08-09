@@ -30,9 +30,20 @@ function enrichMarket(m: typeof marketsTable.$inferSelect) {
   };
 }
 
-// GET /users/me — returns user id=1 (demo user for MVP)
-router.get("/users/me", async (_req, res): Promise<void> => {
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, 1));
+// GET /users/me — returns the authenticated user's platform profile
+router.get("/users/me", async (req, res): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const platformId = parseInt(req.user.id, 10);
+  if (isNaN(platformId)) {
+    res.status(400).json({ error: "Invalid user id in session" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, platformId));
 
   if (!user) {
     res.status(404).json({ error: "User not found" });

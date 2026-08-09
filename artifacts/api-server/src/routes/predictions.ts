@@ -10,6 +10,18 @@ import {
 const router: IRouter = Router();
 
 router.post("/markets/:id/predict", async (req, res): Promise<void> => {
+  // Require authentication
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "You must be logged in to make predictions" });
+    return;
+  }
+
+  const userId = parseInt(req.user.id, 10);
+  if (isNaN(userId)) {
+    res.status(400).json({ error: "Invalid user id in session" });
+    return;
+  }
+
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = MakePredictionParams.safeParse({ id: Number(raw) });
   if (!params.success) {
@@ -23,7 +35,7 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     return;
   }
 
-  const { userId, choice, amount } = parsed.data;
+  const { choice, amount } = parsed.data;
   const marketId = params.data.id;
 
   // Validate market exists and is open
@@ -76,8 +88,13 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     .values({ userId, marketId, choice, amount: betAmount })
     .returning();
 
-  // Update market counts
-  if (choice === "YES") {
+  // Update market counts — for MULTI_CHOICE only increment total; for YES/NO markets update yes/no counts
+  if (market.marketFormat === "MULTI_CHOICE") {
+    await db
+      .update(marketsTable)
+      .set({ totalPredictions: market.totalPredictions + 1 })
+      .where(eq(marketsTable.id, marketId));
+  } else if (choice === "YES") {
     await db
       .update(marketsTable)
       .set({

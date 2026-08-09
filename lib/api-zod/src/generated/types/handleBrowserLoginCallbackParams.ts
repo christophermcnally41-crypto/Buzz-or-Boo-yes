@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface MarketResolution {
-  outcome: string;
-}
+export type HandleBrowserLoginCallbackParams = {
+code?: string;
+state?: string;
+};

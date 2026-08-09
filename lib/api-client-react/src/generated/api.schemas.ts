@@ -33,6 +33,7 @@ export const MarketMarketFormat = {
   STANDARD: 'STANDARD',
   HOT_OR_NOT: 'HOT_OR_NOT',
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
+  MULTI_CHOICE: 'MULTI_CHOICE',
 } as const;
 
 export type MarketStatus = typeof MarketStatus[keyof typeof MarketStatus];
@@ -176,17 +177,9 @@ export interface PlatformStats {
   avgAccuracy?: number | null;
 }
 
-export type PredictionInputChoice = typeof PredictionInputChoice[keyof typeof PredictionInputChoice];
-
-
-export const PredictionInputChoice = {
-  YES: 'YES',
-  NO: 'NO',
-} as const;
-
 export interface PredictionInput {
   userId: number;
-  choice: PredictionInputChoice;
+  choice: string;
   amount: number;
 }
 
@@ -210,6 +203,7 @@ export const MarketInputMarketFormat = {
   STANDARD: 'STANDARD',
   HOT_OR_NOT: 'HOT_OR_NOT',
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
+  MULTI_CHOICE: 'MULTI_CHOICE',
 } as const;
 
 export interface MarketInput {
@@ -224,17 +218,55 @@ export interface MarketInput {
   closesAt?: string;
 }
 
-export type MarketResolutionOutcome = typeof MarketResolutionOutcome[keyof typeof MarketResolutionOutcome];
+export interface AuthUser {
+  id: string;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  profileImageUrl: string | null;
+}
 
+export interface AuthUserEnvelope {
+  user: AuthUser | null;
+}
 
-export const MarketResolutionOutcome = {
-  YES: 'YES',
-  NO: 'NO',
-} as const;
+export interface MobileTokenExchangeRequest {
+  /** @minLength 1 */
+  code: string;
+  /** @minLength 1 */
+  code_verifier: string;
+  /** @minLength 1 */
+  redirect_uri: string;
+  /** @minLength 1 */
+  state: string;
+  /** @minLength 1 */
+  nonce?: string;
+}
+
+export interface MobileTokenExchangeSuccess {
+  token: string;
+}
+
+export interface LogoutSuccess {
+  success: boolean;
+}
+
+export interface ErrorEnvelope {
+  error: string;
+}
 
 export interface MarketResolution {
-  outcome: MarketResolutionOutcome;
+  outcome: string;
 }
+
+/**
+ * Opaque session token — Bearer <sid>.
+ */
+export type AuthorizationSessionHeaderParameter = string;
 
 export type ListMarketsParams = {
 category?: ListMarketsCategory;
@@ -287,4 +319,17 @@ export const GetLeaderboardCategory = {
   LOCAL_PULSE: 'LOCAL_PULSE',
   OVERALL: 'OVERALL',
 } as const;
+
+export type BeginBrowserLoginParams = {
+returnTo?: string;
+};
+
+export type HandleBrowserLoginCallbackParams = {
+code?: string;
+state?: string;
+};
+
+export type LogoutBrowserSessionParams = {
+returnTo?: string;
+};
 

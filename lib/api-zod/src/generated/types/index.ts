@@ -6,16 +6,24 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './authorizationSessionHeaderParameter';
+export * from './authUser';
+export * from './authUserEnvelope';
+export * from './beginBrowserLoginParams';
 export * from './categoryStat';
 export * from './error';
+export * from './errorEnvelope';
 export * from './getLeaderboardCategory';
 export * from './getLeaderboardParams';
 export * from './getTrendingMarketsParams';
+export * from './handleBrowserLoginCallbackParams';
 export * from './healthStatus';
 export * from './leaderboardEntry';
 export * from './listMarketsCategory';
 export * from './listMarketsParams';
 export * from './listMarketsStatus';
+export * from './logoutBrowserSessionParams';
+export * from './logoutSuccess';
 export * from './market';
 export * from './marketCategory';
 export * from './marketInput';
@@ -24,13 +32,13 @@ export * from './marketInputMarketFormat';
 export * from './marketList';
 export * from './marketMarketFormat';
 export * from './marketResolution';
-export * from './marketResolutionOutcome';
 export * from './marketStatus';
+export * from './mobileTokenExchangeRequest';
+export * from './mobileTokenExchangeSuccess';
 export * from './platformStats';
 export * from './prediction';
 export * from './predictionChoice';
 export * from './predictionInput';
-export * from './predictionInputChoice';
 export * from './user';
 export * from './userPrediction';
 export * from './userPredictionChoice';

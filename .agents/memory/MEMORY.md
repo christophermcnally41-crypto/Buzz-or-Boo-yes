@@ -1,0 +1,4 @@
+- [Auth bridge pattern](auth-bridge.md) — Replit Auth uses string UUIDs; our platform users have integer IDs. Bridge via replitId column.
+- [Zod v3 format pitfalls](zod-v3-codegen.md) — format:email → z.email() and format:uri → z.url() don't exist in Zod v3; remove format annotations from openapi.yaml to avoid codegen failures.
+- [MULTI_CHOICE market format](multi-choice-markets.md) — contender votes stored in predictions.choice (key A–E); yesCount/noCount not updated; counts aggregated client-side from predictions data.
+- [replit-auth-web lib](replit-auth-web-tsconfig.md) — browser-only lib with import.meta.env; exclude from root tsconfig.json references (breaks typecheck:libs); Vite resolves it via package.json exports.

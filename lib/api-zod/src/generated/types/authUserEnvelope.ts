@@ -5,7 +5,8 @@
  * What's Coming — Cultural Prediction Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { AuthUser } from './authUser';
 
-export interface MarketResolution {
-  outcome: string;
+export interface AuthUserEnvelope {
+  user: AuthUser | null;
 }

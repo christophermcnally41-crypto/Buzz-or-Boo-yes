@@ -19,25 +19,43 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { CATEGORIES, getCategoryLabel } from "@/lib/categories";
-import { Shield, CheckCircle2, XCircle } from "lucide-react";
+import { getCategoryLabel } from "@/lib/categories";
+import { Shield, CheckCircle2, XCircle, Crown } from "lucide-react";
 import { Link } from "wouter";
+
+const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE"] as const;
 
 const formSchema = z.object({
   title: z.string().min(5),
   question: z.string().min(10),
   description: z.string().optional(),
-  category: z.enum(["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE"]),
+  category: z.enum(ALL_CATEGORIES),
   subcategory: z.string().min(2),
   imageUrl: z.string().url().optional().or(z.literal("")),
   resolutionSource: z.string().optional(),
   closesAt: z.string().optional(),
 });
 
+interface MultiChoiceContender {
+  key: string;
+  name: string;
+  venue?: string;
+}
+
+function parseContenders(description: string | null | undefined): MultiChoiceContender[] {
+  if (!description) return [];
+  try {
+    const parsed = JSON.parse(description);
+    if (Array.isArray(parsed.contenders)) return parsed.contenders;
+  } catch {}
+  return [];
+}
+
 export default function Admin() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
 
   const { data: markets, isLoading } = useAdminListMarkets({
     query: { queryKey: getAdminListMarketsQueryKey() }
@@ -71,20 +89,25 @@ export default function Admin() {
     });
   };
 
-  const handleResolve = (id: number, outcome: "YES" | "NO") => {
-    if (!confirm(`Are you sure you want to resolve this market as ${outcome}? This cannot be undone.`)) return;
+  const handleResolve = (id: number, outcome: string) => {
+    if (!confirm(`Are you sure you want to resolve this market as "${outcome}"? This cannot be undone.`)) return;
 
+    setResolvingId(id);
     resolveMarket.mutate({ id, data: { outcome } }, {
       onSuccess: () => {
-        toast({ title: `Market resolved as ${outcome}` });
+        toast({ title: `Market resolved: ${outcome}` });
         queryClient.invalidateQueries({ queryKey: getAdminListMarketsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListMarketsQueryKey() });
+        setResolvingId(null);
       },
       onError: () => {
         toast({ title: "Failed to resolve market", variant: "destructive" });
+        setResolvingId(null);
       }
     });
   };
+
+  const openMarkets = markets?.markets?.filter(m => m.status === 'OPEN') ?? [];
 
   return (
     <div className="min-h-screen bg-muted/20 pb-24">
@@ -128,7 +151,7 @@ export default function Admin() {
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map(cat => (
+                        {ALL_CATEGORIES.map(cat => (
                           <SelectItem key={cat} value={cat}>{getCategoryLabel(cat)}</SelectItem>
                         ))}
                       </SelectContent>
@@ -147,7 +170,7 @@ export default function Admin() {
 
                 <div className="space-y-2">
                   <Label>Description (Optional)</Label>
-                  <Textarea {...form.register("description")} placeholder="Additional context..." />
+                  <Textarea {...form.register("description")} placeholder="Additional context, or JSON for special formats..." />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -171,56 +194,95 @@ export default function Admin() {
 
         {/* Manage Open Markets */}
         <div className="lg:col-span-2">
-          <h2 className="text-2xl font-editorial font-bold mb-6">Active Markets Needs Resolution</h2>
+          <h2 className="text-2xl font-editorial font-bold mb-6">Active Markets — Needs Resolution</h2>
           
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-xl" />)}
             </div>
-          ) : markets?.markets && markets.markets.length > 0 ? (
+          ) : openMarkets.length > 0 ? (
             <div className="space-y-4">
-              {markets.markets.filter(m => m.status === 'OPEN').map(market => (
-                <Card key={market.id} className="overflow-hidden">
-                  <div className="p-5 flex flex-col md:flex-row gap-4 justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2 text-xs">
-                        <Badge variant="secondary">{market.category}</Badge>
-                        <span className="text-muted-foreground">ID: {market.id}</span>
+              {openMarkets.map(market => {
+                const isMultiChoice = market.marketFormat === 'MULTI_CHOICE';
+                const contenders = isMultiChoice ? parseContenders(market.description) : [];
+                const isResolving = resolvingId === market.id;
+
+                return (
+                  <Card key={market.id} className="overflow-hidden">
+                    <div className="p-5 flex flex-col gap-4">
+                      <div className="flex flex-col md:flex-row gap-4 justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2 text-xs flex-wrap">
+                            <Badge variant="secondary">{market.category}</Badge>
+                            {isMultiChoice && (
+                              <Badge variant="outline" className="gap-1">
+                                <Crown className="w-3 h-3" /> Multi-Choice
+                              </Badge>
+                            )}
+                            <span className="text-muted-foreground">ID: {market.id}</span>
+                          </div>
+                          <Link href={`/markets/${market.id}`}>
+                            <h4 className="font-editorial font-bold text-lg hover:text-primary transition-colors">
+                              {market.question}
+                            </h4>
+                          </Link>
+                          <div className="text-sm text-muted-foreground mt-2 font-mono-numbers">
+                            {market.totalPredictions} predictions
+                            {!isMultiChoice && ` • ${market.yesCount} YES / ${market.noCount} NO`}
+                          </div>
+                        </div>
+
+                        {!isMultiChoice && (
+                          <div className="flex flex-col md:items-end justify-center gap-2 shrink-0 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-4">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Resolve As</span>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="bg-green-500/10 text-green-700 hover:bg-green-500 hover:text-white border-green-200"
+                                onClick={() => handleResolve(market.id, 'YES')}
+                                disabled={isResolving}
+                              >
+                                <CheckCircle2 className="w-4 h-4 mr-1" /> YES
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="bg-red-500/10 text-red-700 hover:bg-red-500 hover:text-white border-red-200"
+                                onClick={() => handleResolve(market.id, 'NO')}
+                                disabled={isResolving}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" /> NO
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <Link href={`/markets/${market.id}`}>
-                        <h4 className="font-editorial font-bold text-lg hover:text-primary transition-colors">
-                          {market.question}
-                        </h4>
-                      </Link>
-                      <div className="text-sm text-muted-foreground mt-2 font-mono-numbers">
-                        {market.totalPredictions} predictions • {market.yesCount} YES / {market.noCount} NO
-                      </div>
+
+                      {/* Multi-choice contender resolution */}
+                      {isMultiChoice && contenders.length > 0 && (
+                        <div className="border-t border-border pt-4">
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Declare Winner</p>
+                          <div className="flex flex-wrap gap-2">
+                            {contenders.map(c => (
+                              <Button
+                                key={c.key}
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 hover:bg-primary hover:text-primary-foreground border-primary/30"
+                                onClick={() => handleResolve(market.id, c.key)}
+                                disabled={isResolving}
+                              >
+                                <Crown className="w-3 h-3" /> {c.name}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    
-                    <div className="flex flex-col md:items-end justify-center gap-2 shrink-0 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-4">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Resolve As</span>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="bg-green-500/10 text-green-700 hover:bg-green-500 hover:text-white border-green-200"
-                          onClick={() => handleResolve(market.id, 'YES')}
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-1" /> YES
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="bg-red-500/10 text-red-700 hover:bg-red-500 hover:text-white border-red-200"
-                          onClick={() => handleResolve(market.id, 'NO')}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" /> NO
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12 bg-card rounded-xl border border-border">

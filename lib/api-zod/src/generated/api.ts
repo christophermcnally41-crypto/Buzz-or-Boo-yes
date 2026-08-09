@@ -39,7 +39,7 @@ export const ListMarketsResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -75,7 +75,7 @@ export const GetTrendingMarketsResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -120,7 +120,7 @@ export const GetMarketResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -145,7 +145,7 @@ export const MakePredictionParams = zod.object({
 
 export const MakePredictionBody = zod.object({
   "userId": zod.number(),
-  "choice": zod.enum(['YES', 'NO']),
+  "choice": zod.string(),
   "amount": zod.number()
 })
 
@@ -265,7 +265,7 @@ export const GetUserPredictionsResponseItem = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -338,7 +338,7 @@ export const AdminListMarketsResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -365,7 +365,7 @@ export const CreateMarketBody = zod.object({
   "description": zod.string().optional(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "imageUrl": zod.string().optional(),
   "resolutionSource": zod.string().optional(),
   "closesAt": zod.string().optional()
@@ -378,7 +378,7 @@ export const CreateMarketResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -402,7 +402,7 @@ export const ResolveMarketParams = zod.object({
 })
 
 export const ResolveMarketBody = zod.object({
-  "outcome": zod.enum(['YES', 'NO'])
+  "outcome": zod.string()
 })
 
 export const ResolveMarketResponse = zod.object({
@@ -412,7 +412,7 @@ export const ResolveMarketResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -425,6 +425,96 @@ export const ResolveMarketResponse = zod.object({
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Get the currently authenticated user
+ */
+export const GetCurrentAuthUserHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — Bearer <sid>.')
+})
+
+export const GetCurrentAuthUserResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().nullable(),
+  "firstName": zod.string().nullable(),
+  "lastName": zod.string().nullable(),
+  "profileImageUrl": zod.string().nullable()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Start the browser OIDC login flow
+ */
+export const BeginBrowserLoginQueryParams = zod.object({
+  "returnTo": zod.coerce.string().optional()
+})
+
+export const BeginBrowserLoginResponse = zod.void()
+
+
+/**
+ * @summary Complete the browser OIDC login flow
+ */
+export const HandleBrowserLoginCallbackQueryParams = zod.object({
+  "code": zod.coerce.string().optional(),
+  "state": zod.coerce.string().optional()
+})
+
+export const HandleBrowserLoginCallbackResponse = zod.void()
+
+
+/**
+ * @summary Clear the session and begin OIDC logout
+ */
+export const logoutBrowserSessionQueryReturnToDefault = `/`;
+
+export const LogoutBrowserSessionQueryParams = zod.object({
+  "returnTo": zod.coerce.string().default(logoutBrowserSessionQueryReturnToDefault)
+})
+
+export const LogoutBrowserSessionHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — Bearer <sid>.')
+})
+
+export const LogoutBrowserSessionResponse = zod.void()
+
+
+/**
+ * @summary Exchange a mobile OIDC code for a session token
+ */
+
+
+
+
+
+
+
+export const ExchangeMobileAuthorizationCodeBody = zod.object({
+  "code": zod.string().min(1),
+  "code_verifier": zod.string().min(1),
+  "redirect_uri": zod.string().min(1),
+  "state": zod.string().min(1),
+  "nonce": zod.string().min(1).optional()
+})
+
+export const ExchangeMobileAuthorizationCodeResponse = zod.object({
+  "token": zod.string()
+})
+
+
+/**
+ * @summary Delete a mobile session token
+ */
+export const LogoutMobileSessionHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — Bearer <sid>.')
+})
+
+export const LogoutMobileSessionResponse = zod.object({
+  "success": zod.boolean()
 })
 
 
