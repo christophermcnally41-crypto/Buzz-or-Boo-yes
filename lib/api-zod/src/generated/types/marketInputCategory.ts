@@ -16,4 +16,5 @@ export const MarketInputCategory = {
   REAL_ESTATE: 'REAL_ESTATE',
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
+  LOCAL_PULSE: 'LOCAL_PULSE',
 } as const;

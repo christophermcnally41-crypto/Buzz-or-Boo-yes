@@ -46,7 +46,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE]
+            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE]
         - name: status
           in: query
           schema:
@@ -266,7 +266,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, OVERALL]
+            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, OVERALL]
         - name: limit
           in: query
           schema:
@@ -397,9 +397,12 @@ components:
           type: ["string", "null"]
         category:
           type: string
-          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE]
+          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE]
         subcategory:
           type: string
+        marketFormat:
+          type: string
+          enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD]
         imageUrl:
           type: ["string", "null"]
         status:
@@ -634,9 +637,12 @@ components:
           type: string
         category:
           type: string
-          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE]
+          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE]
         subcategory:
           type: string
+        marketFormat:
+          type: string
+          enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD]
         imageUrl:
           type: string
         resolutionSource:

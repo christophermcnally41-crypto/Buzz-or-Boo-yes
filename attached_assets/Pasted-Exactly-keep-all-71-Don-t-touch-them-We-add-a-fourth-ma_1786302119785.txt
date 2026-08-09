@@ -1,0 +1,166 @@
+Exactly — **keep all 71. Don't touch them.** We add a fourth major content layer on top: **LOCAL PULSE**.
+
+That actually makes the concept stronger because 71 becomes our original market library, not an arbitrary launch limit.
+
+I'd add **30 Local Pulse markets**, bringing us to **101**.
+
+### 🔥 LOCAL PULSE — Markets 72–101
+
+**72. RESTAURANT FACE-OFF**
+Which restaurant will gain more new Google reviews over the next 30 days?
+**Restaurant A vs. Restaurant B**
+
+**73. ⭐ STAR WATCH**
+Will [Restaurant] reach a **4.6 Google rating** by [date]?
+
+**74. HOLD THE RATING**
+Will [new restaurant] maintain **4.5★+** after reaching 250 Google reviews?
+
+**75. WHO'S HOTTER?**
+Which of these two new restaurants will have the higher Google rating 90 days from today?
+
+**76. 🔥 BUZZ BATTLE**
+Which restaurant gains more Google reviews this weekend?
+
+**77. RESERVATION WATCH**
+Will [Restaurant] have **no prime-time Saturday reservation availability** 7 days in advance for four consecutive weeks?
+
+**78. STILL HOT?**
+Will [Restaurant] still have fewer than X prime-time Saturday reservations available 90 days after opening?
+
+**79. THE 1,000 CLUB**
+Will [Restaurant] reach 1,000 Google reviews before [date]?
+
+**80. RISING STAR**
+Will [Restaurant]'s Google rating increase by at least 0.2 stars during the next 90 days?
+
+**81. FALLING STAR**
+Will [Restaurant]'s Google rating decrease by at least 0.2 stars during the next 90 days?
+
+**82. NEW RESTAURANT RACE**
+Which of 4–5 new Boston restaurants will have the highest Google rating six months after opening?
+
+**83. MOST TALKED ABOUT**
+Which Boston restaurant gains the most Google reviews this month among a predefined group?
+
+**84. NEIGHBORHOOD FOOD FIGHT**
+Which neighborhood records more new restaurant openings this quarter?
+**South End vs. Back Bay**, for example.
+
+**85. OPENING WATCH**
+Will [Restaurant] actually open by its announced opening date?
+
+**86. DELAYED AGAIN?**
+Will [anticipated restaurant] delay its opening beyond [date]?
+
+**87. LAST CALL**
+Will [Restaurant/Bar] permanently close before year-end?
+
+**88. SECOND LOCATION**
+Will [local restaurant] announce another Massachusetts location before [date]?
+
+**89. BOSTON → NYC**
+Will [Boston restaurant/chef] announce a New York location before [date]?
+
+**90. 🍸 BAR BATTLE**
+Which cocktail bar gains more Google reviews over the next 60 days?
+
+**91. ☕ COFFEE WARS**
+Which coffee shop gains more new Google reviews this month?
+
+**92. 🛍 NEWBURY WATCH**
+Will [vacant Newbury Street storefront] have a new tenant announced before [date]?
+
+**93. RETAIL OPENING RACE**
+Which announced Boston retailer opens first?
+
+**94. STORE SCORE**
+Will [new store] achieve a 4.5★+ Google rating after its first 100 reviews?
+
+**95. 🏋️ FITNESS BATTLE**
+Which Boston fitness studio gains more Google reviews during the next 90 days?
+
+**96. EXPANSION WATCH**
+Will [fitness/wellness brand] announce another Boston-area location before year-end?
+
+**97. 🎟 SELL-OUT WATCH**
+Will [Boston event] officially sell out before its scheduled date?
+
+**98. 🎶 BUZZ BEFORE THE SHOW**
+Will resale prices for [Boston concert/event] exceed original face value by X% seven days before the event?
+Resolution source specified beforehand.
+
+**99. 🏨 HOTEL HEAD-TO-HEAD**
+Which Boston hotel will have the higher Google rating on [date]?
+
+**100. 🏙 NEIGHBORHOOD HEAT CHECK**
+Which Boston neighborhood gains the most combined new Google reviews across selected restaurants, cafés and bars this quarter?
+
+**101. 👑 HOTTEST IN BOSTON**
+Which of five nominated Boston restaurants experiences the greatest percentage growth in Google review count during the next 30 days?
+
+---
+
+And **#101 could be huge** because it gives us a recurring flagship market:
+
+# 👑 HOTTEST IN BOSTON
+
+**Who owns Boston this month?**
+
+Restaurant A — **31%**
+Restaurant B — **27%**
+Restaurant C — **19%**
+Restaurant D — **14%**
+Restaurant E — **9%**
+
+**27,491 predictions**
+
+Then next month:
+
+### SEPTEMBER CHAMPION
+
+🏆 Restaurant B
+
+Restaurant B's review count grew **18.7%**.
+
+And a completely new **October market** opens.
+
+That gives us recurring content automatically.
+
+---
+
+There is another whole category we haven't really touched yet, either:
+
+### 👀 LOCAL SOCIAL & CULTURE
+
+Things people in Boston actually talk about:
+
+“Will this new club still be packed three months from now?”
+
+“Which neighborhood will be hottest this summer?”
+
+“Will this viral Boston business reach 50K Instagram followers?”
+
+“Which new Boston event becomes the biggest?”
+
+“Will this pop-up become permanent?”
+
+“Will this local creator hit 100K followers?”
+
+“Will this restaurant's viral dish still be trending in 60 days?”
+
+“Which neighborhood gains more social buzz: South End or Seaport?”
+
+“Will this Boston brand open a physical location?”
+
+That could easily become **markets 102–120**.
+
+Then there's **local development**, **nightlife**, **dating/social life**, **universities**, **transportation**, **arts**, **shopping**, **beauty/wellness**, etc.
+
+So I actually wouldn't put an artificial ceiling on this anymore.
+
+**71 original markets → 101 with Local Pulse → potentially 150+ launch-ready market templates.**
+
+The app doesn't need to have all 150 *live simultaneously*. That's important. We'd have a **market library**, and perhaps 40–60 are live at any given time. Markets resolve, disappear into history, and new ones replace them.
+
+That constant turnover is what makes **AHEAD feel alive.**

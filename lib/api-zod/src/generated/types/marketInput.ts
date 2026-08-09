@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { MarketInputCategory } from './marketInputCategory';
+import type { MarketInputMarketFormat } from './marketInputMarketFormat';
 
 export interface MarketInput {
   title: string;
@@ -13,6 +14,7 @@ export interface MarketInput {
   description?: string;
   category: MarketInputCategory;
   subcategory: string;
+  marketFormat?: MarketInputMarketFormat;
   imageUrl?: string;
   resolutionSource?: string;
   closesAt?: string;

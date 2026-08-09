@@ -25,7 +25,7 @@ export const listMarketsQueryLimitDefault = 20;
 export const listMarketsQueryOffsetDefault = 0;
 
 export const ListMarketsQueryParams = zod.object({
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']).optional(),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']).optional(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']).optional(),
   "limit": zod.coerce.number().default(listMarketsQueryLimitDefault),
   "offset": zod.coerce.number().default(listMarketsQueryOffsetDefault)
@@ -37,8 +37,9 @@ export const ListMarketsResponse = zod.object({
   "title": zod.string(),
   "question": zod.string(),
   "description": zod.string().nullish(),
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -72,8 +73,9 @@ export const GetTrendingMarketsResponse = zod.object({
   "title": zod.string(),
   "question": zod.string(),
   "description": zod.string().nullish(),
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -116,8 +118,9 @@ export const GetMarketResponse = zod.object({
   "title": zod.string(),
   "question": zod.string(),
   "description": zod.string().nullish(),
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -260,8 +263,9 @@ export const GetUserPredictionsResponseItem = zod.object({
   "title": zod.string(),
   "question": zod.string(),
   "description": zod.string().nullish(),
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -290,7 +294,7 @@ export const GetUserPredictionsResponse = zod.array(GetUserPredictionsResponseIt
 export const getLeaderboardQueryLimitDefault = 20;
 
 export const GetLeaderboardQueryParams = zod.object({
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'OVERALL']).optional(),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'OVERALL']).optional(),
   "limit": zod.coerce.number().default(getLeaderboardQueryLimitDefault)
 })
 
@@ -332,8 +336,9 @@ export const AdminListMarketsResponse = zod.object({
   "title": zod.string(),
   "question": zod.string(),
   "description": zod.string().nullish(),
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -358,8 +363,9 @@ export const CreateMarketBody = zod.object({
   "title": zod.string(),
   "question": zod.string(),
   "description": zod.string().optional(),
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
   "imageUrl": zod.string().optional(),
   "resolutionSource": zod.string().optional(),
   "closesAt": zod.string().optional()
@@ -370,8 +376,9 @@ export const CreateMarketResponse = zod.object({
   "title": zod.string(),
   "question": zod.string(),
   "description": zod.string().nullish(),
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -403,8 +410,9 @@ export const ResolveMarketResponse = zod.object({
   "title": zod.string(),
   "question": zod.string(),
   "description": zod.string().nullish(),
-  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
   "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),

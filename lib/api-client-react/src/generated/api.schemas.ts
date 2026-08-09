@@ -23,6 +23,16 @@ export const MarketCategory = {
   REAL_ESTATE: 'REAL_ESTATE',
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
+  LOCAL_PULSE: 'LOCAL_PULSE',
+} as const;
+
+export type MarketMarketFormat = typeof MarketMarketFormat[keyof typeof MarketMarketFormat];
+
+
+export const MarketMarketFormat = {
+  STANDARD: 'STANDARD',
+  HOT_OR_NOT: 'HOT_OR_NOT',
+  HEAD_TO_HEAD: 'HEAD_TO_HEAD',
 } as const;
 
 export type MarketStatus = typeof MarketStatus[keyof typeof MarketStatus];
@@ -42,6 +52,7 @@ export interface Market {
   description?: string | null;
   category: MarketCategory;
   subcategory: string;
+  marketFormat?: MarketMarketFormat;
   /** @nullable */
   imageUrl?: string | null;
   status: MarketStatus;
@@ -189,6 +200,16 @@ export const MarketInputCategory = {
   REAL_ESTATE: 'REAL_ESTATE',
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
+  LOCAL_PULSE: 'LOCAL_PULSE',
+} as const;
+
+export type MarketInputMarketFormat = typeof MarketInputMarketFormat[keyof typeof MarketInputMarketFormat];
+
+
+export const MarketInputMarketFormat = {
+  STANDARD: 'STANDARD',
+  HOT_OR_NOT: 'HOT_OR_NOT',
+  HEAD_TO_HEAD: 'HEAD_TO_HEAD',
 } as const;
 
 export interface MarketInput {
@@ -197,6 +218,7 @@ export interface MarketInput {
   description?: string;
   category: MarketInputCategory;
   subcategory: string;
+  marketFormat?: MarketInputMarketFormat;
   imageUrl?: string;
   resolutionSource?: string;
   closesAt?: string;
@@ -231,6 +253,7 @@ export const ListMarketsCategory = {
   REAL_ESTATE: 'REAL_ESTATE',
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
+  LOCAL_PULSE: 'LOCAL_PULSE',
 } as const;
 
 export type ListMarketsStatus = typeof ListMarketsStatus[keyof typeof ListMarketsStatus];
@@ -261,6 +284,7 @@ export const GetLeaderboardCategory = {
   REAL_ESTATE: 'REAL_ESTATE',
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
+  LOCAL_PULSE: 'LOCAL_PULSE',
   OVERALL: 'OVERALL',
 } as const;
 

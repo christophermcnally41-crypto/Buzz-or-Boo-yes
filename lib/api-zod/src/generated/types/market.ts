@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { MarketCategory } from './marketCategory';
+import type { MarketMarketFormat } from './marketMarketFormat';
 import type { MarketStatus } from './marketStatus';
 
 export interface Market {
@@ -16,6 +17,7 @@ export interface Market {
   description?: string | null;
   category: MarketCategory;
   subcategory: string;
+  marketFormat?: MarketMarketFormat;
   /** @nullable */
   imageUrl?: string | null;
   status: MarketStatus;
