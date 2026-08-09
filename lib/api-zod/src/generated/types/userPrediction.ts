@@ -6,14 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Market } from './market';
-import type { UserPredictionChoice } from './userPredictionChoice';
 
 export interface UserPrediction {
   id: number;
   userId: number;
   marketId: number;
   market?: Market;
-  choice: UserPredictionChoice;
+  /** YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets */
+  choice: string;
   amount: number;
   /** @nullable */
   isCorrect?: boolean | null;

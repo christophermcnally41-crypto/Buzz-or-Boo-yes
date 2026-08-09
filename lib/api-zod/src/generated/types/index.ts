@@ -45,8 +45,6 @@ export * from './pollVoteInput';
 export * from './pollVoteResult';
 export * from './pollVoteResultTally';
 export * from './prediction';
-export * from './predictionChoice';
 export * from './predictionInput';
 export * from './user';
 export * from './userPrediction';
-export * from './userPredictionChoice';

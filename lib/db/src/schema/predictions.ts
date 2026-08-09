@@ -8,7 +8,7 @@ export const predictionsTable = pgTable("predictions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id),
   marketId: integer("market_id").notNull().references(() => marketsTable.id),
-  choice: text("choice").notNull(), // YES or NO
+  choice: text("choice").notNull(), // YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets
   amount: integer("amount").notNull().default(100),
   isCorrect: boolean("is_correct"),
   tokensEarned: integer("tokens_earned"),

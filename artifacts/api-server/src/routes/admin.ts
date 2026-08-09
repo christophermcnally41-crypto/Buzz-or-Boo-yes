@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and, ne } from "drizzle-orm";
 import { db, marketsTable, predictionsTable, usersTable } from "@workspace/db";
 import {
   AdminListMarketsResponse,
@@ -81,59 +81,142 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
   const { outcome } = parsed.data;
   const marketId = params.data.id;
 
+  // Fetch market to validate it exists and to check contender keys for MULTI_CHOICE
   const [market] = await db.select().from(marketsTable).where(eq(marketsTable.id, marketId));
   if (!market) {
     res.status(404).json({ error: "Market not found" });
     return;
   }
 
-  if (market.status === "RESOLVED") {
-    res.status(400).json({ error: "Market is already resolved" });
-    return;
+  // For MULTI_CHOICE, validate outcome is one of the declared contender keys
+  if (market.marketFormat === "MULTI_CHOICE") {
+    let validKeys: string[] = [];
+    try {
+      const desc = market.description ? JSON.parse(market.description) : null;
+      if (Array.isArray(desc?.contenders)) {
+        validKeys = desc.contenders.map((c: { key: string }) => c.key);
+      }
+    } catch { /* fall through — validKeys stays empty */ }
+
+    if (validKeys.length === 0) {
+      res.status(400).json({ error: "Market has no valid contenders to resolve against" });
+      return;
+    }
+    if (!validKeys.includes(outcome)) {
+      res.status(400).json({ error: `Invalid outcome. Must be one of: ${validKeys.join(", ")}` });
+      return;
+    }
   }
 
-  // Resolve the market
-  const [resolved] = await db
-    .update(marketsTable)
-    .set({ status: "RESOLVED", resolvedOutcome: outcome, resolvedAt: new Date() })
-    .where(eq(marketsTable.id, marketId))
-    .returning();
-
-  // Award tokens to correct predictors and update user stats
-  const allPredictions = await db
-    .select()
-    .from(predictionsTable)
-    .where(eq(predictionsTable.marketId, marketId));
-
-  const correctPredictions = allPredictions.filter((p) => p.choice === outcome);
+  // Atomically resolve + award + auto-cycle inside a transaction.
+  // The UPDATE WHERE status != RESOLVED acts as a compare-and-swap: only the first
+  // concurrent request transitions the row; subsequent ones return 0 rows and bail.
   const REWARD_MULTIPLIER = 1.8;
 
-  for (const pred of allPredictions) {
-    const isCorrect = pred.choice === outcome;
-    const tokensEarned = isCorrect ? Math.round(pred.amount * REWARD_MULTIPLIER) : 0;
+  let resolved: typeof marketsTable.$inferSelect;
 
-    await db
-      .update(predictionsTable)
-      .set({ isCorrect, tokensEarned })
-      .where(eq(predictionsTable.id, pred.id));
+  try {
+    resolved = await db.transaction(async (tx) => {
+      // Conditional update — only succeeds if the market is not yet resolved
+      const rows = await tx
+        .update(marketsTable)
+        .set({ status: "RESOLVED", resolvedOutcome: outcome, resolvedAt: new Date() })
+        .where(and(eq(marketsTable.id, marketId), ne(marketsTable.status, "RESOLVED")))
+        .returning();
 
-    // Update user token balance and stats
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, pred.userId));
-    if (user) {
-      const newResolved = user.totalResolved + 1;
-      const newCorrect = user.totalCorrect + (isCorrect ? 1 : 0);
-      const newAccuracy = newResolved > 0 ? Math.round((newCorrect / newResolved) * 100) / 100 : null;
+      if (rows.length === 0) {
+        throw new Error("ALREADY_RESOLVED");
+      }
 
-      await db
-        .update(usersTable)
-        .set({
-          tokenBalance: user.tokenBalance + tokensEarned,
-          totalResolved: newResolved,
-          totalCorrect: newCorrect,
-          overallAccuracy: newAccuracy,
-        })
-        .where(eq(usersTable.id, pred.userId));
+      const resolvedMarket = rows[0];
+
+      // Award tokens to correct predictors and update user stats
+      const allPredictions = await tx
+        .select()
+        .from(predictionsTable)
+        .where(eq(predictionsTable.marketId, marketId));
+
+      for (const pred of allPredictions) {
+        const isCorrect = pred.choice === outcome;
+        const tokensEarned = isCorrect ? Math.round(pred.amount * REWARD_MULTIPLIER) : 0;
+
+        await tx
+          .update(predictionsTable)
+          .set({ isCorrect, tokensEarned })
+          .where(eq(predictionsTable.id, pred.id));
+
+        const [user] = await tx.select().from(usersTable).where(eq(usersTable.id, pred.userId));
+        if (user) {
+          const newResolved = user.totalResolved + 1;
+          const newCorrect = user.totalCorrect + (isCorrect ? 1 : 0);
+          const newAccuracy = newResolved > 0 ? Math.round((newCorrect / newResolved) * 100) / 100 : null;
+
+          await tx
+            .update(usersTable)
+            .set({
+              tokenBalance: user.tokenBalance + tokensEarned,
+              totalResolved: newResolved,
+              totalCorrect: newCorrect,
+              overallAccuracy: newAccuracy,
+            })
+            .where(eq(usersTable.id, pred.userId));
+        }
+      }
+
+      // Monthly auto-cycle for recurring MULTI_CHOICE flagships
+      if (market.marketFormat === "MULTI_CHOICE") {
+        try {
+          const desc = market.description ? JSON.parse(market.description) : null;
+          if (desc?.recurring === true && Array.isArray(desc.contenders)) {
+            // Check (inside the same tx) whether a successor already exists
+            const [alreadyOpen] = await tx
+              .select({ id: marketsTable.id })
+              .from(marketsTable)
+              .where(and(eq(marketsTable.title, market.title), eq(marketsTable.status, "OPEN")));
+
+            if (!alreadyOpen) {
+              // Derive successor period from the resolved edition's closesAt
+              const resolvedCloses = market.closesAt ?? resolvedMarket.resolvedAt ?? new Date();
+              const nextStart = new Date(Date.UTC(
+                resolvedCloses.getUTCFullYear(),
+                resolvedCloses.getUTCMonth() + 1,
+                1,
+              ));
+              const nextMonthName = nextStart.toLocaleString("en-US", { month: "long", timeZone: "UTC" });
+              const nextPeriod = `${nextMonthName} ${nextStart.getUTCFullYear()}`;
+              const nextCloses = new Date(Date.UTC(
+                nextStart.getUTCFullYear(), nextStart.getUTCMonth() + 1, 0, 23, 59, 59,
+              ));
+
+              await tx.insert(marketsTable).values({
+                title: market.title,
+                question: market.question,
+                description: JSON.stringify({ ...desc, period: nextPeriod }),
+                category: market.category,
+                subcategory: market.subcategory,
+                marketFormat: "MULTI_CHOICE",
+                imageUrl: market.imageUrl ?? null,
+                resolutionSource: market.resolutionSource ?? null,
+                status: "OPEN",
+                closesAt: nextCloses,
+              });
+            }
+          }
+        } catch (cycleErr) {
+          console.error("[auto-cycle] Failed to spawn next edition:", cycleErr);
+          // Re-throw so the transaction rolls back rather than silently losing the cycle
+          throw cycleErr;
+        }
+      }
+
+      return resolvedMarket;
+    });
+  } catch (err: any) {
+    if (err?.message === "ALREADY_RESOLVED") {
+      res.status(400).json({ error: "Market is already resolved" });
+      return;
     }
+    throw err; // Let Express error handler deal with unexpected errors
   }
 
   res.json(ResolveMarketResponse.parse(enrichMarket(resolved)));

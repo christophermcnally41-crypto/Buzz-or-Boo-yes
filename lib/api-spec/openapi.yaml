@@ -714,7 +714,7 @@ components:
           type: number
         choice:
           type: string
-          enum: [YES, NO]
+          description: "YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets"
         amount:
           type: number
         isCorrect:
@@ -744,7 +744,7 @@ components:
           $ref: "#/components/schemas/Market"
         choice:
           type: string
-          enum: [YES, NO]
+          description: "YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets"
         amount:
           type: number
         isCorrect:

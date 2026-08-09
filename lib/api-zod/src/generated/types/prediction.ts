@@ -5,13 +5,13 @@
  * What's Coming — Cultural Prediction Platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { PredictionChoice } from './predictionChoice';
 
 export interface Prediction {
   id: number;
   userId: number;
   marketId: number;
-  choice: PredictionChoice;
+  /** YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets */
+  choice: string;
   amount: number;
   /** @nullable */
   isCorrect?: boolean | null;

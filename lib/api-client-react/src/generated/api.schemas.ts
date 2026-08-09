@@ -115,19 +115,12 @@ export interface User {
   createdAt: string;
 }
 
-export type PredictionChoice = typeof PredictionChoice[keyof typeof PredictionChoice];
-
-
-export const PredictionChoice = {
-  YES: 'YES',
-  NO: 'NO',
-} as const;
-
 export interface Prediction {
   id: number;
   userId: number;
   marketId: number;
-  choice: PredictionChoice;
+  /** YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets */
+  choice: string;
   amount: number;
   /** @nullable */
   isCorrect?: boolean | null;
@@ -136,20 +129,13 @@ export interface Prediction {
   createdAt: string;
 }
 
-export type UserPredictionChoice = typeof UserPredictionChoice[keyof typeof UserPredictionChoice];
-
-
-export const UserPredictionChoice = {
-  YES: 'YES',
-  NO: 'NO',
-} as const;
-
 export interface UserPrediction {
   id: number;
   userId: number;
   marketId: number;
   market?: Market;
-  choice: UserPredictionChoice;
+  /** YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets */
+  choice: string;
   amount: number;
   /** @nullable */
   isCorrect?: boolean | null;

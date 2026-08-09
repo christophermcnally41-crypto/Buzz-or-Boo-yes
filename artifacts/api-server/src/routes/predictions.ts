@@ -54,6 +54,34 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     return;
   }
 
+  // Validate choice against market format
+  if (market.marketFormat === "MULTI_CHOICE") {
+    // Parse contenders from description and require choice to be a valid key
+    let validKeys: string[] = [];
+    try {
+      const desc = market.description ? JSON.parse(market.description) : null;
+      if (Array.isArray(desc?.contenders)) {
+        validKeys = desc.contenders.map((c: { key: string }) => c.key);
+      }
+    } catch {
+      // malformed description — reject
+    }
+    if (validKeys.length === 0) {
+      res.status(400).json({ error: "This market has no valid contenders" });
+      return;
+    }
+    if (!validKeys.includes(choice)) {
+      res.status(400).json({ error: `Invalid choice. Must be one of: ${validKeys.join(", ")}` });
+      return;
+    }
+  } else {
+    // Standard / HOT_OR_NOT / HEAD_TO_HEAD — only YES or NO allowed
+    if (choice !== "YES" && choice !== "NO") {
+      res.status(400).json({ error: "Invalid choice. Must be YES or NO" });
+      return;
+    }
+  }
+
   // Validate user exists and has enough tokens
   const [user] = await db
     .select()
