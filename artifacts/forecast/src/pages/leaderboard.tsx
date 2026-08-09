@@ -31,9 +31,9 @@ export default function Leaderboard() {
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <h1 className="text-4xl md:text-5xl font-editorial font-bold mb-4">Top Forecasters</h1>
+          <h1 className="text-4xl md:text-5xl font-editorial font-bold mb-4">BuzzRank</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mb-8">
-            The platform's sharpest minds, ranked by prediction accuracy.
+            The callers who called it right. Ranked by prediction accuracy across every category.
           </p>
 
           <Tabs value={category} onValueChange={setCategory} className="w-full overflow-x-auto hide-scrollbar">
@@ -42,7 +42,7 @@ export default function Leaderboard() {
                 value="OVERALL" 
                 className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Overall Rank
+                All Callers
               </TabsTrigger>
               {CATEGORIES.map(cat => (
                 <TabsTrigger 

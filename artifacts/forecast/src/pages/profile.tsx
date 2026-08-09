@@ -124,7 +124,7 @@ export default function Profile() {
 
           {/* Right Column: Prediction History */}
           <div className="lg:col-span-2">
-            <h2 className="text-2xl font-editorial font-bold mb-6">Prediction History</h2>
+            <h2 className="text-2xl font-editorial font-bold mb-6">My Calls</h2>
             
             {loadingPredictions ? (
               <div className="space-y-4">
@@ -135,8 +135,22 @@ export default function Profile() {
                 {predictions.map(pred => {
                   const isResolved = pred.market?.status === "RESOLVED";
                   const won = isResolved && pred.isCorrect;
-                  const lost = isResolved && !pred.isCorrect;
-                  
+                  const isMultiChoice = pred.market?.marketFormat === "MULTI_CHOICE";
+
+                  // Resolve contender name for MULTI_CHOICE markets
+                  let choiceLabel = pred.choice;
+                  if (isMultiChoice && pred.market?.description) {
+                    try {
+                      const data = JSON.parse(pred.market.description);
+                      const contender = data.contenders?.find((c: { key: string; name: string }) => c.key === pred.choice);
+                      if (contender) choiceLabel = contender.name;
+                    } catch {}
+                  } else if (pred.choice === "YES") {
+                    choiceLabel = "Buzzed It";
+                  } else if (pred.choice === "NO") {
+                    choiceLabel = "Boo'd It";
+                  }
+
                   return (
                     <Card key={pred.id} className="overflow-hidden hover:border-primary/30 transition-colors">
                       <Link href={`/markets/${pred.marketId}`}>
@@ -154,9 +168,12 @@ export default function Profile() {
                           
                           <div className="flex items-center gap-6 md:min-w-[200px] justify-between md:justify-end shrink-0 w-full md:w-auto">
                             <div className="flex flex-col items-start md:items-end">
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prediction</span>
-                              <Badge variant={pred.choice === 'YES' ? 'default' : 'destructive'} className="font-mono-numbers">
-                                {pred.choice} • {formatNumber(pred.amount)} FP
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">My Call</span>
+                              <Badge
+                                variant={pred.choice === 'YES' ? 'default' : pred.choice === 'NO' ? 'destructive' : 'secondary'}
+                                className="font-mono-numbers"
+                              >
+                                {choiceLabel} · {formatNumber(pred.amount)} FP
                               </Badge>
                             </div>
                             
@@ -165,11 +182,11 @@ export default function Profile() {
                               {isResolved ? (
                                 <div className={cn("flex items-center gap-1 font-bold text-sm", won ? "text-green-600" : "text-destructive")}>
                                   {won ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                  {won ? `+${formatNumber(pred.tokensEarned || 0)}` : `-${formatNumber(pred.amount)}`}
+                                  {won ? `Called It! +${formatNumber(pred.tokensEarned || 0)}` : `-${formatNumber(pred.amount)}`}
                                 </div>
                               ) : (
                                 <Badge variant="outline" className="bg-secondary text-secondary-foreground border-transparent">
-                                  OPEN
+                                  In Play
                                 </Badge>
                               )}
                             </div>

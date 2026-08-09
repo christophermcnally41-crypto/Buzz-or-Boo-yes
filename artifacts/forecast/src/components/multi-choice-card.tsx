@@ -1,9 +1,10 @@
-import { Market } from "@workspace/api-client-react";
+import { Market, useGetMarketPredictions, getGetMarketPredictionsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Link } from "wouter";
 import { formatNumber } from "@/lib/utils";
 import { getCategoryIcon } from "@/lib/categories";
+import { useMemo } from "react";
 
 interface Contender {
   key: string;
@@ -28,22 +29,37 @@ function parseMultiChoiceData(description: string | null | undefined): MultiChoi
   }
 }
 
-// Vivid chartreuse-to-espresso palette for contender bars
 const CONTENDER_COLORS = [
-  "#CFEA3B", // chartreuse primary
-  "#3ECDE8", // robin's egg blue
-  "#E87B3E", // terracotta
-  "#8B5CF6", // violet
-  "#EC4899", // pink
+  "#CFEA3B",
+  "#3ECDE8",
+  "#E87B3E",
+  "#8B5CF6",
+  "#EC4899",
 ];
 
 export function MultiChoiceCard({ market }: { market: Market }) {
   const data = parseMultiChoiceData(market.description);
   const isResolved = market.status === "RESOLVED";
-
-  // Equal split shown on card — detail page shows real prediction counts
   const contenders = data?.contenders ?? [];
-  const splitPct = contenders.length > 0 ? Math.floor(100 / contenders.length) : 20;
+
+  // Fetch real prediction counts for live vote bars
+  const { data: predictions } = useGetMarketPredictions(market.id, {
+    query: { queryKey: getGetMarketPredictionsQueryKey(market.id) }
+  });
+
+  const contenderCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const c of contenders) counts[c.key] = 0;
+    if (predictions) {
+      for (const p of predictions) {
+        if (p.choice in counts) counts[p.choice]++;
+      }
+    }
+    return counts;
+  }, [predictions, contenders]);
+
+  const totalVotes = Object.values(contenderCounts).reduce((a, b) => a + b, 0);
+  const hasRealData = totalVotes > 0;
 
   return (
     <Link href={`/markets/${market.id}`}>
@@ -54,13 +70,12 @@ export function MultiChoiceCard({ market }: { market: Market }) {
               {getCategoryIcon(market.category)} {market.category === "LOCAL_PULSE" ? "Local Pulse" : market.category}
             </Badge>
             <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
-              {formatNumber(market.totalPredictions)} PREDICTIONS
+              {formatNumber(market.totalPredictions)} CALLS
             </Badge>
           </div>
 
-          {/* Crown + label */}
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">👑 Multi-Choice Race</span>
+            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">⚡ Buzz Battle</span>
           </div>
 
           <h3 className="font-editorial text-xl font-bold leading-tight group-hover:text-primary transition-colors">
@@ -73,26 +88,34 @@ export function MultiChoiceCard({ market }: { market: Market }) {
         </CardHeader>
 
         <CardContent className="mt-auto pt-0 space-y-2">
-          {/* Contender bars */}
           {contenders.length > 0 && (
             <div className="space-y-1.5 bg-muted/30 rounded-xl p-3">
-              {contenders.slice(0, 5).map((c, i) => (
-                <div key={c.key} className="flex items-center gap-2">
-                  <span className="text-xs font-bold w-20 truncate text-foreground/80">{c.name}</span>
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${splitPct}%`,
-                        backgroundColor: CONTENDER_COLORS[i % CONTENDER_COLORS.length],
-                      }}
-                    />
+              {contenders.slice(0, 5).map((c, i) => {
+                const count = contenderCounts[c.key] ?? 0;
+                const pct = hasRealData
+                  ? Math.round((count / totalVotes) * 100)
+                  : Math.floor(100 / contenders.length);
+                return (
+                  <div key={c.key} className="flex items-center gap-2">
+                    <span className="text-xs font-bold w-20 truncate text-foreground/80">{c.name}</span>
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: CONTENDER_COLORS[i % CONTENDER_COLORS.length],
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono-numbers text-muted-foreground w-7 text-right">
+                      {pct}%
+                    </span>
+                    {isResolved && market.resolvedOutcome === c.key && (
+                      <span className="text-[10px] font-bold text-primary">👑</span>
+                    )}
                   </div>
-                  {isResolved && market.resolvedOutcome === c.key && (
-                    <span className="text-[10px] font-bold text-primary">👑 WIN</span>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

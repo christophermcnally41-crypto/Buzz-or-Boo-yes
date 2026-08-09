@@ -378,7 +378,7 @@ export default function MarketDetail() {
                           onClick={() => handlePredict("YES")}
                           disabled={isPredicting !== null}
                         >
-                          {isPredicting === "YES" ? "Casting..." : "Vote YES"}
+                          {isPredicting === "YES" ? "Casting..." : "Buzzed It ⚡"}
                         </Button>
                         <Button
                           size="lg"
@@ -387,7 +387,7 @@ export default function MarketDetail() {
                           onClick={() => handlePredict("NO")}
                           disabled={isPredicting !== null}
                         >
-                          {isPredicting === "NO" ? "Casting..." : "Vote NO"}
+                          {isPredicting === "NO" ? "Casting..." : "Boo'd It 👎"}
                         </Button>
                       </div>
                     )}

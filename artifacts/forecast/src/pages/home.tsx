@@ -22,13 +22,13 @@ export default function Home() {
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
               <Zap className="w-4 h-4" />
-              The Cultural Prediction Engine
+              Boston's Cultural Prediction Engine
             </div>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-editorial font-bold leading-[1.05] tracking-tight text-balance mb-6 animate-slide-up" style={{ animationDelay: "100ms" }}>
-              See what's coming before everyone else does.
+              Call what's next.
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground font-medium text-balance max-w-2xl mb-10 animate-slide-up" style={{ animationDelay: "200ms" }}>
-              Forecast trends across style, culture, and cities. Earn reputation. Become an elite forecaster.
+              Forecast style, food, nightlife, and neighborhoods before they blow up. Earn your BuzzRank.
             </p>
             <div className="flex flex-wrap items-center gap-4 animate-slide-up" style={{ animationDelay: "300ms" }}>
               <Link href="/markets">

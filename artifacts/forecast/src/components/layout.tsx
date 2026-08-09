@@ -17,10 +17,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const userId = authUser?.id ?? null;
 
   const navItems = [
-    { href: "/", label: "Discover", icon: Sparkles },
+    { href: "/", label: "What's Buzzing", icon: Sparkles },
     { href: "/markets", label: "Markets", icon: Search },
-    { href: "/leaderboard", label: "Top", icon: BarChart2 },
-    ...(userId ? [{ href: `/profile/${userId}`, label: "Profile", icon: User }] : []),
+    { href: "/leaderboard", label: "BuzzRank", icon: BarChart2 },
+    ...(userId ? [{ href: `/profile/${userId}`, label: "My Calls", icon: User }] : []),
   ];
 
   return (
@@ -32,7 +32,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="bg-primary text-primary-foreground p-1.5 rounded-md">
               <Sparkles className="w-5 h-5" />
             </div>
-            <span className="font-editorial text-2xl font-bold tracking-tight">AHEAD</span>
+            <span className="font-editorial text-2xl font-bold tracking-tight">BuzzOrBoo</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
