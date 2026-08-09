@@ -19,6 +19,7 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { getCategoryLabel, getCategoryIcon } from "@/lib/categories";
 import { formatNumber, cn } from "@/lib/utils";
+import { getMarketColors } from "@/lib/market-colors";
 import { ArrowLeft, Clock, Info, CheckCircle2, XCircle } from "lucide-react";
 import { Link } from "wouter";
 
@@ -116,6 +117,7 @@ export default function MarketDetail() {
 
   const yesPercent = market.yesPercent || 50;
   const noPercent = market.noPercent || 50;
+  const colors = getMarketColors(market.id);
 
   return (
     <div className="min-h-screen pb-24">
@@ -159,8 +161,8 @@ export default function MarketDetail() {
             <div className="bg-card border border-border shadow-sm rounded-3xl p-6 md:p-10 mb-8">
               <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
                 <div className="flex-1 text-center md:text-left">
-                  <div className="text-7xl md:text-8xl font-editorial font-bold text-primary tracking-tight mb-2 flex items-baseline justify-center md:justify-start">
-                    {yesPercent.toFixed(0)}<span className="text-4xl ml-1 text-primary/60">%</span>
+                  <div className="text-7xl md:text-8xl font-editorial font-bold tracking-tight mb-2 flex items-baseline justify-center md:justify-start" style={{ color: colors.yes }}>
+                    {yesPercent.toFixed(0)}<span className="text-4xl ml-1" style={{ color: colors.yes, opacity: 0.6 }}>%</span>
                   </div>
                   <div className="font-mono-numbers text-sm font-bold tracking-wider text-muted-foreground">YES PROBABILITY</div>
                 </div>
@@ -168,8 +170,8 @@ export default function MarketDetail() {
                 <div className="hidden md:flex text-4xl text-muted-foreground/30 font-editorial font-light">vs</div>
 
                 <div className="flex-1 text-center md:text-right">
-                  <div className="text-7xl md:text-8xl font-editorial font-bold text-destructive tracking-tight mb-2 flex items-baseline justify-center md:justify-end">
-                    {noPercent.toFixed(0)}<span className="text-4xl ml-1 text-destructive/60">%</span>
+                  <div className="text-7xl md:text-8xl font-editorial font-bold tracking-tight mb-2 flex items-baseline justify-center md:justify-end" style={{ color: colors.no }}>
+                    {noPercent.toFixed(0)}<span className="text-4xl ml-1" style={{ color: colors.no, opacity: 0.6 }}>%</span>
                   </div>
                   <div className="font-mono-numbers text-sm font-bold tracking-wider text-muted-foreground">NO PROBABILITY</div>
                 </div>
@@ -177,13 +179,13 @@ export default function MarketDetail() {
 
               {/* Animated Bar */}
               <div className="h-4 w-full bg-secondary rounded-full overflow-hidden flex relative">
-                <div 
-                  className="h-full bg-primary transition-all duration-1000 ease-out relative z-10"
-                  style={{ width: `${yesPercent}%` }}
+                <div
+                  className="h-full transition-all duration-1000 ease-out relative z-10"
+                  style={{ width: `${yesPercent}%`, backgroundColor: colors.yes }}
                 />
-                <div 
-                  className="h-full bg-destructive transition-all duration-1000 ease-out relative z-10"
-                  style={{ width: `${noPercent}%` }}
+                <div
+                  className="h-full transition-all duration-1000 ease-out relative z-10"
+                  style={{ width: `${noPercent}%`, backgroundColor: colors.no }}
                 />
                 {/* Center marker */}
                 <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-background z-20 -ml-[1px]" />
@@ -267,18 +269,27 @@ export default function MarketDetail() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <Button 
-                        size="lg" 
-                        className="h-16 text-xl rounded-xl bg-primary hover:bg-primary/90 shadow-primary/20 shadow-lg transition-transform hover:-translate-y-1"
+                      <Button
+                        size="lg"
+                        className="h-16 text-xl rounded-xl shadow-lg transition-transform hover:-translate-y-1 border-0"
+                        style={{
+                          backgroundColor: colors.yes,
+                          color: "#fff",
+                          boxShadow: `0 8px 24px ${colors.yesSoft}`,
+                        }}
                         onClick={() => handlePredict("YES")}
                         disabled={isPredicting !== null}
                       >
                         {isPredicting === "YES" ? "Casting..." : "Vote YES"}
                       </Button>
-                      <Button 
-                        size="lg" 
-                        variant="destructive"
-                        className="h-16 text-xl rounded-xl hover:bg-destructive/90 shadow-destructive/20 shadow-lg transition-transform hover:-translate-y-1"
+                      <Button
+                        size="lg"
+                        className="h-16 text-xl rounded-xl shadow-lg transition-transform hover:-translate-y-1 border-0"
+                        style={{
+                          backgroundColor: colors.no,
+                          color: "#fff",
+                          boxShadow: `0 8px 24px ${colors.noSoft}`,
+                        }}
                         onClick={() => handlePredict("NO")}
                         disabled={isPredicting !== null}
                       >
@@ -309,9 +320,9 @@ export default function MarketDetail() {
                       <div key={pred.id} className="flex justify-between items-center text-sm p-3 rounded-lg bg-muted/30">
                         <div className="flex items-center gap-2 font-medium">
                           {pred.choice === 'YES' ? (
-                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                            <CheckCircle2 className="w-4 h-4" style={{ color: colors.yes }} />
                           ) : (
-                            <XCircle className="w-4 h-4 text-destructive" />
+                            <XCircle className="w-4 h-4" style={{ color: colors.no }} />
                           )}
                           User #{pred.userId} predicted {pred.choice}
                         </div>

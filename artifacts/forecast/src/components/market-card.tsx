@@ -4,11 +4,13 @@ import { Badge } from "./ui/badge";
 import { Link } from "wouter";
 import { cn, formatNumber } from "@/lib/utils";
 import { getCategoryLabel, getCategoryIcon } from "@/lib/categories";
+import { getMarketColors } from "@/lib/market-colors";
 
 export function MarketCard({ market, featured = false }: { market: Market, featured?: boolean }) {
   const isResolved = market.status === "RESOLVED";
   const yesPercent = market.yesPercent || 50;
   const noPercent = market.noPercent || 50;
+  const colors = getMarketColors(market.id);
   
   return (
     <Link href={`/markets/${market.id}`}>
@@ -56,27 +58,27 @@ export function MarketCard({ market, featured = false }: { market: Market, featu
           {!isResolved ? (
             <div className="space-y-3">
               <div className="flex justify-between text-sm font-bold font-mono-numbers">
-                <span className="text-primary">{yesPercent.toFixed(0)}% YES</span>
-                <span className="text-destructive">{noPercent.toFixed(0)}% NO</span>
+                <span style={{ color: colors.yes }}>{yesPercent.toFixed(0)}% YES</span>
+                <span style={{ color: colors.no }}>{noPercent.toFixed(0)}% NO</span>
               </div>
               <div className="h-3 w-full bg-secondary rounded-full overflow-hidden flex">
-                <div 
-                  className="h-full bg-primary transition-all duration-1000 ease-out"
-                  style={{ width: `${yesPercent}%` }}
+                <div
+                  className="h-full transition-all duration-1000 ease-out"
+                  style={{ width: `${yesPercent}%`, backgroundColor: colors.yes }}
                 />
-                <div 
-                  className="h-full bg-destructive transition-all duration-1000 ease-out"
-                  style={{ width: `${noPercent}%` }}
+                <div
+                  className="h-full transition-all duration-1000 ease-out"
+                  style={{ width: `${noPercent}%`, backgroundColor: colors.no }}
                 />
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-between text-sm text-muted-foreground font-medium">
               <span>Final Result:</span>
-              <span className={cn(
-                "font-bold font-mono-numbers text-lg",
-                market.resolvedOutcome === 'YES' ? "text-primary" : "text-destructive"
-              )}>
+              <span
+                className="font-bold font-mono-numbers text-lg"
+                style={{ color: market.resolvedOutcome === 'YES' ? colors.yes : colors.no }}
+              >
                 {market.resolvedOutcome}
               </span>
             </div>
