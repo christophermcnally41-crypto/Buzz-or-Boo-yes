@@ -5,10 +5,19 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
+import { useAuth } from '@/lib/auth';
+import {
+  useGetMe,
+  useGetUserPredictions,
+  getGetMeQueryKey,
+  getGetUserPredictionsQueryKey,
+} from '@workspace/api-client-react';
 
 interface StatCardProps {
   value: string;
@@ -36,11 +45,55 @@ function SectionRow({ icon, label, value, colors }: { icon: string; label: strin
   );
 }
 
+function SignInPrompt({ onLogin, colors }: { onLogin: () => void; colors: any }) {
+  return (
+    <View style={[styles.signInCard, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '30' }]}>
+      <Feather name="user-plus" size={28} color={colors.primary} />
+      <Text style={[styles.signInTitle, { color: colors.foreground }]}>
+        Create your account
+      </Text>
+      <Text style={[styles.signInSub, { color: colors.mutedForeground }]}>
+        Sign up to track your predictions, earn tokens, and climb the rankings.
+      </Text>
+      <TouchableOpacity
+        style={[styles.signInBtn, { backgroundColor: colors.primary }]}
+        onPress={onLogin}
+        activeOpacity={0.85}
+      >
+        <Text style={[styles.signInBtnText, { color: colors.primaryForeground }]}>
+          Log in
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPadding = Platform.OS === 'web' ? 84 + 34 : 80 + insets.bottom;
+
+  const { user: authUser, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
+
+  const platformUserId = authUser ? parseInt(authUser.id, 10) : null;
+  const { data: platformUser } = useGetMe({
+    query: { enabled: isAuthenticated, queryKey: getGetMeQueryKey() },
+  });
+  const { data: predictions } = useGetUserPredictions(platformUserId ?? 0, {
+    query: {
+      enabled: isAuthenticated && !!platformUserId,
+      queryKey: getGetUserPredictionsQueryKey(platformUserId ?? 0),
+    },
+  });
+
+  const initials = platformUser?.username
+    ? platformUser.username.slice(0, 2).toUpperCase()
+    : authUser?.firstName
+      ? authUser.firstName.slice(0, 2).toUpperCase()
+      : 'A';
+
+  const displayName = platformUser?.username ?? authUser?.firstName ?? 'forecaster';
 
   return (
     <ScrollView
@@ -51,56 +104,122 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.screenTitle, { color: colors.foreground }]}>You</Text>
+        {isAuthenticated && (
+          <TouchableOpacity onPress={logout} activeOpacity={0.7}>
+            <Feather name="log-out" size={20} color={colors.mutedForeground} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Avatar & name */}
-      <View style={styles.avatarSection}>
-        <View style={[styles.avatar, { backgroundColor: colors.primary + '22' }]}>
-          <Text style={[styles.avatarInitial, { color: colors.primary }]}>A</Text>
+      {authLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-        <Text style={[styles.displayName, { color: colors.foreground }]}>forecaster</Text>
-        <View style={[styles.memberBadge, { backgroundColor: colors.muted }]}>
-          <Text style={[styles.memberText, { color: colors.mutedForeground }]}>
-            Member since Aug 2026
-          </Text>
-        </View>
-      </View>
+      ) : isAuthenticated ? (
+        <>
+          {/* Avatar & name */}
+          <View style={styles.avatarSection}>
+            <View style={[styles.avatar, { backgroundColor: colors.primary + '22' }]}>
+              <Text style={[styles.avatarInitial, { color: colors.primary }]}>{initials}</Text>
+            </View>
+            <Text style={[styles.displayName, { color: colors.foreground }]}>{displayName}</Text>
+            {platformUser?.rank && (
+              <View style={[styles.memberBadge, { backgroundColor: colors.muted }]}>
+                <Text style={[styles.memberText, { color: colors.mutedForeground }]}>
+                  Global Rank #{platformUser.rank}
+                </Text>
+              </View>
+            )}
+          </View>
 
-      {/* Stats grid */}
-      <View style={styles.statsGrid}>
-        <StatCard value="—" label="Predictions" color={colors.primary} />
-        <StatCard value="—" label="Accuracy" color={colors.primary} />
-        <StatCard value="—" label="Tokens" color={colors.accent} />
-        <StatCard value="—" label="Rank" color={colors.accent} />
-      </View>
+          {/* Stats grid */}
+          <View style={styles.statsGrid}>
+            <StatCard
+              value={platformUser ? String(platformUser.totalPredictions) : '—'}
+              label="Predictions"
+              color={colors.primary}
+            />
+            <StatCard
+              value={platformUser?.overallAccuracy ? `${platformUser.overallAccuracy.toFixed(1)}%` : '—'}
+              label="Accuracy"
+              color={colors.primary}
+            />
+            <StatCard
+              value={platformUser ? platformUser.tokenBalance.toLocaleString() : '—'}
+              label="Tokens"
+              color={colors.accent}
+            />
+            <StatCard
+              value={platformUser?.rank ? `#${platformUser.rank}` : '—'}
+              label="Rank"
+              color={colors.accent}
+            />
+          </View>
 
-      {/* Sign in prompt */}
-      <View style={[styles.signInCard, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '30' }]}>
-        <Feather name="user-plus" size={28} color={colors.primary} />
-        <Text style={[styles.signInTitle, { color: colors.foreground }]}>
-          Create your account
-        </Text>
-        <Text style={[styles.signInSub, { color: colors.mutedForeground }]}>
-          Sign up to track your predictions, earn tokens, and climb the rankings.
-        </Text>
-        <View style={[styles.signInBtn, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.signInBtnText, { color: colors.primaryForeground }]}>
-            Coming Soon
-          </Text>
-        </View>
-      </View>
+          {/* Recent predictions */}
+          {predictions && predictions.length > 0 && (
+            <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>RECENT PREDICTIONS</Text>
+              {predictions.slice(0, 5).map((pred) => {
+                const isResolved = pred.market?.status === 'RESOLVED';
+                const won = isResolved && pred.isCorrect;
+                return (
+                  <View key={pred.id} style={[styles.predRow, { borderBottomColor: colors.border }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.predQuestion, { color: colors.foreground }]} numberOfLines={2}>
+                        {pred.market?.question}
+                      </Text>
+                      <Text style={[styles.predChoice, { color: colors.mutedForeground }]}>
+                        {pred.choice} · {pred.amount.toLocaleString()} FP
+                      </Text>
+                    </View>
+                    <View>
+                      {isResolved ? (
+                        <Feather
+                          name={won ? 'check-circle' : 'x-circle'}
+                          size={20}
+                          color={won ? '#16a34a' : colors.destructive ?? '#dc2626'}
+                        />
+                      ) : (
+                        <View style={[styles.openBadge, { backgroundColor: colors.muted }]}>
+                          <Text style={[styles.openBadgeText, { color: colors.mutedForeground }]}>OPEN</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Placeholder avatar for unauthenticated state */}
+          <View style={styles.avatarSection}>
+            <View style={[styles.avatar, { backgroundColor: colors.primary + '22' }]}>
+              <Text style={[styles.avatarInitial, { color: colors.primary }]}>A</Text>
+            </View>
+            <Text style={[styles.displayName, { color: colors.foreground }]}>forecaster</Text>
+          </View>
+
+          {/* Stats grid (empty) */}
+          <View style={styles.statsGrid}>
+            <StatCard value="—" label="Predictions" color={colors.primary} />
+            <StatCard value="—" label="Accuracy" color={colors.primary} />
+            <StatCard value="—" label="Tokens" color={colors.accent} />
+            <StatCard value="—" label="Rank" color={colors.accent} />
+          </View>
+
+          <SignInPrompt onLogin={login} colors={colors} />
+        </>
+      )}
 
       {/* About section */}
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>ABOUT</Text>
         <SectionRow icon="info" label="Version" value="1.0.0" colors={colors} />
         <SectionRow icon="globe" label="Platform" value="AHEAD" colors={colors} />
-        <SectionRow
-          icon="map-pin"
-          label="Focus"
-          value="Boston, MA"
-          colors={colors}
-        />
+        <SectionRow icon="map-pin" label="Focus" value="Boston, MA" colors={colors} />
       </View>
 
       {/* How it works */}
@@ -130,8 +249,17 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 20 },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
   header: {
     marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   screenTitle: {
     fontSize: 24,
@@ -223,6 +351,33 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.3,
+  },
+  predRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  predQuestion: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    marginBottom: 3,
+  },
+  predChoice: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+  },
+  openBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  openBadgeText: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 0.5,
   },
   section: {
     borderRadius: 16,

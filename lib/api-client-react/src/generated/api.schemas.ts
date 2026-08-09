@@ -164,7 +164,7 @@ export interface PlatformStats {
 }
 
 export interface PredictionInput {
-  userId: number;
+  userId?: number;
   choice: string;
   amount: number;
 }
@@ -220,6 +220,11 @@ export interface AuthUserEnvelope {
   user: AuthUser | null;
 }
 
+export interface MobileAuthTransaction {
+  state: string;
+  nonce: string;
+}
+
 export interface MobileTokenExchangeRequest {
   /** @minLength 1 */
   code: string;
@@ -229,8 +234,6 @@ export interface MobileTokenExchangeRequest {
   redirect_uri: string;
   /** @minLength 1 */
   state: string;
-  /** @minLength 1 */
-  nonce?: string;
 }
 
 export interface MobileTokenExchangeSuccess {

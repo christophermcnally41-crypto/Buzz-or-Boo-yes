@@ -492,6 +492,24 @@ paths:
       responses:
         '302':
           description: Redirect to the OIDC provider logout URL.
+  /mobile-auth/init-transaction:
+    post:
+      tags: [Auth]
+      operationId: initMobileAuthTransaction
+      summary: Generate server-side state and nonce for a mobile OIDC login
+      responses:
+        '200':
+          description: Transaction created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileAuthTransaction'
+        '500':
+          description: Failed to create transaction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
   /mobile-auth/token-exchange:
     post:
       tags: [Auth]
@@ -806,7 +824,6 @@ components:
     PredictionInput:
       type: object
       required:
-        - userId
         - choice
         - amount
       properties:
@@ -868,6 +885,14 @@ components:
           oneOf:
             - $ref: '#/components/schemas/AuthUser'
             - type: 'null'
+    MobileAuthTransaction:
+      type: object
+      required: [state, nonce]
+      properties:
+        state:
+          type: string
+        nonce:
+          type: string
     MobileTokenExchangeRequest:
       type: object
       required: [code, code_verifier, redirect_uri, state]
@@ -882,9 +907,6 @@ components:
           type: string
           minLength: 1
         state:
-          type: string
-          minLength: 1
-        nonce:
           type: string
           minLength: 1
     MobileTokenExchangeSuccess:

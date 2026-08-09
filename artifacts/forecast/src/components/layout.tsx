@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Sparkles, Home, BarChart2, User, Shield, Search, LogIn, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@workspace/replit-auth-web";
-import { useGetMe } from "@workspace/api-client-react";
+import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { formatNumber } from "@/lib/utils";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -10,7 +10,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user: authUser, isAuthenticated, isLoading: authLoading, login, logout } = useAuth();
 
   const { data: platformUser } = useGetMe({
-    query: { enabled: isAuthenticated }
+    query: { enabled: isAuthenticated, queryKey: getGetMeQueryKey() }
   });
 
   const userId = authUser?.id ?? null;

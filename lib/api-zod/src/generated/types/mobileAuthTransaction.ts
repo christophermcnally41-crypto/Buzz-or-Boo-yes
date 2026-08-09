@@ -6,8 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PredictionInput {
-  userId?: number;
-  choice: string;
-  amount: number;
+export interface MobileAuthTransaction {
+  state: string;
+  nonce: string;
 }

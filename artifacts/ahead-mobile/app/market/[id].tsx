@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { getMarketColors } from '@/lib/market-colors';
+import { useAuth } from '@/lib/auth';
 
 const CATEGORY_LABELS: Record<string, string> = {
   STYLE: 'Style',
@@ -40,6 +41,8 @@ export default function MarketDetailScreen() {
   const [voted, setVoted] = useState<'YES' | 'NO' | null>(null);
   const [voting, setVoting] = useState(false);
 
+  const { isAuthenticated, login } = useAuth();
+
   const marketId = Number(id);
   const pair = getMarketColors(marketId);
 
@@ -51,18 +54,38 @@ export default function MarketDetailScreen() {
     async (choice: 'YES' | 'NO') => {
       if (voting || voted) return;
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      if (!isAuthenticated) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+          'Sign in to predict',
+          'Create your account to make predictions, earn tokens, and climb the rankings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Log in', style: 'default', onPress: login },
+          ],
+        );
+        return;
+      }
+
       setVoting(true);
-      // Auth is not yet implemented — show a sign-in prompt rather than
-      // submitting predictions under a hardcoded identity.
-      setVoting(false);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert(
-        'Sign in to predict',
-        'Create your account to make predictions, earn tokens, and climb the rankings.',
-        [{ text: 'OK', style: 'default' }],
+      mutation.mutate(
+        { id: marketId, data: { choice, amount: 100 } },
+        {
+          onSuccess: async () => {
+            setVoted(choice);
+            setVoting(false);
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+          onError: (err: any) => {
+            setVoting(false);
+            const msg = err?.response?.data?.error ?? 'Failed to submit prediction.';
+            Alert.alert('Error', msg);
+          },
+        },
       );
     },
-    [marketId, mutation, voted, voting],
+    [marketId, mutation, voted, voting, isAuthenticated, login],
   );
 
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;

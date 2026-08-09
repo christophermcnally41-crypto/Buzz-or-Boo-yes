@@ -214,7 +214,7 @@ export const MakePredictionParams = zod.object({
 })
 
 export const MakePredictionBody = zod.object({
-  "userId": zod.number(),
+  "userId": zod.number().optional(),
   "choice": zod.string(),
   "amount": zod.number()
 })
@@ -554,9 +554,17 @@ export const LogoutBrowserSessionResponse = zod.void()
 
 
 /**
+ * @summary Generate server-side state and nonce for a mobile OIDC login
+ */
+export const InitMobileAuthTransactionResponse = zod.object({
+  "state": zod.string(),
+  "nonce": zod.string()
+})
+
+
+/**
  * @summary Exchange a mobile OIDC code for a session token
  */
-
 
 
 
@@ -567,8 +575,7 @@ export const ExchangeMobileAuthorizationCodeBody = zod.object({
   "code": zod.string().min(1),
   "code_verifier": zod.string().min(1),
   "redirect_uri": zod.string().min(1),
-  "state": zod.string().min(1),
-  "nonce": zod.string().min(1).optional()
+  "state": zod.string().min(1)
 })
 
 export const ExchangeMobileAuthorizationCodeResponse = zod.object({

@@ -13,7 +13,9 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { setBaseUrl } from '@workspace/api-client-react';
+import * as SecureStore from 'expo-secure-store';
+import { setBaseUrl, setAuthTokenGetter } from '@workspace/api-client-react';
+import { AuthProvider } from '@/lib/auth';
 
 // Set base URL so the Expo bundle (outside the web proxy) can reach the API server.
 // EXPO_PUBLIC_API_URL explicitly targets the shared-proxy domain where /api is routed
@@ -23,6 +25,9 @@ const apiBase =
 if (apiBase) {
   setBaseUrl(apiBase);
 }
+
+// Attach the stored bearer token to every API request from the mobile client.
+setAuthTokenGetter(() => SecureStore.getItemAsync('auth_session_token'));
 
 SplashScreen.preventAutoHideAsync();
 
@@ -73,11 +78,13 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <RootLayoutNav />
-            </KeyboardProvider>
-          </GestureHandlerRootView>
+          <AuthProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <KeyboardProvider>
+                <RootLayoutNav />
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

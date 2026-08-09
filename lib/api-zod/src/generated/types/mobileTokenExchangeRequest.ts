@@ -15,6 +15,4 @@ export interface MobileTokenExchangeRequest {
   redirect_uri: string;
   /** @minLength 1 */
   state: string;
-  /** @minLength 1 */
-  nonce?: string;
 }

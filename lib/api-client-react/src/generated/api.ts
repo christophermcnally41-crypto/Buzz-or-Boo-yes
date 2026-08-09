@@ -37,6 +37,7 @@ import type {
   MarketInput,
   MarketList,
   MarketResolution,
+  MobileAuthTransaction,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
   PlatformStats,
@@ -1796,6 +1797,77 @@ export function useLogoutBrowserSession<TData = Awaited<ReturnType<typeof logout
 
 
 
+
+export const getInitMobileAuthTransactionUrl = () => {
+
+
+
+
+  return `/api/mobile-auth/init-transaction`
+}
+
+/**
+ * @summary Generate server-side state and nonce for a mobile OIDC login
+ */
+export const initMobileAuthTransaction = async ( options?: Parameters<typeof customFetch>[1]): Promise<MobileAuthTransaction> => {
+
+  return customFetch<MobileAuthTransaction>(getInitMobileAuthTransactionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getInitMobileAuthTransactionMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initMobileAuthTransaction>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof initMobileAuthTransaction>>, TError,void, TContext> => {
+
+const mutationKey = ['initMobileAuthTransaction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof initMobileAuthTransaction>>, void> = () => {
+
+
+          return  initMobileAuthTransaction(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InitMobileAuthTransactionMutationResult = NonNullable<Awaited<ReturnType<typeof initMobileAuthTransaction>>>
+
+    export type InitMobileAuthTransactionMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Generate server-side state and nonce for a mobile OIDC login
+ */
+export const useInitMobileAuthTransaction = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initMobileAuthTransaction>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof initMobileAuthTransaction>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getInitMobileAuthTransactionMutationOptions(options));
+    }
 
 export const getExchangeMobileAuthorizationCodeUrl = () => {
 
