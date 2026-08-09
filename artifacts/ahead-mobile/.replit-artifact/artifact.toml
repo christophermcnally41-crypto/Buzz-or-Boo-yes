@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/ahead-mobile/"
+title = "AHEAD — Mobile"
+description = "Native mobile companion to the AHEAD cultural prediction platform. Swipeable market card feed, bottom tab navigation (Discover, Local Pulse, Predict, Rankings, You), market detail with YES/NO prediction buttons, and HOT IN BOSTON featured cards. Connects to the shared API server."
+version = "1.0.0"
+id = "artifacts/ahead-mobile"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/ahead-mobile/" ]
+localPort = 22365
+
+[services.development]
+run = "pnpm --filter @workspace/ahead-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ahead-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/ahead-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "22365"
+BASE_PATH = "/ahead-mobile/"

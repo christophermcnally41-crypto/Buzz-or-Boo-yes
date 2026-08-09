@@ -2,3 +2,7 @@
 - [Zod v3 format pitfalls](zod-v3-codegen.md) — format:email → z.email() and format:uri → z.url() don't exist in Zod v3; remove format annotations from openapi.yaml to avoid codegen failures.
 - [MULTI_CHOICE market format](multi-choice-markets.md) — contender votes stored in predictions.choice (key A–E); yesCount/noCount not updated; counts aggregated client-side from predictions data.
 - [replit-auth-web lib](replit-auth-web-tsconfig.md) — browser-only lib with import.meta.env; exclude from root tsconfig.json references (breaks typecheck:libs); Vite resolves it via package.json exports.
+- Expo CORS: API server must use an origin allowlist regex with `credentials: true` for cookie auth; never use `origin: true` with credentials (unsafe reflected-origin).
+- Expo API URL: use `EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN` in the dev script; call `setBaseUrl` outside any component in `app/_layout.tsx`.
+- Expo predict gate: never submit mutations with a hardcoded userId from mobile; show a sign-in prompt until auth is implemented.
+- Expo useColors typing: cast `colors.dark` directly as `typeof colors.light` to avoid TS2352 from the numeric `radius` field.

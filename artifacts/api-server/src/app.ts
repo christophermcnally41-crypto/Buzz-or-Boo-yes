@@ -27,7 +27,19 @@ app.use(
     },
   }),
 );
-app.use(cors({ credentials: true, origin: true }));
+
+// Allow Replit dev/preview and Expo domains.
+// credentials: true is required for cookie-based auth (Task #5).
+// Origin is restricted to a Replit-domain allowlist to prevent
+// arbitrary sites from making credentialed requests.
+app.use(
+  cors({
+    origin: /\.(replit\.dev|repl\.co|worf\.replit\.dev)(:\d+)?$/,
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
