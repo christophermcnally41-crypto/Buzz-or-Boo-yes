@@ -304,6 +304,7 @@ export type AuthorizationSessionHeaderParameter = string;
 export type ListMarketsParams = {
 category?: ListMarketsCategory;
 status?: ListMarketsStatus;
+format?: ListMarketsFormat;
 limit?: number;
 offset?: number;
 };
@@ -328,6 +329,16 @@ export const ListMarketsStatus = {
   OPEN: 'OPEN',
   CLOSED: 'CLOSED',
   RESOLVED: 'RESOLVED',
+} as const;
+
+export type ListMarketsFormat = typeof ListMarketsFormat[keyof typeof ListMarketsFormat];
+
+
+export const ListMarketsFormat = {
+  STANDARD: 'STANDARD',
+  HOT_OR_NOT: 'HOT_OR_NOT',
+  HEAD_TO_HEAD: 'HEAD_TO_HEAD',
+  MULTI_CHOICE: 'MULTI_CHOICE',
 } as const;
 
 export type GetTrendingMarketsParams = {

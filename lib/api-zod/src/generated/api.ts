@@ -96,6 +96,7 @@ export const listMarketsQueryOffsetDefault = 0;
 export const ListMarketsQueryParams = zod.object({
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']).optional(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']).optional(),
+  "format": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
   "limit": zod.coerce.number().default(listMarketsQueryLimitDefault),
   "offset": zod.coerce.number().default(listMarketsQueryOffsetDefault)
 })

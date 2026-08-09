@@ -20,6 +20,7 @@ export * from './handleBrowserLoginCallbackParams';
 export * from './healthStatus';
 export * from './leaderboardEntry';
 export * from './listMarketsCategory';
+export * from './listMarketsFormat';
 export * from './listMarketsParams';
 export * from './listMarketsStatus';
 export * from './logoutBrowserSessionParams';

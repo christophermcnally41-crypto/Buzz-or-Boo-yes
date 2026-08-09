@@ -68,11 +68,12 @@ router.get("/markets/categories", async (_req, res): Promise<void> => {
 
 router.get("/markets", async (req, res): Promise<void> => {
   const query = ListMarketsQueryParams.safeParse(req.query);
-  const { category, status, limit = 20, offset = 0 } = query.success ? query.data : {};
+  const { category, status, format, limit = 20, offset = 0 } = query.success ? query.data : {} as any;
 
   const conditions = [];
   if (category) conditions.push(eq(marketsTable.category, category));
   if (status) conditions.push(eq(marketsTable.status, status));
+  if (format) conditions.push(eq(marketsTable.marketFormat, format));
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 

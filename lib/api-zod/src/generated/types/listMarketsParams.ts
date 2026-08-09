@@ -6,11 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ListMarketsCategory } from './listMarketsCategory';
+import type { ListMarketsFormat } from './listMarketsFormat';
 import type { ListMarketsStatus } from './listMarketsStatus';
 
 export type ListMarketsParams = {
 category?: ListMarketsCategory;
 status?: ListMarketsStatus;
+format?: ListMarketsFormat;
 limit?: number;
 offset?: number;
 };

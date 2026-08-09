@@ -119,6 +119,11 @@ paths:
           schema:
             type: string
             enum: [OPEN, CLOSED, RESOLVED]
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE]
         - name: limit
           in: query
           schema:

@@ -1,4 +1,4 @@
-import { useGetTrendingMarkets, useGetPlatformStats, useGetMarketCategories } from "@workspace/api-client-react";
+import { useGetTrendingMarkets, useGetPlatformStats, useGetMarketCategories, useListMarkets } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
 import { BostonSays } from "@/components/boston-says";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ export default function Home() {
   const { data: trendingMarkets, isLoading: loadingMarkets } = useGetTrendingMarkets({ limit: 7 });
   const { data: stats } = useGetPlatformStats();
   const { data: categories } = useGetMarketCategories();
+  const { data: hotOrNotData, isLoading: loadingHotOrNot } = useListMarkets({ format: "HOT_OR_NOT", status: "OPEN", limit: 6 });
 
   return (
     <div className="pb-24">
@@ -142,6 +143,40 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Hot or Not */}
+      {(loadingHotOrNot || (hotOrNotData?.markets && hotOrNotData.markets.length > 0)) && (
+        <section className="py-16 md:py-24 bg-muted/30 border-y border-border/40">
+          <div className="container mx-auto px-4">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-600 text-xs font-bold uppercase tracking-widest mb-3">
+                  🔥 Hot or Not
+                </div>
+                <h2 className="text-3xl md:text-4xl font-editorial font-bold mb-2">Is Boston Feeling It?</h2>
+                <p className="text-muted-foreground font-medium">Call whether these spots, trends &amp; names are heating up — or fading out.</p>
+              </div>
+              <Link href="/markets?format=HOT_OR_NOT">
+                <Button variant="ghost" className="hidden md:flex">
+                  See All <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+
+            {loadingHotOrNot ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                {[1, 2, 3].map(i => <div key={i} className="h-72 bg-muted rounded-xl" />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[300px]">
+                {hotOrNotData?.markets?.map((market) => (
+                  <MarketCard key={market.id} market={market} />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Boston Says — Opinion Polls */}
       <BostonSays />
