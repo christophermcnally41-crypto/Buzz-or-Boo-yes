@@ -37,6 +37,8 @@ export * from './marketStatus';
 export * from './mobileAuthTransaction';
 export * from './mobileTokenExchangeRequest';
 export * from './mobileTokenExchangeSuccess';
+export * from './pinnedMarketsEnvelope';
+export * from './pinStatus';
 export * from './platformStats';
 export * from './poll';
 export * from './pollEnvelope';

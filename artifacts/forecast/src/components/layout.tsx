@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { Link, useLocation } from "wouter";
-import { Sparkles, Home, BarChart2, User, Shield, Search, LogIn, LogOut } from "lucide-react";
+import { Link, useLocation, useSearch } from "wouter";
+import { Sparkles, Home, BarChart2, User, Shield, Search, LogIn, LogOut, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
@@ -10,6 +10,7 @@ import { ToastAction } from "@/components/ui/toast";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const search = useSearch();
   const { user: authUser, isAuthenticated, isLoading: authLoading, sessionExpired, login, logout } = useAuth();
 
   useEffect(() => {
@@ -35,9 +36,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: "/", label: "What's Buzzing", icon: Sparkles },
-    { href: "/markets", label: "Markets", icon: Search },
     { href: "/leaderboard", label: "BuzzRank", icon: BarChart2 },
+    { href: "/markets?format=HOT_OR_NOT", label: "Hot or Not", icon: Flame },
     ...(userId ? [{ href: `/profile/${userId}`, label: "My Calls", icon: User }] : []),
+    { href: "/markets", label: "Markets", icon: Search },
   ];
 
   return (
@@ -62,7 +64,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <nav className="hidden md:flex items-center gap-6">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+              const [itemPath, itemQuery] = item.href.split("?");
+              const isActive = itemQuery
+                ? location === itemPath && search.includes(itemQuery)
+                : location === item.href || (item.href !== "/" && location.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
@@ -146,13 +151,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-around p-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+            const [itemPath, itemQuery] = item.href.split("?");
+            const isActive = itemQuery
+              ? location === itemPath && search.includes(itemQuery)
+              : location === item.href || (item.href !== "/" && location.startsWith(item.href));
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1 p-2 min-w-[64px] rounded-xl transition-colors",
+                  "flex flex-col items-center gap-1 p-2 min-w-[56px] rounded-xl transition-colors",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-primary"
                 )}
               >

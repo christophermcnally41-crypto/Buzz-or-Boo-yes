@@ -40,6 +40,8 @@ import type {
   MobileAuthTransaction,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
+  PinStatus,
+  PinnedMarketsEnvelope,
   PlatformStats,
   PollEnvelope,
   PollVoteInput,
@@ -1076,6 +1078,302 @@ export function useGetUser<TData = Awaited<ReturnType<typeof getUser>>, TError =
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetUserQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetMarketPinStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/markets/${id}/pin`
+}
+
+/**
+ * @summary Check if current user has pinned this market
+ */
+export const getMarketPinStatus = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PinStatus> => {
+
+  return customFetch<PinStatus>(getGetMarketPinStatusUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketPinStatusQueryKey = (id: number,) => {
+    return [
+    `/api/markets/${id}/pin`
+    ] as const;
+    }
+
+
+export const getGetMarketPinStatusQueryOptions = <TData = Awaited<ReturnType<typeof getMarketPinStatus>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketPinStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketPinStatusQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketPinStatus>>> = ({ signal }) => getMarketPinStatus(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketPinStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketPinStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketPinStatus>>>
+export type GetMarketPinStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check if current user has pinned this market
+ */
+
+export function useGetMarketPinStatus<TData = Awaited<ReturnType<typeof getMarketPinStatus>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketPinStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketPinStatusQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPinMarketUrl = (id: number,) => {
+
+
+
+
+  return `/api/markets/${id}/pin`
+}
+
+/**
+ * @summary Pin a market to your profile
+ */
+export const pinMarket = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PinStatus> => {
+
+  return customFetch<PinStatus>(getPinMarketUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getPinMarketMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof pinMarket>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof pinMarket>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['pinMarket'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof pinMarket>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  pinMarket(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PinMarketMutationResult = NonNullable<Awaited<ReturnType<typeof pinMarket>>>
+
+    export type PinMarketMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Pin a market to your profile
+ */
+export const usePinMarket = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof pinMarket>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof pinMarket>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getPinMarketMutationOptions(options));
+    }
+
+export const getUnpinMarketUrl = (id: number,) => {
+
+
+
+
+  return `/api/markets/${id}/pin`
+}
+
+/**
+ * @summary Unpin a market from your profile
+ */
+export const unpinMarket = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PinStatus> => {
+
+  return customFetch<PinStatus>(getUnpinMarketUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnpinMarketMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unpinMarket>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unpinMarket>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['unpinMarket'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unpinMarket>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unpinMarket(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnpinMarketMutationResult = NonNullable<Awaited<ReturnType<typeof unpinMarket>>>
+
+    export type UnpinMarketMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Unpin a market from your profile
+ */
+export const useUnpinMarket = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unpinMarket>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unpinMarket>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getUnpinMarketMutationOptions(options));
+    }
+
+export const getGetUserPinsUrl = (id: number,) => {
+
+
+
+
+  return `/api/users/${id}/pins`
+}
+
+/**
+ * @summary Get all pinned markets for a user
+ */
+export const getUserPins = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PinnedMarketsEnvelope> => {
+
+  return customFetch<PinnedMarketsEnvelope>(getGetUserPinsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserPinsQueryKey = (id: number,) => {
+    return [
+    `/api/users/${id}/pins`
+    ] as const;
+    }
+
+
+export const getGetUserPinsQueryOptions = <TData = Awaited<ReturnType<typeof getUserPins>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserPins>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserPinsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserPins>>> = ({ signal }) => getUserPins(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserPins>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserPinsQueryResult = NonNullable<Awaited<ReturnType<typeof getUserPins>>>
+export type GetUserPinsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get all pinned markets for a user
+ */
+
+export function useGetUserPins<TData = Awaited<ReturnType<typeof getUserPins>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserPins>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserPinsQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

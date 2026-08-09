@@ -307,6 +307,78 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /markets/{id}/pin:
+    get:
+      operationId: getMarketPinStatus
+      tags: [pins]
+      summary: Check if current user has pinned this market
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Pin status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PinStatus"
+    post:
+      operationId: pinMarket
+      tags: [pins]
+      summary: Pin a market to your profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Pinned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PinStatus"
+    delete:
+      operationId: unpinMarket
+      tags: [pins]
+      summary: Unpin a market from your profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Unpinned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PinStatus"
+
+  /users/{id}/pins:
+    get:
+      operationId: getUserPins
+      tags: [pins]
+      summary: Get all pinned markets for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Pinned markets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PinnedMarketsEnvelope"
+
   /users/{id}/predictions:
     get:
       operationId: getUserPredictions
@@ -579,6 +651,22 @@ components:
           type: string
       required:
         - status
+
+    PinStatus:
+      type: object
+      required: [pinned]
+      properties:
+        pinned:
+          type: boolean
+
+    PinnedMarketsEnvelope:
+      type: object
+      required: [pins]
+      properties:
+        pins:
+          type: array
+          items:
+            $ref: "#/components/schemas/Market"
 
     Error:
       type: object

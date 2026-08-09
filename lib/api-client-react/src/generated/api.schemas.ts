@@ -9,8 +9,8 @@ export interface HealthStatus {
   status: string;
 }
 
-export interface Error {
-  error: string;
+export interface PinStatus {
+  pinned: boolean;
 }
 
 export type MarketCategory = typeof MarketCategory[keyof typeof MarketCategory];
@@ -71,6 +71,14 @@ export interface Market {
   /** @nullable */
   resolvedOutcome?: string | null;
   createdAt: string;
+}
+
+export interface PinnedMarketsEnvelope {
+  pins: Market[];
+}
+
+export interface Error {
+  error: string;
 }
 
 export interface MarketList {

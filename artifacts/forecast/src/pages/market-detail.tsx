@@ -4,11 +4,16 @@ import {
   useGetMarket, 
   useGetMarketPredictions, 
   useMakePrediction,
+  useGetMarketPinStatus,
+  usePinMarket,
+  useUnpinMarket,
   getGetMarketQueryKey,
   getGetMarketPredictionsQueryKey,
   getGetMeQueryKey,
   getGetPlatformStatsQueryKey,
-  getGetUserPredictionsQueryKey
+  getGetUserPredictionsQueryKey,
+  getGetMarketPinStatusQueryKey,
+  getGetUserPinsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getCategoryLabel, getCategoryIcon } from "@/lib/categories";
 import { formatNumber, cn } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
-import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown } from "lucide-react";
+import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck } from "lucide-react";
 import { Link } from "wouter";
 
 interface Contender {
@@ -62,6 +67,34 @@ export default function MarketDetail() {
   });
 
   const makePrediction = useMakePrediction();
+  const pinMarket = usePinMarket();
+  const unpinMarket = useUnpinMarket();
+
+  const { data: pinStatus, refetch: refetchPin } = useGetMarketPinStatus(marketId, {
+    query: { enabled: !!marketId && isAuthenticated, queryKey: getGetMarketPinStatusQueryKey(marketId) }
+  });
+  const isPinned = pinStatus?.pinned ?? false;
+
+  const handlePin = () => {
+    if (!isAuthenticated) { login(); return; }
+    const userId = authUser ? parseInt(authUser.id, 10) : undefined;
+    if (isPinned) {
+      unpinMarket.mutate({ id: marketId }, {
+        onSuccess: () => {
+          refetchPin();
+          if (userId) queryClient.invalidateQueries({ queryKey: getGetUserPinsQueryKey(userId) });
+        }
+      });
+    } else {
+      pinMarket.mutate({ id: marketId }, {
+        onSuccess: () => {
+          refetchPin();
+          if (userId) queryClient.invalidateQueries({ queryKey: getGetUserPinsQueryKey(userId) });
+          toast({ title: "Pinned!", description: "Saved to your profile." });
+        }
+      });
+    }
+  };
 
   const [amount, setAmount] = useState([100]);
   const [isPredicting, setIsPredicting] = useState<string | null>(null);
@@ -163,11 +196,28 @@ export default function MarketDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Main Content */}
           <div className="lg:col-span-8">
-            <div className="flex items-center gap-3 mb-4">
-              <Badge variant="secondary" className="font-medium gap-1.5 py-1 px-3">
-                {getCategoryIcon(market.category)} {getCategoryLabel(market.category)}
-              </Badge>
-              <span className="text-muted-foreground text-sm font-medium">— {market.subcategory}</span>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="font-medium gap-1.5 py-1 px-3">
+                  {getCategoryIcon(market.category)} {getCategoryLabel(market.category)}
+                </Badge>
+                <span className="text-muted-foreground text-sm font-medium">— {market.subcategory}</span>
+              </div>
+              <button
+                onClick={handlePin}
+                title={isPinned ? "Unpin from profile" : "Pin to profile"}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium transition-all shrink-0",
+                  isPinned
+                    ? "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"
+                    : "bg-muted text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"
+                )}
+              >
+                {isPinned
+                  ? <><BookmarkCheck className="w-4 h-4" /> Pinned</>
+                  : <><Bookmark className="w-4 h-4" /> Pin</>
+                }
+              </button>
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-editorial font-bold leading-[1.1] text-balance mb-6">

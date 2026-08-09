@@ -318,6 +318,74 @@ export const GetUserResponse = zod.object({
 
 
 /**
+ * @summary Check if current user has pinned this market
+ */
+export const GetMarketPinStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetMarketPinStatusResponse = zod.object({
+  "pinned": zod.boolean()
+})
+
+
+/**
+ * @summary Pin a market to your profile
+ */
+export const PinMarketParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PinMarketResponse = zod.object({
+  "pinned": zod.boolean()
+})
+
+
+/**
+ * @summary Unpin a market from your profile
+ */
+export const UnpinMarketParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UnpinMarketResponse = zod.object({
+  "pinned": zod.boolean()
+})
+
+
+/**
+ * @summary Get all pinned markets for a user
+ */
+export const GetUserPinsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetUserPinsResponse = zod.object({
+  "pins": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "question": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE']),
+  "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE']).optional(),
+  "imageUrl": zod.string().nullish(),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "yesCount": zod.number(),
+  "noCount": zod.number(),
+  "totalPredictions": zod.number(),
+  "yesPercent": zod.number().optional(),
+  "noPercent": zod.number().optional(),
+  "resolutionSource": zod.string().nullish(),
+  "closesAt": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "resolvedOutcome": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
  * @summary Get predictions by user
  */
 export const GetUserPredictionsParams = zod.object({

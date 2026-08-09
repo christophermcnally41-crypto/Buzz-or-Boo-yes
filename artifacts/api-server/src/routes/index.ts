@@ -7,6 +7,7 @@ import usersRouter from "./users";
 import leaderboardRouter from "./leaderboard";
 import adminRouter from "./admin";
 import pollsRouter from "./polls";
+import pinsRouter from "./pins";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(usersRouter);
 router.use(leaderboardRouter);
 router.use(adminRouter);
 router.use(pollsRouter);
+router.use(pinsRouter);
 
 export default router;
