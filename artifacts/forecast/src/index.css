@@ -102,20 +102,20 @@
 
 /* LIGHT MODE */
 :root {
-  /* Warm putty / earthy linen background */
-  --background: 40 22% 96%;
+  /* Silver pearl background */
+  --background: 220 22% 96%;
   /* Warm espresso — not cold blue-black */
   --foreground: 22 18% 11%;
 
   /* Borders — warm sand */
-  --border: 38 18% 86%;
+  --border: 220 18% 87%;
   --input: 38 18% 86%;
   --ring: 268 45% 40%;
 
   /* Cards — soft warm white */
-  --card: 40 20% 99%;
-  --card-foreground: 22 18% 11%;
-  --card-border: 38 18% 86%;
+  --card: 220 20% 99%;
+  --card-foreground: 220 18% 11%;
+  --card-border: 220 18% 87%;
 
   /* Popover matches card */
   --popover: 40 20% 99%;
@@ -131,8 +131,8 @@
   --secondary-foreground: 22 18% 11%;
 
   /* Muted */
-  --muted: 40 18% 92%;
-  --muted-foreground: 30 8% 46%;
+  --muted: 220 18% 93%;
+  --muted-foreground: 220 8% 46%;
 
   /* Accent: keep terracotta warmth */
   --accent: 16 62% 50%;
