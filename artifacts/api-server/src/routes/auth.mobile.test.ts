@@ -262,6 +262,34 @@ describe('POST /mobile-auth/token-exchange — mobile OIDC token exchange', () =
   });
 
   // -------------------------------------------------------------------------
+  // 4b. Provider-side code replay — the OIDC provider rejects the authorization
+  //     code because it was already used (e.g. "invalid_grant" / "code already
+  //     redeemed"). The state is legitimately fresh, but authorizationCodeGrant
+  //     throws. The server must return 500 and must NOT create a session.
+  // -------------------------------------------------------------------------
+  it('returns 500 and does not create a session when the provider rejects an already-used authorization code', async () => {
+    const app = buildApp();
+
+    // Obtain a fresh, server-issued state — this state is valid and unexpired.
+    const initRes = await request(app).post('/mobile-auth/init-transaction');
+    expect(initRes.status).toBe(200);
+    const { state } = initRes.body as { state: string };
+
+    // Simulate the OIDC provider rejecting the code as already redeemed.
+    mockAuthorizationCodeGrant.mockRejectedValue(
+      Object.assign(new Error('invalid_grant'), { code: 'invalid_grant' }),
+    );
+
+    const res = await request(app)
+      .post('/mobile-auth/token-exchange')
+      .send(makeExchangeBody(state));
+
+    // Server must propagate the failure cleanly — non-200, no session.
+    expect(res.status).toBe(500);
+    expect(mockCreateSession).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
   // 5a. Null claims — authorizationCodeGrant succeeds but claims() returns null.
   //     The route must return 401 and must not call createSession.
   // -------------------------------------------------------------------------
