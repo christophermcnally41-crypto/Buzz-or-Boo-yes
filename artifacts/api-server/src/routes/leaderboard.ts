@@ -1,28 +1,105 @@
 import { Router, type IRouter } from "express";
-import { desc, sql, gt } from "drizzle-orm";
+import { desc, sql, gt, and } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
-import { GetLeaderboardQueryParams, GetLeaderboardResponse } from "@workspace/api-zod";
+import { GetLeaderboardQueryParams, GetLeaderboardResponse, GetMyLeaderboardEntryQueryParams, GetMyLeaderboardEntryResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+/** Helper: pick the right accuracy column for a category string */
+function getAccuracyCol(category: string | undefined) {
+  switch (category) {
+    case "STYLE": return usersTable.styleAccuracy;
+    case "HOME": return usersTable.homeAccuracy;
+    case "CITY": return usersTable.cityAccuracy;
+    case "REAL_ESTATE": return usersTable.realEstateAccuracy;
+    case "WEATHER": return usersTable.weatherAccuracy;
+    case "CULTURE": return usersTable.cultureAccuracy;
+    default: return usersTable.overallAccuracy;
+  }
+}
+
+/** Helper: read accuracy value from a user row for a category */
+function getAccuracyValue(u: typeof usersTable.$inferSelect, category: string | undefined): number {
+  switch (category) {
+    case "STYLE": return u.styleAccuracy ?? 0;
+    case "HOME": return u.homeAccuracy ?? 0;
+    case "CITY": return u.cityAccuracy ?? 0;
+    case "REAL_ESTATE": return u.realEstateAccuracy ?? 0;
+    case "WEATHER": return u.weatherAccuracy ?? 0;
+    case "CULTURE": return u.cultureAccuracy ?? 0;
+    default: return u.overallAccuracy ?? 0;
+  }
+}
+
+/** GET /leaderboard/me — authenticated user's own rank, independent of the list limit.
+ *
+ * Uses the same eligibility predicate as GET /leaderboard (totalResolved > 0).
+ * Rank = count of eligible users whose category accuracy strictly exceeds the
+ * current user's, using COALESCE(col, 0) so null and zero are treated equally
+ * (no category predictions → rank last among the null/zero group).
+ */
+router.get("/leaderboard/me", async (req, res): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const query = GetMyLeaderboardEntryQueryParams.safeParse(req.query);
+  const { category } = query.success ? query.data : {};
+
+  // LOCAL_PULSE and unknown categories fall through to overallAccuracy (same as list)
+  const col = getAccuracyCol(category);
+  const platformUserId = parseInt(req.user.id, 10);
+
+  // Fetch the authenticated user's own row
+  const [me] = await db
+    .select()
+    .from(usersTable)
+    .where(sql`${usersTable.id} = ${platformUserId}`)
+    .limit(1);
+
+  if (!me) {
+    res.status(401).json({ error: "User not found" });
+    return;
+  }
+
+  // 204 only when the user has zero resolved predictions (not on the board at all)
+  if (me.totalResolved === 0) {
+    res.status(204).send();
+    return;
+  }
+
+  const myAccuracy = getAccuracyValue(me, category);
+
+  // Count eligible users whose COALESCE(col, 0) strictly exceeds the current
+  // user's — same eligibility gate as the list (totalResolved > 0 only).
+  const [{ higherCount }] = await db
+    .select({ higherCount: sql<number>`count(*)::int` })
+    .from(usersTable)
+    .where(and(
+      gt(usersTable.totalResolved, 0),
+      sql`COALESCE(${col}, 0) > ${myAccuracy}`
+    ));
+
+  const rank = (higherCount ?? 0) + 1;
+
+  const entry = {
+    rank,
+    user: { ...me, createdAt: me.createdAt.toISOString() },
+    accuracy: myAccuracy,
+    totalPredictions: me.totalPredictions,
+    totalCorrect: me.totalCorrect,
+    tokensEarned: me.tokenBalance,
+  };
+
+  res.json(GetMyLeaderboardEntryResponse.parse(entry));
+});
 
 router.get("/leaderboard", async (req, res): Promise<void> => {
   const query = GetLeaderboardQueryParams.safeParse(req.query);
   const { category, limit = 20 } = query.success ? query.data : {};
 
-  // Select the correct accuracy column based on category
-  const accuracyCol = () => {
-    switch (category) {
-      case "STYLE": return usersTable.styleAccuracy;
-      case "HOME": return usersTable.homeAccuracy;
-      case "CITY": return usersTable.cityAccuracy;
-      case "REAL_ESTATE": return usersTable.realEstateAccuracy;
-      case "WEATHER": return usersTable.weatherAccuracy;
-      case "CULTURE": return usersTable.cultureAccuracy;
-      default: return usersTable.overallAccuracy;
-    }
-  };
-
-  const col = accuracyCol();
+  const col = getAccuracyCol(category);
 
   const users = await db
     .select()
@@ -34,15 +111,7 @@ router.get("/leaderboard", async (req, res): Promise<void> => {
   const entries = users.map((u, i) => ({
     rank: i + 1,
     user: { ...u, createdAt: u.createdAt.toISOString() },
-    accuracy: (category
-      ? (category === "STYLE" ? u.styleAccuracy
-        : category === "HOME" ? u.homeAccuracy
-        : category === "CITY" ? u.cityAccuracy
-        : category === "REAL_ESTATE" ? u.realEstateAccuracy
-        : category === "WEATHER" ? u.weatherAccuracy
-        : category === "CULTURE" ? u.cultureAccuracy
-        : u.overallAccuracy)
-      : u.overallAccuracy) ?? 0,
+    accuracy: getAccuracyValue(u, category),
     totalPredictions: u.totalPredictions,
     totalCorrect: u.totalCorrect,
     tokensEarned: u.tokenBalance,

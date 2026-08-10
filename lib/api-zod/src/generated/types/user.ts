@@ -33,5 +33,10 @@ export interface User {
   cultureAccuracy?: number | null;
   /** @nullable */
   rank?: number | null;
+  /**
+     * ISO timestamp of the last daily top-up, or null if never topped up
+     * @nullable
+     */
+  lastTopupAt?: string | null;
   createdAt: string;
 }

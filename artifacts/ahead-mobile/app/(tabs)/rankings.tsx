@@ -6,14 +6,14 @@ import {
   FlatList,
   RefreshControl,
   Platform,
-  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
-import { useGetLeaderboard } from '@workspace/api-client-react';
+import { useGetLeaderboard, useGetMyLeaderboardEntry } from '@workspace/api-client-react';
 import type { LeaderboardEntry } from '@workspace/api-client-react';
 import { Feather } from '@expo/vector-icons';
 import { LeaderboardRowSkeleton } from '@/components/SkeletonLoader';
+import { useAuth } from '@/lib/auth';
 
 const RANK_COLORS: Record<number, string> = {
   1: '#F5C518',
@@ -21,7 +21,7 @@ const RANK_COLORS: Record<number, string> = {
   3: '#CD7F32',
 };
 
-function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
+function LeaderboardRow({ entry, isMe }: { entry: LeaderboardEntry; isMe?: boolean }) {
   const colors = useColors();
   const rankColor = RANK_COLORS[entry.rank] ?? colors.mutedForeground;
   const accuracy = Math.round(entry.accuracy * 100);
@@ -33,7 +33,11 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
     .join('');
 
   return (
-    <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[
+      styles.row,
+      { backgroundColor: isMe ? colors.primary + '12' : colors.card, borderColor: isMe ? colors.primary + '55' : colors.border },
+      isMe && { borderWidth: 1.5 },
+    ]}>
       {/* Rank */}
       <View style={[styles.rankCol, { backgroundColor: entry.rank <= 3 ? rankColor + '22' : colors.muted }]}>
         <Text style={[styles.rankNum, { color: entry.rank <= 3 ? rankColor : colors.mutedForeground }]}>
@@ -73,6 +77,7 @@ export default function RankingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const { data, refetch, isLoading } = useGetLeaderboard({ limit: 25 });
 
@@ -81,6 +86,14 @@ export default function RankingsScreen() {
     await refetch();
     setRefreshing(false);
   }, [refetch]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: myEntryRaw } = useGetMyLeaderboardEntry(
+    {},
+    { query: { enabled: isAuthenticated } as any }
+  );
+  // 204 "no entry" maps to void/undefined at runtime; narrow to a usable type
+  const myEntry = (myEntryRaw && typeof myEntryRaw === 'object' ? myEntryRaw : undefined) as LeaderboardEntry | undefined;
 
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
 
@@ -150,6 +163,34 @@ export default function RankingsScreen() {
         </View>
       )}
 
+      {/* My rank card */}
+      {myEntry && (
+        <View style={[styles.myRankCard, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '55' }]}>
+          <View style={[styles.myRankBadge, { backgroundColor: colors.primary }]}>
+            <Text style={styles.myRankBadgeText}>YOU</Text>
+          </View>
+          <View style={[styles.myRankAvatarWrap, { backgroundColor: colors.primary + '33' }]}>
+            <Text style={[styles.myRankAvatarText, { color: colors.primary }]}>
+              {myEntry.user.username.slice(0, 2).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.myRankInfo}>
+            <Text style={[styles.myRankUsername, { color: colors.foreground }]} numberOfLines={1}>
+              {myEntry.user.username}
+            </Text>
+            <Text style={[styles.myRankSub, { color: colors.mutedForeground }]}>
+              {myEntry.totalCorrect}/{myEntry.totalPredictions} correct
+            </Text>
+          </View>
+          <View style={styles.myRankRight}>
+            <Text style={[styles.myRankNum, { color: colors.primary }]}>#{myEntry.rank}</Text>
+            <Text style={[styles.myRankAcc, { color: colors.primary }]}>
+              {Math.round(myEntry.accuracy * 100)}%
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Full leaderboard */}
       {isLoading ? (
         <View style={{ paddingHorizontal: 16 }}>
@@ -159,7 +200,7 @@ export default function RankingsScreen() {
         <FlatList
           data={data?.slice(3) ?? []}
           keyExtractor={(e) => `${e.rank}`}
-          renderItem={({ item }) => <LeaderboardRow entry={item} />}
+          renderItem={({ item }) => <LeaderboardRow entry={item} isMe={item.user.id === myEntry?.user?.id} />}
           contentContainerStyle={[
             styles.list,
             { paddingBottom: (Platform.OS === 'web' ? 84 : 80 + insets.bottom) + 16 },
@@ -324,5 +365,62 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     fontFamily: 'Inter_400Regular',
+  },
+  myRankCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    gap: 10,
+  },
+  myRankBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  myRankBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 0.5,
+  },
+  myRankAvatarWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  myRankAvatarText: {
+    fontSize: 14,
+    fontFamily: 'Inter_700Bold',
+  },
+  myRankInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  myRankUsername: {
+    fontSize: 14,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  myRankSub: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+  },
+  myRankRight: {
+    alignItems: 'flex-end',
+  },
+  myRankNum: {
+    fontSize: 16,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -0.5,
+  },
+  myRankAcc: {
+    fontSize: 12,
+    fontFamily: 'Inter_500Medium',
   },
 });

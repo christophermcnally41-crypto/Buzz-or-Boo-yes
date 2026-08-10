@@ -285,7 +285,7 @@ export const GetMeResponse = zod.object({
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
   "rank": zod.number().nullish(),
-  "lastTopupAt": zod.string().nullish(),
+  "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
 })
 
@@ -314,7 +314,7 @@ export const GetUserResponse = zod.object({
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
   "rank": zod.number().nullish(),
-  "lastTopupAt": zod.string().nullish(),
+  "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
 })
 
@@ -457,6 +457,7 @@ export const GetLeaderboardResponseItem = zod.object({
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
   "rank": zod.number().nullish(),
+  "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
 }),
   "accuracy": zod.number(),
@@ -465,6 +466,42 @@ export const GetLeaderboardResponseItem = zod.object({
   "tokensEarned": zod.number().optional()
 })
 export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem)
+
+
+/**
+ * @summary Get the authenticated user's own leaderboard rank entry
+ */
+export const GetMyLeaderboardEntryQueryParams = zod.object({
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'OVERALL']).optional()
+})
+
+export const GetMyLeaderboardEntryResponse = zod.object({
+  "rank": zod.number(),
+  "user": zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "tokenBalance": zod.number(),
+  "totalPredictions": zod.number(),
+  "totalResolved": zod.number(),
+  "totalCorrect": zod.number().optional(),
+  "overallAccuracy": zod.number().nullish(),
+  "styleAccuracy": zod.number().nullish(),
+  "homeAccuracy": zod.number().nullish(),
+  "cityAccuracy": zod.number().nullish(),
+  "realEstateAccuracy": zod.number().nullish(),
+  "weatherAccuracy": zod.number().nullish(),
+  "cultureAccuracy": zod.number().nullish(),
+  "rank": zod.number().nullish(),
+  "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
+  "createdAt": zod.string()
+}),
+  "accuracy": zod.number(),
+  "totalPredictions": zod.number(),
+  "totalCorrect": zod.number(),
+  "tokensEarned": zod.number().optional()
+})
 
 
 /**
@@ -637,6 +674,10 @@ export const InitMobileAuthTransactionResponse = zod.object({
  */
 
 
+
+
+
+
 export const ExchangeMobileAuthorizationCodeBody = zod.object({
   "code": zod.string().min(1),
   "code_verifier": zod.string().min(1),
@@ -659,4 +700,5 @@ export const LogoutMobileSessionHeader = zod.object({
 export const LogoutMobileSessionResponse = zod.object({
   "success": zod.boolean()
 })
+
 

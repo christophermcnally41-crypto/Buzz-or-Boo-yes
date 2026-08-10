@@ -1,20 +1,33 @@
 import { useState } from "react";
-import { useGetLeaderboard } from "@workspace/api-client-react";
+import { useGetLeaderboard, useGetMyLeaderboardEntry } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCategoryLabel, CATEGORIES } from "@/lib/categories";
 import { formatNumber, cn } from "@/lib/utils";
-import { Trophy, TrendingUp, Award, Medal } from "lucide-react";
+import { Trophy, TrendingUp, Award, Medal, User } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@workspace/replit-auth-web";
 
 export default function Leaderboard() {
   const [category, setCategory] = useState<string>("OVERALL");
+  const { isAuthenticated } = useAuth();
   
   const { data: leaderboard, isLoading } = useGetLeaderboard({
     category: category !== "OVERALL" ? (category as any) : undefined,
     limit: 100
   });
+
+  const categoryParam = category !== "OVERALL" ? (category as any) : undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: myEntryData } = useGetMyLeaderboardEntry(
+    { category: categoryParam },
+    { query: { enabled: isAuthenticated } as any }
+  );
+  // 204 "no entry" maps to undefined/void at runtime; cast for safe consumption
+  const myEntry = (myEntryData && typeof myEntryData === "object" ? myEntryData : undefined);
+
+  const currentUserId = myEntry?.user?.id ?? null;
 
   const getTierInfo = (accuracy: number) => {
     if (accuracy >= 80) return { label: "Elite", color: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Trophy };
@@ -75,6 +88,64 @@ export default function Leaderboard() {
               <div className="col-span-4 md:col-span-3 text-right pr-4">Accuracy</div>
             </div>
 
+            {/* Sticky "You" row */}
+            {myEntry && (
+              <div className="border-b-2 border-primary/30 bg-primary/5">
+                <div className="grid grid-cols-12 gap-4 p-4 items-center">
+                  {/* Rank */}
+                  <div className="col-span-2 md:col-span-1 text-center">
+                    <span className="font-editorial font-bold text-xl text-primary">
+                      {myEntry.rank}
+                    </span>
+                  </div>
+
+                  {/* User */}
+                  <div className="col-span-6 md:col-span-5 flex items-center gap-3">
+                    <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-primary">
+                      <AvatarImage src={myEntry.user.avatarUrl || undefined} />
+                      <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                        {myEntry.user.username.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-bold text-primary flex items-center gap-1.5">
+                        {myEntry.user.username}
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 ml-1">
+                          <User className="w-3 h-3 mr-1" /> You
+                        </Badge>
+                      </div>
+                      <Badge variant="outline" className={cn("text-[10px] mt-1 hidden md:inline-flex", getTierInfo(myEntry.accuracy).color)}>
+                        {(() => { const t = getTierInfo(myEntry.accuracy); const I = t.icon; return <><I className="w-3 h-3 mr-1" />{t.label}</>; })()}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Record */}
+                  <div className="hidden md:flex md:col-span-3 flex-col items-center justify-center">
+                    <div className="font-mono-numbers text-sm font-medium">
+                      <span className="text-primary">{myEntry.totalCorrect}</span>
+                      <span className="text-muted-foreground mx-1">/</span>
+                      <span className="text-foreground">{myEntry.totalPredictions}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Resolved</span>
+                  </div>
+
+                  {/* Accuracy */}
+                  <div className="col-span-4 md:col-span-3 text-right pr-2 md:pr-4 flex flex-col items-end">
+                    <div className="font-mono-numbers text-xl font-bold flex items-center gap-1.5 text-primary">
+                      {myEntry.accuracy.toFixed(1)}%
+                      {myEntry.accuracy >= 70 && <TrendingUp className="w-4 h-4 text-green-500" />}
+                    </div>
+                    {myEntry.tokensEarned && myEntry.tokensEarned > 0 && (
+                      <div className="text-[10px] text-primary font-mono-numbers font-medium mt-1">
+                        +{formatNumber(myEntry.tokensEarned)} FP
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="divide-y divide-border">
               {leaderboard.map((entry) => {
                 const tier = getTierInfo(entry.accuracy);
@@ -82,7 +153,10 @@ export default function Leaderboard() {
                 
                 return (
                   <Link key={entry.user.id} href={`/profile/${entry.user.id}`}>
-                    <div className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-muted/30 transition-colors cursor-pointer group">
+                    <div className={cn(
+                      "grid grid-cols-12 gap-4 p-4 items-center hover:bg-muted/30 transition-colors cursor-pointer group",
+                      entry.user.id === currentUserId && "bg-primary/5"
+                    )}>
                       {/* Rank */}
                       <div className="col-span-2 md:col-span-1 text-center">
                         <span className={cn(

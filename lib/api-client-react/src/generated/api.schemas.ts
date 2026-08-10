@@ -120,6 +120,11 @@ export interface User {
   cultureAccuracy?: number | null;
   /** @nullable */
   rank?: number | null;
+  /**
+     * ISO timestamp of the last daily top-up, or null if never topped up
+     * @nullable
+     */
+  lastTopupAt?: string | null;
   createdAt: string;
 }
 
@@ -365,6 +370,24 @@ export type GetLeaderboardCategory = typeof GetLeaderboardCategory[keyof typeof 
 
 
 export const GetLeaderboardCategory = {
+  STYLE: 'STYLE',
+  HOME: 'HOME',
+  CITY: 'CITY',
+  REAL_ESTATE: 'REAL_ESTATE',
+  WEATHER: 'WEATHER',
+  CULTURE: 'CULTURE',
+  LOCAL_PULSE: 'LOCAL_PULSE',
+  OVERALL: 'OVERALL',
+} as const;
+
+export type GetMyLeaderboardEntryParams = {
+category?: GetMyLeaderboardEntryCategory;
+};
+
+export type GetMyLeaderboardEntryCategory = typeof GetMyLeaderboardEntryCategory[keyof typeof GetMyLeaderboardEntryCategory];
+
+
+export const GetMyLeaderboardEntryCategory = {
   STYLE: 'STYLE',
   HOME: 'HOME',
   CITY: 'CITY',

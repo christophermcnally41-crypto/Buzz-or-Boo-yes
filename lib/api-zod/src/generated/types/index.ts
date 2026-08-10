@@ -15,6 +15,8 @@ export * from './error';
 export * from './errorEnvelope';
 export * from './getLeaderboardCategory';
 export * from './getLeaderboardParams';
+export * from './getMyLeaderboardEntryCategory';
+export * from './getMyLeaderboardEntryParams';
 export * from './getTrendingMarketsParams';
 export * from './handleBrowserLoginCallbackParams';
 export * from './healthStatus';

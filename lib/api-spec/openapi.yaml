@@ -426,6 +426,27 @@ paths:
                 items:
                   $ref: "#/components/schemas/LeaderboardEntry"
 
+  /leaderboard/me:
+    get:
+      operationId: getMyLeaderboardEntry
+      tags: [leaderboard]
+      summary: Get the authenticated user's own leaderboard rank entry
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, OVERALL]
+      responses:
+        "200":
+          description: The authenticated user's rank entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardEntry"
+        "204":
+          description: User has no resolved predictions in this category
+
   /admin/markets:
     get:
       operationId: adminListMarkets
