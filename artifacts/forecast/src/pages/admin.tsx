@@ -24,7 +24,7 @@ import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2 } from "lucide-react
 import { Link } from "wouter";
 
 const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE"] as const;
-const ALL_FORMATS = ["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE"] as const;
+const ALL_FORMATS = ["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE", "BUZZ_OR_BOO"] as const;
 
 const formSchema = z.object({
   title: z.string().min(5),
@@ -236,6 +236,7 @@ export default function Admin() {
                       <SelectItem value="HOT_OR_NOT">Hot or Not (vibe check)</SelectItem>
                       <SelectItem value="HEAD_TO_HEAD">Head to Head (A vs B)</SelectItem>
                       <SelectItem value="MULTI_CHOICE">⚡ Buzz Battle (3–5 contenders)</SelectItem>
+                      <SelectItem value="BUZZ_OR_BOO">⚡ Buzz or Boo (one-tap verdict)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -331,6 +332,7 @@ export default function Admin() {
             <div className="space-y-4">
               {openMarkets.map(market => {
                 const isMultiChoice = market.marketFormat === 'MULTI_CHOICE';
+                const isBuzzOrBoo = market.marketFormat === 'BUZZ_OR_BOO';
                 const contenders = isMultiChoice ? parseContenders(market.description) : [];
                 const isResolving = resolvingId === market.id;
 
@@ -346,6 +348,11 @@ export default function Admin() {
                                 <Crown className="w-3 h-3" /> Buzz Battle
                               </Badge>
                             )}
+                            {isBuzzOrBoo && (
+                              <Badge variant="outline" className="gap-1 text-yellow-600 border-yellow-300">
+                                ⚡ Buzz or Boo
+                              </Badge>
+                            )}
                             <span className="text-muted-foreground">ID: {market.id}</span>
                           </div>
                           <Link href={`/markets/${market.id}`}>
@@ -354,14 +361,17 @@ export default function Admin() {
                             </h4>
                           </Link>
                           <div className="text-sm text-muted-foreground mt-2 font-mono-numbers">
-                            {market.totalPredictions} calls
-                            {!isMultiChoice && ` · ${market.yesCount} Buzzed / ${market.noCount} Boo'd`}
+                            {market.totalPredictions} {isBuzzOrBoo ? "verdicts" : "calls"}
+                            {!isMultiChoice && !isBuzzOrBoo && ` · ${market.yesCount} Buzzed / ${market.noCount} Boo'd`}
+                            {isBuzzOrBoo && ` · ${market.yesPercent ?? 50}% BUZZ / ${market.noPercent ?? 50}% BOO`}
                           </div>
                         </div>
 
                         {!isMultiChoice && (
                           <div className="flex flex-col md:items-end justify-center gap-2 shrink-0 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-4">
-                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Declare Outcome</span>
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                              {isBuzzOrBoo ? "Lock Sentiment" : "Declare Outcome"}
+                            </span>
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
@@ -370,7 +380,8 @@ export default function Admin() {
                                 onClick={() => handleResolve(market.id, 'YES')}
                                 disabled={isResolving}
                               >
-                                <CheckCircle2 className="w-4 h-4 mr-1" /> Buzzed ✓
+                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                {isBuzzOrBoo ? "⚡ Lock BUZZ" : "Buzzed ✓"}
                               </Button>
                               <Button
                                 size="sm"
@@ -379,9 +390,13 @@ export default function Admin() {
                                 onClick={() => handleResolve(market.id, 'NO')}
                                 disabled={isResolving}
                               >
-                                <XCircle className="w-4 h-4 mr-1" /> Boo'd ✗
+                                <XCircle className="w-4 h-4 mr-1" />
+                                {isBuzzOrBoo ? "👎 Lock BOO" : "Boo'd ✗"}
                               </Button>
                             </div>
+                            {isBuzzOrBoo && (
+                              <p className="text-[10px] text-muted-foreground">Locks the current crowd sentiment</p>
+                            )}
                           </div>
                         )}
                       </div>

@@ -123,7 +123,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE]
+            enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE, BUZZ_OR_BOO]
         - name: limit
           in: query
           schema:
@@ -726,7 +726,7 @@ components:
           type: string
         marketFormat:
           type: string
-          enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE]
+          enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE, BUZZ_OR_BOO]
         imageUrl:
           type: ["string", "null"]
         status:
@@ -967,7 +967,7 @@ components:
           type: string
         marketFormat:
           type: string
-          enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE]
+          enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE, BUZZ_OR_BOO]
         imageUrl:
           type: string
         resolutionSource:

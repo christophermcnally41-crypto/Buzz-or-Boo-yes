@@ -44,7 +44,7 @@ router.post("/admin/markets", async (req, res): Promise<void> => {
     return;
   }
 
-  const { title, question, description, category, subcategory, imageUrl, resolutionSource, closesAt } = parsed.data;
+  const { title, question, description, category, subcategory, imageUrl, resolutionSource, closesAt, marketFormat } = parsed.data;
 
   const [market] = await db
     .insert(marketsTable)
@@ -54,6 +54,7 @@ router.post("/admin/markets", async (req, res): Promise<void> => {
       description: description ?? null,
       category,
       subcategory,
+      marketFormat: marketFormat ?? "STANDARD",
       imageUrl: imageUrl ?? null,
       resolutionSource: resolutionSource ?? null,
       closesAt: closesAt ? new Date(closesAt) : null,
@@ -130,36 +131,40 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
 
       const resolvedMarket = rows[0];
 
-      // Award tokens to correct predictors and update user stats
-      const allPredictions = await tx
-        .select()
-        .from(predictionsTable)
-        .where(eq(predictionsTable.marketId, marketId));
+      // BUZZ_OR_BOO markets are sentiment snapshots — no win/loss, no token redistribution,
+      // no accuracy updates. Just lock the sentiment split and return.
+      if (resolvedMarket.marketFormat !== "BUZZ_OR_BOO") {
+        // Award tokens to correct predictors and update user stats
+        const allPredictions = await tx
+          .select()
+          .from(predictionsTable)
+          .where(eq(predictionsTable.marketId, marketId));
 
-      for (const pred of allPredictions) {
-        const isCorrect = pred.choice === outcome;
-        const tokensEarned = isCorrect ? Math.round(pred.amount * REWARD_MULTIPLIER) : 0;
-
-        await tx
-          .update(predictionsTable)
-          .set({ isCorrect, tokensEarned })
-          .where(eq(predictionsTable.id, pred.id));
-
-        const [user] = await tx.select().from(usersTable).where(eq(usersTable.id, pred.userId));
-        if (user) {
-          const newResolved = user.totalResolved + 1;
-          const newCorrect = user.totalCorrect + (isCorrect ? 1 : 0);
-          const newAccuracy = newResolved > 0 ? Math.round((newCorrect / newResolved) * 100) / 100 : null;
+        for (const pred of allPredictions) {
+          const isCorrect = pred.choice === outcome;
+          const tokensEarned = isCorrect ? Math.round(pred.amount * REWARD_MULTIPLIER) : 0;
 
           await tx
-            .update(usersTable)
-            .set({
-              tokenBalance: user.tokenBalance + tokensEarned,
-              totalResolved: newResolved,
-              totalCorrect: newCorrect,
-              overallAccuracy: newAccuracy,
-            })
-            .where(eq(usersTable.id, pred.userId));
+            .update(predictionsTable)
+            .set({ isCorrect, tokensEarned })
+            .where(eq(predictionsTable.id, pred.id));
+
+          const [user] = await tx.select().from(usersTable).where(eq(usersTable.id, pred.userId));
+          if (user) {
+            const newResolved = user.totalResolved + 1;
+            const newCorrect = user.totalCorrect + (isCorrect ? 1 : 0);
+            const newAccuracy = newResolved > 0 ? Math.round((newCorrect / newResolved) * 100) / 100 : null;
+
+            await tx
+              .update(usersTable)
+              .set({
+                tokenBalance: user.tokenBalance + tokensEarned,
+                totalResolved: newResolved,
+                totalCorrect: newCorrect,
+                overallAccuracy: newAccuracy,
+              })
+              .where(eq(usersTable.id, pred.userId));
+          }
         }
       }
 

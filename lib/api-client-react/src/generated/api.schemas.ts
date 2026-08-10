@@ -34,6 +34,7 @@ export const MarketMarketFormat = {
   HOT_OR_NOT: 'HOT_OR_NOT',
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   MULTI_CHOICE: 'MULTI_CHOICE',
+  BUZZ_OR_BOO: 'BUZZ_OR_BOO',
 } as const;
 
 export type MarketStatus = typeof MarketStatus[keyof typeof MarketStatus];
@@ -203,6 +204,7 @@ export const MarketInputMarketFormat = {
   HOT_OR_NOT: 'HOT_OR_NOT',
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   MULTI_CHOICE: 'MULTI_CHOICE',
+  BUZZ_OR_BOO: 'BUZZ_OR_BOO',
 } as const;
 
 export interface MarketInput {
@@ -355,6 +357,7 @@ export const ListMarketsFormat = {
   HOT_OR_NOT: 'HOT_OR_NOT',
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   MULTI_CHOICE: 'MULTI_CHOICE',
+  BUZZ_OR_BOO: 'BUZZ_OR_BOO',
 } as const;
 
 export type GetTrendingMarketsParams = {

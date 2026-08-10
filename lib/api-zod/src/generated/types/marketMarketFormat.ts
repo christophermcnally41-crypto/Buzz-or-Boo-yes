@@ -14,4 +14,5 @@ export const MarketMarketFormat = {
   HOT_OR_NOT: 'HOT_OR_NOT',
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   MULTI_CHOICE: 'MULTI_CHOICE',
+  BUZZ_OR_BOO: 'BUZZ_OR_BOO',
 } as const;

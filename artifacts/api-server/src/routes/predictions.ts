@@ -75,7 +75,7 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
       return;
     }
   } else {
-    // Standard / HOT_OR_NOT / HEAD_TO_HEAD — only YES or NO allowed
+    // Standard / HOT_OR_NOT / HEAD_TO_HEAD / BUZZ_OR_BOO — only YES or NO allowed
     if (choice !== "YES" && choice !== "NO") {
       res.status(400).json({ error: "Invalid choice. Must be YES or NO" });
       return;
@@ -93,7 +93,12 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     return;
   }
 
-  const betAmount = amount ?? 100;
+  // BUZZ_OR_BOO markets use a fixed one-tap stake regardless of client-supplied amount.
+  // This prevents bypass of the one-tap UX contract by submitting arbitrary amounts.
+  const BUZZ_OR_BOO_STAKE = 10;
+  const betAmount = market.marketFormat === "BUZZ_OR_BOO"
+    ? BUZZ_OR_BOO_STAKE
+    : (amount ?? 100);
 
   // Check if user already predicted on this market
   const [existing] = await db

@@ -3,6 +3,7 @@ import {
   useGetMarket, 
   useGetMarketPredictions, 
   useMakePrediction,
+  useGetMe,
   useGetMarketPinStatus,
   usePinMarket,
   useUnpinMarket,
@@ -28,6 +29,10 @@ import { getMarketColors } from "@/lib/market-colors";
 import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useMemo, useEffect } from "react";
+
+const BUZZ_COLOR = "#CFEA3B";
+const BOO_COLOR = "#E8503E";
+const BUZZ_OR_BOO_STAKE = 10; // fixed one-tap stake
 
 interface Contender {
   key: string;
@@ -117,6 +122,7 @@ export default function MarketDetail() {
   const isResolved = market?.status === "RESOLVED";
   const isClosed = market?.status === "CLOSED" || isResolved;
   const isMultiChoice = market?.marketFormat === "MULTI_CHOICE";
+  const isBuzzOrBoo = market?.marketFormat === "BUZZ_OR_BOO";
 
   const multiChoiceData = isMultiChoice ? parseMultiChoiceData(market?.description) : null;
 
@@ -139,19 +145,22 @@ export default function MarketDetail() {
       return;
     }
 
+    const stake = isBuzzOrBoo ? BUZZ_OR_BOO_STAKE : amount[0];
     setIsPredicting(choice);
     makePrediction.mutate({
       id: marketId,
       data: {
         userId: parseInt(authUser.id, 10),
         choice,
-        amount: amount[0]
+        amount: stake
       }
     }, {
       onSuccess: () => {
         toast({
-          title: "Prediction Cast!",
-          description: `You placed ${formatNumber(amount[0])} points on ${choice}.`,
+          title: isBuzzOrBoo ? "Verdict cast!" : "Prediction Cast!",
+          description: isBuzzOrBoo
+            ? `You voted ${choice === "YES" ? "⚡ BUZZ" : "👎 BOO"} on this one.`
+            : `You placed ${formatNumber(stake)} points on ${choice}.`,
         });
         queryClient.invalidateQueries({ queryKey: getGetMarketQueryKey(marketId) });
         queryClient.invalidateQueries({ queryKey: getGetMarketPredictionsQueryKey(marketId) });
@@ -239,10 +248,46 @@ export default function MarketDetail() {
               {market.question}
             </h1>
 
-            {market.description && !isMultiChoice && (
+            {market.description && !isMultiChoice && !isBuzzOrBoo && (
               <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
                 {market.description}
               </p>
+            )}
+
+            {/* BUZZ-OR-BOO: Sentiment snapshot display */}
+            {isBuzzOrBoo && (
+              <div className="bg-card border border-border shadow-sm rounded-3xl p-6 md:p-10 mb-8">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-2xl">⚡</span>
+                  <h2 className="font-editorial text-2xl font-bold">Crowd Sentiment</h2>
+                </div>
+                <p className="text-sm text-muted-foreground mb-8">
+                  {isResolved ? "Final sentiment snapshot at close" : "Live cultural verdict — tap to weigh in"}
+                </p>
+                <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
+                  <div className="flex-1 text-center">
+                    <div className="text-7xl md:text-8xl font-editorial font-bold tracking-tight mb-2" style={{ color: BUZZ_COLOR }}>
+                      {yesPercent.toFixed(0)}<span className="text-4xl ml-1" style={{ opacity: 0.6 }}>%</span>
+                    </div>
+                    <div className="font-mono-numbers text-sm font-bold tracking-wider" style={{ color: BUZZ_COLOR }}>⚡ BUZZ</div>
+                  </div>
+                  <div className="hidden md:flex text-4xl text-muted-foreground/30 font-editorial font-light">vs</div>
+                  <div className="flex-1 text-center">
+                    <div className="text-7xl md:text-8xl font-editorial font-bold tracking-tight mb-2" style={{ color: BOO_COLOR }}>
+                      {noPercent.toFixed(0)}<span className="text-4xl ml-1" style={{ opacity: 0.6 }}>%</span>
+                    </div>
+                    <div className="font-mono-numbers text-sm font-bold tracking-wider" style={{ color: BOO_COLOR }}>👎 BOO</div>
+                  </div>
+                </div>
+                <div className="h-5 w-full bg-secondary rounded-full overflow-hidden flex">
+                  <div className="h-full transition-all duration-1000 ease-out rounded-l-full" style={{ width: `${yesPercent}%`, backgroundColor: BUZZ_COLOR }} />
+                  <div className="h-full transition-all duration-1000 ease-out rounded-r-full" style={{ width: `${noPercent}%`, backgroundColor: BOO_COLOR }} />
+                </div>
+                <div className="flex justify-between mt-3 text-sm font-mono-numbers text-muted-foreground">
+                  <span>{formatNumber(market.yesCount)} BUZZ votes</span>
+                  <span>{formatNumber(market.noCount)} BOO votes</span>
+                </div>
+              </div>
             )}
 
             {/* MULTI-CHOICE: Contender leaderboard */}
@@ -339,7 +384,9 @@ export default function MarketDetail() {
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
                     {isResolved ? (
                       <span className="flex items-center text-foreground font-medium">
-                        Resolved — {market.resolvedOutcome}
+                        {isBuzzOrBoo
+                          ? `Sentiment locked in — ${market.resolvedOutcome === "YES" ? "⚡ BUZZ" : "👎 BOO"} won`
+                          : `Resolved — ${market.resolvedOutcome}`}
                       </span>
                     ) : isClosed ? (
                       <span className="text-orange-500 font-medium">Closed for predictions</span>
@@ -359,24 +406,34 @@ export default function MarketDetail() {
           <div className="lg:col-span-4 space-y-6">
             <Card className="sticky top-24 border-primary/20 shadow-lg">
               <CardContent className="p-6">
-                <h3 className="font-editorial text-2xl font-bold mb-6">Make a Forecast</h3>
+                <h3 className="font-editorial text-2xl font-bold mb-6">
+                  {isBuzzOrBoo ? "Cast Your Verdict" : "Make a Forecast"}
+                </h3>
 
                 {/* Not authenticated */}
                 {!isAuthenticated && !isClosed && (
                   <div className="text-center py-6 bg-muted/50 rounded-xl border border-dashed border-border mb-4">
                     <LogIn className="w-8 h-8 mx-auto text-muted-foreground mb-3 opacity-50" />
-                    <p className="font-medium mb-1">Log in to predict</p>
-                    <p className="text-sm text-muted-foreground mb-4">You need an account to place Forecast Points.</p>
+                    <p className="font-medium mb-1">Log in to {isBuzzOrBoo ? "vote" : "predict"}</p>
+                    <p className="text-sm text-muted-foreground mb-4">You need an account to {isBuzzOrBoo ? "cast your verdict" : "place Forecast Points"}.</p>
                     <Button onClick={login} className="rounded-full px-6">Log in</Button>
                   </div>
                 )}
 
                 {/* Already predicted */}
                 {isAuthenticated && userPrediction && (
-                  <div className="mb-4 p-4 bg-primary/10 rounded-xl border border-primary/20">
-                    <p className="text-sm font-bold text-primary mb-1">Your prediction</p>
-                    <p className="font-mono-numbers font-bold">
-                      {userPrediction.choice} · {formatNumber(userPrediction.amount)} FP
+                  <div className="mb-4 p-4 rounded-xl border" style={
+                    isBuzzOrBoo
+                      ? { backgroundColor: userPrediction.choice === "YES" ? `${BUZZ_COLOR}18` : `${BOO_COLOR}18`, borderColor: userPrediction.choice === "YES" ? `${BUZZ_COLOR}44` : `${BOO_COLOR}44` }
+                      : {}
+                  }>
+                    <p className="text-sm font-bold mb-1" style={isBuzzOrBoo ? { color: userPrediction.choice === "YES" ? BUZZ_COLOR : BOO_COLOR } : { color: "var(--primary)" }}>
+                      {isBuzzOrBoo ? "Your verdict" : "Your prediction"}
+                    </p>
+                    <p className="font-mono-numbers font-bold text-lg">
+                      {isBuzzOrBoo
+                        ? (userPrediction.choice === "YES" ? "⚡ BUZZ" : "👎 BOO")
+                        : `${userPrediction.choice} · ${formatNumber(userPrediction.amount)} FP`}
                     </p>
                   </div>
                 )}
@@ -384,89 +441,127 @@ export default function MarketDetail() {
                 {isClosed ? (
                   <div className="text-center py-6 bg-muted/50 rounded-xl border border-dashed border-border">
                     <Clock className="w-8 h-8 mx-auto text-muted-foreground mb-3 opacity-50" />
-                    <p className="font-medium">Market is closed.</p>
+                    <p className="font-medium">{isBuzzOrBoo ? "Voting has closed." : "Market is closed."}</p>
                     {isResolved && (
-                      <Badge variant="default" className="mt-3 text-base px-4 py-1">
-                        Outcome: {market.resolvedOutcome}
-                      </Badge>
+                      <div className="mt-3">
+                        {isBuzzOrBoo ? (
+                          <p className="text-sm text-muted-foreground">
+                            Final sentiment: <span className="font-bold" style={{ color: market.resolvedOutcome === "YES" ? BUZZ_COLOR : BOO_COLOR }}>
+                              {market.resolvedOutcome === "YES" ? "⚡ BUZZ" : "👎 BOO"}
+                            </span>
+                          </p>
+                        ) : (
+                          <Badge variant="default" className="text-base px-4 py-1">
+                            Outcome: {market.resolvedOutcome}
+                          </Badge>
+                        )}
+                      </div>
                     )}
                   </div>
                 ) : isAuthenticated && !userPrediction ? (
                   <>
-                    <div className="mb-6">
-                      <div className="flex justify-between items-end mb-4">
-                        <label className="text-sm font-bold tracking-tight">Amount to Predict</label>
-                        <span className="font-mono-numbers text-2xl font-bold text-primary">
-                          {formatNumber(amount[0])} <span className="text-sm text-muted-foreground font-sans">FP</span>
-                        </span>
-                      </div>
-                      <Slider
-                        value={amount}
-                        onValueChange={setAmount}
-                        max={sliderMax}
-                        min={sliderMin}
-                        step={10}
-                        className="py-4"
-                        disabled={tokenBalance <= 0}
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground font-mono-numbers mt-2">
-                        <span>{sliderMin}</span>
-                        <span>{sliderMax}</span>
-                      </div>
-                      {isAuthenticated && tokenBalance < TOPUP_THRESHOLD && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
-                          <span>⚡</span>
-                          Low balance — you'll receive a daily top-up to {TOPUP_THRESHOLD} FP when you next visit.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Multi-choice: contender buttons */}
-                    {isMultiChoice && multiChoiceData ? (
-                      <div className="space-y-2">
-                        {multiChoiceData.contenders.map((c, i) => (
-                          <Button
-                            key={c.key}
-                            size="lg"
-                            className="w-full h-12 text-base rounded-xl border-0 font-bold transition-transform hover:-translate-y-0.5"
-                            style={{
-                              backgroundColor: CONTENDER_COLORS[i % CONTENDER_COLORS.length],
-                              color: i === 0 ? "#1a1a1a" : "#fff",
-                            }}
-                            onClick={() => handlePredict(c.key)}
-                            disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
-                          >
-                            {isPredicting === c.key ? "Casting..." : c.name}
-                          </Button>
-                        ))}
+                    {/* BUZZ_OR_BOO: one-tap verdict — no amount slider */}
+                    {isBuzzOrBoo ? (
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground text-center mb-4">One tap. No take-backs. What does the culture say?</p>
+                        <Button
+                          size="lg"
+                          className="w-full h-20 text-2xl font-bold rounded-2xl border-0 shadow-lg transition-all hover:-translate-y-1 active:scale-95"
+                          style={{ backgroundColor: BUZZ_COLOR, color: "#1a1a1a", boxShadow: `0 8px 24px ${BUZZ_COLOR}55` }}
+                          onClick={() => handlePredict("YES")}
+                          disabled={isPredicting !== null || tokenBalance <= 0}
+                        >
+                          {isPredicting === "YES" ? "Casting..." : "⚡ BUZZ"}
+                        </Button>
+                        <Button
+                          size="lg"
+                          className="w-full h-20 text-2xl font-bold rounded-2xl border-0 shadow-lg transition-all hover:-translate-y-1 active:scale-95"
+                          style={{ backgroundColor: BOO_COLOR, color: "#fff", boxShadow: `0 8px 24px ${BOO_COLOR}55` }}
+                          onClick={() => handlePredict("NO")}
+                          disabled={isPredicting !== null || tokenBalance <= 0}
+                        >
+                          {isPredicting === "NO" ? "Casting..." : "👎 BOO"}
+                        </Button>
+                        <p className="text-[11px] text-muted-foreground text-center">Uses {BUZZ_OR_BOO_STAKE} FP · Balance: {formatNumber(tokenBalance)} FP</p>
                       </div>
                     ) : (
-                      /* Standard YES/NO buttons */
-                      <div className="grid grid-cols-2 gap-4">
-                        <Button
-                          size="lg"
-                          className="h-16 text-xl rounded-xl shadow-lg transition-transform hover:-translate-y-1 border-0"
-                          style={{ backgroundColor: colors.yes, color: "#fff", boxShadow: `0 8px 24px ${colors.yesSoft}` }}
-                          onClick={() => handlePredict("YES")}
-                          disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
-                        >
-                          {isPredicting === "YES" ? "Casting..." : "Buzzed It ⚡"}
-                        </Button>
-                        <Button
-                          size="lg"
-                          className="h-16 text-xl rounded-xl shadow-lg transition-transform hover:-translate-y-1 border-0"
-                          style={{ backgroundColor: colors.no, color: "#fff", boxShadow: `0 8px 24px ${colors.noSoft}` }}
-                          onClick={() => handlePredict("NO")}
-                          disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
-                        >
-                          {isPredicting === "NO" ? "Casting..." : "Boo'd It 👎"}
-                        </Button>
-                      </div>
+                      <>
+                        <div className="mb-6">
+                          <div className="flex justify-between items-end mb-4">
+                            <label className="text-sm font-bold tracking-tight">Amount to Predict</label>
+                            <span className="font-mono-numbers text-2xl font-bold text-primary">
+                              {formatNumber(amount[0])} <span className="text-sm text-muted-foreground font-sans">FP</span>
+                            </span>
+                          </div>
+                          <Slider
+                            value={amount}
+                            onValueChange={setAmount}
+                            max={sliderMax}
+                            min={sliderMin}
+                            step={10}
+                            className="py-4"
+                            disabled={tokenBalance <= 0}
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground font-mono-numbers mt-2">
+                            <span>{sliderMin}</span>
+                            <span>{sliderMax}</span>
+                          </div>
+                          {isAuthenticated && tokenBalance < TOPUP_THRESHOLD && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                              <span>⚡</span>
+                              Low balance — you'll receive a daily top-up to {TOPUP_THRESHOLD} FP when you next visit.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Multi-choice: contender buttons */}
+                        {isMultiChoice && multiChoiceData ? (
+                          <div className="space-y-2">
+                            {multiChoiceData.contenders.map((c, i) => (
+                              <Button
+                                key={c.key}
+                                size="lg"
+                                className="w-full h-12 text-base rounded-xl border-0 font-bold transition-transform hover:-translate-y-0.5"
+                                style={{
+                                  backgroundColor: CONTENDER_COLORS[i % CONTENDER_COLORS.length],
+                                  color: i === 0 ? "#1a1a1a" : "#fff",
+                                }}
+                                onClick={() => handlePredict(c.key)}
+                                disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
+                              >
+                                {isPredicting === c.key ? "Casting..." : c.name}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          /* Standard YES/NO buttons */
+                          <div className="grid grid-cols-2 gap-4">
+                            <Button
+                              size="lg"
+                              className="h-16 text-xl rounded-xl shadow-lg transition-transform hover:-translate-y-1 border-0"
+                              style={{ backgroundColor: colors.yes, color: "#fff", boxShadow: `0 8px 24px ${colors.yesSoft}` }}
+                              onClick={() => handlePredict("YES")}
+                              disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
+                            >
+                              {isPredicting === "YES" ? "Casting..." : "Buzzed It ⚡"}
+                            </Button>
+                            <Button
+                              size="lg"
+                              className="h-16 text-xl rounded-xl shadow-lg transition-transform hover:-translate-y-1 border-0"
+                              style={{ backgroundColor: colors.no, color: "#fff", boxShadow: `0 8px 24px ${colors.noSoft}` }}
+                              onClick={() => handlePredict("NO")}
+                              disabled={isPredicting !== null || tokenBalance <= 0 || amount[0] <= 0}
+                            >
+                              {isPredicting === "NO" ? "Casting..." : "Boo'd It 👎"}
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 ) : null}
 
-                {userTotalInvested > 0 && (
+                {!isBuzzOrBoo && userTotalInvested > 0 && (
                   <div className="mt-6 pt-6 border-t border-border/50 text-center">
                     <p className="text-sm text-muted-foreground mb-1">Your total position</p>
                     <p className="font-mono-numbers font-bold text-xl">{formatNumber(userTotalInvested)} FP</p>
@@ -486,19 +581,21 @@ export default function MarketDetail() {
                     predictions.slice(0, 5).map(pred => {
                       const contenderName = isMultiChoice && multiChoiceData
                         ? multiChoiceData.contenders.find(c => c.key === pred.choice)?.name ?? pred.choice
-                        : pred.choice;
+                        : isBuzzOrBoo
+                          ? (pred.choice === 'YES' ? '⚡ BUZZ' : '👎 BOO')
+                          : pred.choice;
                       const isYes = pred.choice === 'YES';
                       return (
                         <div key={pred.id} className="flex justify-between items-center text-sm p-3 rounded-lg bg-muted/30">
                           <div className="flex items-center gap-2 font-medium">
-                            {!isMultiChoice ? (
-                              isYes ? (
-                                <CheckCircle2 className="w-4 h-4" style={{ color: colors.yes }} />
-                              ) : (
-                                <XCircle className="w-4 h-4" style={{ color: colors.no }} />
-                              )
-                            ) : (
+                            {isMultiChoice ? (
                               <Crown className="w-4 h-4 text-primary" />
+                            ) : isBuzzOrBoo ? (
+                              <span>{isYes ? "⚡" : "👎"}</span>
+                            ) : isYes ? (
+                              <CheckCircle2 className="w-4 h-4" style={{ color: colors.yes }} />
+                            ) : (
+                              <XCircle className="w-4 h-4" style={{ color: colors.no }} />
                             )}
                             User #{pred.userId} → {contenderName}
                           </div>
