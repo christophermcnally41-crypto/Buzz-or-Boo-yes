@@ -42,17 +42,25 @@ export function MarketCard({ market, featured = false }: { market: Market, featu
         <CardHeader className="relative z-10 pb-4">
           <div className="flex items-start justify-between gap-4 mb-3">
             <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm border-border/50 text-xs gap-1.5 font-medium">
-              <CategoryIcon category={market.category} className="w-3.5 h-3.5" /> {getCategoryLabel(market.category)}
+              <CategoryIcon category={market.category} className="w-3.5 h-3.5" />
+              {getCategoryLabel(market.category)}
+              {market.subcategory && (
+                <span className="text-muted-foreground/60">· {market.subcategory}</span>
+              )}
             </Badge>
             {isResolved ? (
               <Badge variant={market.resolvedOutcome === 'YES' ? 'default' : 'destructive'} className="shadow-sm">
-                RESOLVED {market.resolvedOutcome}
+                RESOLVED {market.resolvedOutcome === 'YES' ? 'BUZZ' : 'BOO'}
               </Badge>
             ) : (
               <Badge variant="outline" className="bg-background/80 backdrop-blur-sm font-mono-numbers text-[10px] text-muted-foreground border-border/50">
-                {formatNumber(market.totalPredictions)} PREDICTIONS
+                {formatNumber(market.totalPredictions)} CALLS
               </Badge>
             )}
+          </div>
+
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">📊 Forecast</span>
           </div>
           
           <h3 className={cn(
@@ -67,8 +75,8 @@ export function MarketCard({ market, featured = false }: { market: Market, featu
           {!isResolved ? (
             <div className="space-y-3">
               <div className="flex justify-between text-sm font-bold font-mono-numbers">
-                <span style={{ color: colors.yes }}>{yesPercent.toFixed(0)}% YES</span>
-                <span style={{ color: colors.no }}>{noPercent.toFixed(0)}% NO</span>
+                <span style={{ color: colors.yes }}>{yesPercent.toFixed(0)}% BUZZ</span>
+                <span style={{ color: colors.no }}>{noPercent.toFixed(0)}% BOO</span>
               </div>
               <div className="h-3 w-full bg-secondary rounded-full overflow-hidden flex">
                 <div
