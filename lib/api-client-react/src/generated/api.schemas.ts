@@ -136,6 +136,11 @@ export interface Market {
      * @nullable
      */
   seriesId?: number | null;
+  /**
+     * ID of the franchise template this market was created from
+     * @nullable
+     */
+  templateId?: number | null;
 }
 
 export interface PinnedMarketsEnvelope {
@@ -430,6 +435,146 @@ export type MarketTallyTallies = {[key: string]: number};
 export interface MarketTally {
   /** Map of choice key to vote count, e.g. {A: 14, B: 7} */
   tallies: MarketTallyTallies;
+}
+
+export type MarketTemplateEngine = typeof MarketTemplateEngine[keyof typeof MarketTemplateEngine];
+
+
+export const MarketTemplateEngine = {
+  STANDARD: 'STANDARD',
+  HOT_OR_NOT: 'HOT_OR_NOT',
+  HEAD_TO_HEAD: 'HEAD_TO_HEAD',
+  MULTI_CHOICE: 'MULTI_CHOICE',
+  BUZZ_OR_BOO: 'BUZZ_OR_BOO',
+  THE_CALL: 'THE_CALL',
+} as const;
+
+export type MarketTemplateClockType = typeof MarketTemplateClockType[keyof typeof MarketTemplateClockType];
+
+
+export const MarketTemplateClockType = {
+  EVERGREEN: 'EVERGREEN',
+  SEASONAL: 'SEASONAL',
+  NOW: 'NOW',
+  EVENT_DRIVEN: 'EVENT_DRIVEN',
+  ROLLING_FORECAST: 'ROLLING_FORECAST',
+  RECURRING_PULSE: 'RECURRING_PULSE',
+} as const;
+
+export type MarketTemplateCategory = typeof MarketTemplateCategory[keyof typeof MarketTemplateCategory];
+
+
+export const MarketTemplateCategory = {
+  STYLE: 'STYLE',
+  HOME: 'HOME',
+  CITY: 'CITY',
+  REAL_ESTATE: 'REAL_ESTATE',
+  WEATHER: 'WEATHER',
+  CULTURE: 'CULTURE',
+  LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
+} as const;
+
+export interface MarketTemplate {
+  id: number;
+  /** e.g. HOTTEST IN BOSTON */
+  franchiseName: string;
+  engine: MarketTemplateEngine;
+  /** Question template with [PLACEHOLDER] slots */
+  templateQuestion: string;
+  clockType: MarketTemplateClockType;
+  category: MarketTemplateCategory;
+  defaultDurationDays: number;
+  /** @nullable */
+  description?: string | null;
+  createdAt: string;
+}
+
+export interface MarketTemplateList {
+  templates: MarketTemplate[];
+}
+
+export type MarketTemplateInputEngine = typeof MarketTemplateInputEngine[keyof typeof MarketTemplateInputEngine];
+
+
+export const MarketTemplateInputEngine = {
+  STANDARD: 'STANDARD',
+  HOT_OR_NOT: 'HOT_OR_NOT',
+  HEAD_TO_HEAD: 'HEAD_TO_HEAD',
+  MULTI_CHOICE: 'MULTI_CHOICE',
+  BUZZ_OR_BOO: 'BUZZ_OR_BOO',
+  THE_CALL: 'THE_CALL',
+} as const;
+
+export type MarketTemplateInputClockType = typeof MarketTemplateInputClockType[keyof typeof MarketTemplateInputClockType];
+
+
+export const MarketTemplateInputClockType = {
+  EVERGREEN: 'EVERGREEN',
+  SEASONAL: 'SEASONAL',
+  NOW: 'NOW',
+  EVENT_DRIVEN: 'EVENT_DRIVEN',
+  ROLLING_FORECAST: 'ROLLING_FORECAST',
+  RECURRING_PULSE: 'RECURRING_PULSE',
+} as const;
+
+export type MarketTemplateInputCategory = typeof MarketTemplateInputCategory[keyof typeof MarketTemplateInputCategory];
+
+
+export const MarketTemplateInputCategory = {
+  STYLE: 'STYLE',
+  HOME: 'HOME',
+  CITY: 'CITY',
+  REAL_ESTATE: 'REAL_ESTATE',
+  WEATHER: 'WEATHER',
+  CULTURE: 'CULTURE',
+  LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
+} as const;
+
+export interface MarketTemplateInput {
+  franchiseName: string;
+  engine: MarketTemplateInputEngine;
+  templateQuestion: string;
+  clockType: MarketTemplateInputClockType;
+  category: MarketTemplateInputCategory;
+  defaultDurationDays: number;
+  description?: string;
+}
+
+export type MarketFromTemplateInputClockType = typeof MarketFromTemplateInputClockType[keyof typeof MarketFromTemplateInputClockType];
+
+
+export const MarketFromTemplateInputClockType = {
+  EVERGREEN: 'EVERGREEN',
+  SEASONAL: 'SEASONAL',
+  NOW: 'NOW',
+  EVENT_DRIVEN: 'EVENT_DRIVEN',
+  ROLLING_FORECAST: 'ROLLING_FORECAST',
+  RECURRING_PULSE: 'RECURRING_PULSE',
+} as const;
+
+export interface MarketFromTemplateInput {
+  /** Short display title for the market */
+  title: string;
+  /** The template question with all [PLACEHOLDER] slots filled in */
+  filledQuestion: string;
+  subcategory: string;
+  /** JSON-encoded extra data (contenders, options, etc.) */
+  description?: string;
+  imageUrl?: string;
+  closesAt?: string;
+  clockType?: MarketFromTemplateInputClockType;
+  publishAt?: string;
+  peakUntil?: string;
+  expireAt?: string;
+  refreshRule?: string;
+  geo?: string;
+  seriesId?: number;
 }
 
 export interface MarketResolution {

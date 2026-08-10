@@ -495,6 +495,79 @@ paths:
         "204":
           description: User has no resolved predictions in this category
 
+  /admin/templates:
+    get:
+      operationId: listMarketTemplates
+      tags: [admin]
+      summary: Admin — list all franchise templates
+      responses:
+        "200":
+          description: All franchise templates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketTemplateList"
+    post:
+      operationId: createMarketTemplate
+      tags: [admin]
+      summary: Admin — create a new franchise template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketTemplateInput"
+      responses:
+        "201":
+          description: Created template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketTemplate"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/templates/{id}/create-market:
+    post:
+      operationId: createMarketFromTemplate
+      tags: [admin]
+      summary: Admin — instantiate a market from a franchise template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketFromTemplateInput"
+      responses:
+        "201":
+          description: Created market
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/markets:
     get:
       operationId: adminListMarkets
@@ -834,6 +907,9 @@ components:
         seriesId:
           type: ["number", "null"]
           description: "ID of the root market in a recurring series"
+        templateId:
+          type: ["number", "null"]
+          description: "ID of the franchise template this market was created from"
 
     MarketList:
       type: object
@@ -1256,6 +1332,117 @@ components:
           additionalProperties:
             type: number
           description: "Map of choice key to vote count, e.g. {A: 14, B: 7}"
+
+    MarketTemplate:
+      type: object
+      required:
+        - id
+        - franchiseName
+        - engine
+        - templateQuestion
+        - clockType
+        - category
+        - defaultDurationDays
+        - createdAt
+      properties:
+        id:
+          type: number
+        franchiseName:
+          type: string
+          description: "e.g. HOTTEST IN BOSTON"
+        engine:
+          type: string
+          enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE, BUZZ_OR_BOO, THE_CALL]
+        templateQuestion:
+          type: string
+          description: "Question template with [PLACEHOLDER] slots"
+        clockType:
+          type: string
+          enum: [EVERGREEN, SEASONAL, NOW, EVENT_DRIVEN, ROLLING_FORECAST, RECURRING_PULSE]
+        category:
+          type: string
+          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, BEAUTY, ACCESSORIES, MOVIES]
+        defaultDurationDays:
+          type: number
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    MarketTemplateList:
+      type: object
+      required: [templates]
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketTemplate"
+
+    MarketTemplateInput:
+      type: object
+      required:
+        - franchiseName
+        - engine
+        - templateQuestion
+        - clockType
+        - category
+        - defaultDurationDays
+      properties:
+        franchiseName:
+          type: string
+        engine:
+          type: string
+          enum: [STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE, BUZZ_OR_BOO, THE_CALL]
+        templateQuestion:
+          type: string
+        clockType:
+          type: string
+          enum: [EVERGREEN, SEASONAL, NOW, EVENT_DRIVEN, ROLLING_FORECAST, RECURRING_PULSE]
+        category:
+          type: string
+          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, BEAUTY, ACCESSORIES, MOVIES]
+        defaultDurationDays:
+          type: number
+        description:
+          type: string
+
+    MarketFromTemplateInput:
+      type: object
+      required:
+        - title
+        - filledQuestion
+        - subcategory
+      properties:
+        title:
+          type: string
+          description: "Short display title for the market"
+        filledQuestion:
+          type: string
+          description: "The template question with all [PLACEHOLDER] slots filled in"
+        subcategory:
+          type: string
+        description:
+          type: string
+          description: "JSON-encoded extra data (contenders, options, etc.)"
+        imageUrl:
+          type: string
+        closesAt:
+          type: string
+        clockType:
+          type: string
+          enum: [EVERGREEN, SEASONAL, NOW, EVENT_DRIVEN, ROLLING_FORECAST, RECURRING_PULSE]
+        publishAt:
+          type: string
+        peakUntil:
+          type: string
+        expireAt:
+          type: string
+        refreshRule:
+          type: string
+        geo:
+          type: string
+        seriesId:
+          type: number
 
     MarketResolution:
       type: object

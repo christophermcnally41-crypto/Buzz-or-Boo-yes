@@ -80,4 +80,9 @@ export interface Market {
      * @nullable
      */
   seriesId?: number | null;
+  /**
+     * ID of the franchise template this market was created from
+     * @nullable
+     */
+  templateId?: number | null;
 }

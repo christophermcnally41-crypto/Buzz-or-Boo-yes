@@ -35,10 +35,14 @@ import type {
   LogoutBrowserSessionParams,
   LogoutSuccess,
   Market,
+  MarketFromTemplateInput,
   MarketInput,
   MarketList,
   MarketResolution,
   MarketTally,
+  MarketTemplate,
+  MarketTemplateInput,
+  MarketTemplateList,
   MobileAuthTransaction,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
@@ -1789,6 +1793,226 @@ export function useGetMyLeaderboardEntry<TData = Awaited<ReturnType<typeof getMy
 
 
 
+
+export const getListMarketTemplatesUrl = () => {
+
+
+
+
+  return `/api/admin/templates`
+}
+
+/**
+ * @summary Admin — list all franchise templates
+ */
+export const listMarketTemplates = async ( options?: Parameters<typeof customFetch>[1]): Promise<MarketTemplateList> => {
+
+  return customFetch<MarketTemplateList>(getListMarketTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMarketTemplatesQueryKey = () => {
+    return [
+    `/api/admin/templates`
+    ] as const;
+    }
+
+
+export const getListMarketTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof listMarketTemplates>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMarketTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMarketTemplatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMarketTemplates>>> = ({ signal }) => listMarketTemplates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMarketTemplates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMarketTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof listMarketTemplates>>>
+export type ListMarketTemplatesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Admin — list all franchise templates
+ */
+
+export function useListMarketTemplates<TData = Awaited<ReturnType<typeof listMarketTemplates>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMarketTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMarketTemplatesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateMarketTemplateUrl = () => {
+
+
+
+
+  return `/api/admin/templates`
+}
+
+/**
+ * @summary Admin — create a new franchise template
+ */
+export const createMarketTemplate = async (marketTemplateInput: MarketTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<MarketTemplate> => {
+
+  return customFetch<MarketTemplate>(getCreateMarketTemplateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(marketTemplateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateMarketTemplateMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMarketTemplate>>, TError,{data: BodyType<MarketTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMarketTemplate>>, TError,{data: BodyType<MarketTemplateInput>}, TContext> => {
+
+const mutationKey = ['createMarketTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMarketTemplate>>, {data: BodyType<MarketTemplateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMarketTemplate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMarketTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof createMarketTemplate>>>
+    export type CreateMarketTemplateMutationBody = BodyType<MarketTemplateInput>
+    export type CreateMarketTemplateMutationError = ErrorType<Error>
+
+    /**
+ * @summary Admin — create a new franchise template
+ */
+export const useCreateMarketTemplate = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMarketTemplate>>, TError,{data: BodyType<MarketTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMarketTemplate>>,
+        TError,
+        {data: BodyType<MarketTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMarketTemplateMutationOptions(options));
+    }
+
+export const getCreateMarketFromTemplateUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/templates/${id}/create-market`
+}
+
+/**
+ * @summary Admin — instantiate a market from a franchise template
+ */
+export const createMarketFromTemplate = async (id: number,
+    marketFromTemplateInput: MarketFromTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<Market> => {
+
+  return customFetch<Market>(getCreateMarketFromTemplateUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(marketFromTemplateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateMarketFromTemplateMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMarketFromTemplate>>, TError,{id: number;data: BodyType<MarketFromTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMarketFromTemplate>>, TError,{id: number;data: BodyType<MarketFromTemplateInput>}, TContext> => {
+
+const mutationKey = ['createMarketFromTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMarketFromTemplate>>, {id: number;data: BodyType<MarketFromTemplateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createMarketFromTemplate(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMarketFromTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof createMarketFromTemplate>>>
+    export type CreateMarketFromTemplateMutationBody = BodyType<MarketFromTemplateInput>
+    export type CreateMarketFromTemplateMutationError = ErrorType<Error>
+
+    /**
+ * @summary Admin — instantiate a market from a franchise template
+ */
+export const useCreateMarketFromTemplate = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMarketFromTemplate>>, TError,{id: number;data: BodyType<MarketFromTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMarketFromTemplate>>,
+        TError,
+        {id: number;data: BodyType<MarketFromTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMarketFromTemplateMutationOptions(options));
+    }
 
 export const getAdminListMarketsUrl = () => {
 

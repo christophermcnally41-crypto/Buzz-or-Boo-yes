@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc, sql, and, ne } from "drizzle-orm";
-import { db, marketsTable, predictionsTable, usersTable } from "@workspace/db";
+import { db, marketsTable, predictionsTable, usersTable, marketTemplatesTable } from "@workspace/db";
 import {
   AdminListMarketsResponse,
   CreateMarketBody,
@@ -9,6 +9,7 @@ import {
   ResolveMarketBody,
   ResolveMarketResponse,
 } from "@workspace/api-zod";
+import { z } from "zod";
 import { refreshLeaderboardRanks } from "../lib/rankRefresh.js";
 
 const router: IRouter = Router();
@@ -273,6 +274,139 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
   });
 
   res.json(ResolveMarketResponse.parse(enrichMarket(resolved)));
+});
+
+// ─── Admin auth guard ────────────────────────────────────────────────────────
+// All /admin/* routes require an authenticated session.  The authMiddleware
+// (app.ts) has already resolved req.user from the session by this point.
+
+function requireAuth(req: any, res: any, next: any): void {
+  if (!req.isAuthenticated?.()) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  next();
+}
+
+// ─── Template CRUD ──────────────────────────────────────────────────────────
+
+const CreateTemplateBody = z.object({
+  franchiseName: z.string().min(2),
+  engine: z.enum(["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE", "BUZZ_OR_BOO", "THE_CALL"]),
+  templateQuestion: z.string().min(10),
+  clockType: z.enum(["EVERGREEN", "SEASONAL", "NOW", "EVENT_DRIVEN", "ROLLING_FORECAST", "RECURRING_PULSE"]),
+  category: z.enum(["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE", "BEAUTY", "ACCESSORIES", "MOVIES"]),
+  defaultDurationDays: z.number().int().positive(),
+  description: z.string().optional(),
+});
+
+const CreateMarketFromTemplateBody = z.object({
+  title: z.string().min(5),
+  filledQuestion: z.string().min(10),
+  subcategory: z.string().min(2),
+  description: z.string().optional(),
+  imageUrl: z.string().optional(),
+  closesAt: z.string().optional(),
+  clockType: z.enum(["EVERGREEN", "SEASONAL", "NOW", "EVENT_DRIVEN", "ROLLING_FORECAST", "RECURRING_PULSE"]).optional(),
+  publishAt: z.string().optional(),
+  peakUntil: z.string().optional(),
+  expireAt: z.string().optional(),
+  refreshRule: z.string().optional(),
+  geo: z.string().optional(),
+  seriesId: z.number().optional(),
+});
+
+function serializeTemplate(t: typeof marketTemplatesTable.$inferSelect) {
+  return {
+    ...t,
+    createdAt: t.createdAt.toISOString(),
+  };
+}
+
+router.get("/admin/templates", requireAuth, async (_req, res): Promise<void> => {
+  const templates = await db
+    .select()
+    .from(marketTemplatesTable)
+    .orderBy(marketTemplatesTable.franchiseName);
+  res.json({ templates: templates.map(serializeTemplate) });
+});
+
+router.post("/admin/templates", requireAuth, async (req, res): Promise<void> => {
+  const parsed = CreateTemplateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [template] = await db
+    .insert(marketTemplatesTable)
+    .values(parsed.data)
+    .returning();
+
+  res.status(201).json(serializeTemplate(template));
+});
+
+router.post("/admin/templates/:id/create-market", requireAuth, async (req, res): Promise<void> => {
+  const templateId = Number(req.params.id);
+  if (isNaN(templateId)) {
+    res.status(400).json({ error: "Invalid template id" });
+    return;
+  }
+
+  const [template] = await db
+    .select()
+    .from(marketTemplatesTable)
+    .where(eq(marketTemplatesTable.id, templateId));
+
+  if (!template) {
+    res.status(404).json({ error: "Template not found" });
+    return;
+  }
+
+  const parsed = CreateMarketFromTemplateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const {
+    title, filledQuestion, subcategory, description, imageUrl,
+    closesAt, clockType, publishAt, peakUntil, expireAt, refreshRule, geo, seriesId,
+  } = parsed.data;
+
+  // Compute closesAt from template default duration if not provided
+  const resolvedClosesAt = closesAt
+    ? new Date(closesAt)
+    : (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + template.defaultDurationDays);
+        return d;
+      })();
+
+  const [market] = await db
+    .insert(marketsTable)
+    .values({
+      title,
+      question: filledQuestion,
+      description: description ?? null,
+      category: template.category,
+      subcategory,
+      marketFormat: template.engine as any,
+      imageUrl: imageUrl ?? null,
+      closesAt: resolvedClosesAt,
+      status: "OPEN",
+      clockType: clockType ?? template.clockType,
+      publishAt: publishAt ? new Date(publishAt) : null,
+      peakUntil: peakUntil ? new Date(peakUntil) : null,
+      expireAt: expireAt ? new Date(expireAt) : null,
+      refreshRule: refreshRule ?? null,
+      geo: geo ?? null,
+      seriesId: seriesId ?? null,
+      templateId,
+    })
+    .returning();
+
+  res.status(201).json(enrichMarket(market));
 });
 
 export default router;

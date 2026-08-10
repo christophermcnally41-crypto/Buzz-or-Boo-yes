@@ -134,7 +134,8 @@ export const ListMarketsResponse = zod.object({
   "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
-  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
 })),
   "total": zod.number()
 })
@@ -183,7 +184,8 @@ export const GetTrendingMarketsResponse = zod.object({
   "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
-  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
 })),
   "total": zod.number()
 })
@@ -241,7 +243,8 @@ export const GetMarketResponse = zod.object({
   "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
-  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
 })
 
 
@@ -471,7 +474,8 @@ export const GetUserPinsResponse = zod.object({
   "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
-  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
 }))
 })
 
@@ -519,7 +523,8 @@ export const GetUserPredictionsResponseItem = zod.object({
   "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
-  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
 }).optional(),
   "choice": zod.string().describe('YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets'),
   "amount": zod.number(),
@@ -627,6 +632,110 @@ export const GetMyLeaderboardEntryResponse = zod.object({
 
 
 /**
+ * @summary Admin — list all franchise templates
+ */
+export const ListMarketTemplatesResponse = zod.object({
+  "templates": zod.array(zod.object({
+  "id": zod.number(),
+  "franchiseName": zod.string().describe('e.g. HOTTEST IN BOSTON'),
+  "engine": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']),
+  "templateQuestion": zod.string().describe('Question template with [PLACEHOLDER] slots'),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
+  "defaultDurationDays": zod.number(),
+  "description": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Admin — create a new franchise template
+ */
+export const CreateMarketTemplateBody = zod.object({
+  "franchiseName": zod.string(),
+  "engine": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']),
+  "templateQuestion": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
+  "defaultDurationDays": zod.number(),
+  "description": zod.string().optional()
+})
+
+export const CreateMarketTemplateResponse = zod.object({
+  "id": zod.number(),
+  "franchiseName": zod.string().describe('e.g. HOTTEST IN BOSTON'),
+  "engine": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']),
+  "templateQuestion": zod.string().describe('Question template with [PLACEHOLDER] slots'),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
+  "defaultDurationDays": zod.number(),
+  "description": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Admin — instantiate a market from a franchise template
+ */
+export const CreateMarketFromTemplateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateMarketFromTemplateBody = zod.object({
+  "title": zod.string().describe('Short display title for the market'),
+  "filledQuestion": zod.string().describe('The template question with all [PLACEHOLDER] slots filled in'),
+  "subcategory": zod.string(),
+  "description": zod.string().optional().describe('JSON-encoded extra data (contenders, options, etc.)'),
+  "imageUrl": zod.string().optional(),
+  "closesAt": zod.string().optional(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional(),
+  "publishAt": zod.string().optional(),
+  "peakUntil": zod.string().optional(),
+  "expireAt": zod.string().optional(),
+  "refreshRule": zod.string().optional(),
+  "geo": zod.string().optional(),
+  "seriesId": zod.number().optional()
+})
+
+export const CreateMarketFromTemplateResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "question": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
+  "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
+  "imageUrl": zod.string().nullish(),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
+  "yesCount": zod.number(),
+  "noCount": zod.number(),
+  "totalPredictions": zod.number(),
+  "yesPercent": zod.number().optional(),
+  "noPercent": zod.number().optional(),
+  "resolutionSource": zod.string().nullish(),
+  "sourcePrimary": zod.string().nullish(),
+  "sourceBackup": zod.string().nullish(),
+  "baselineSnapshot": zod.string().nullish(),
+  "formula": zod.string().nullish(),
+  "voidRule": zod.string().nullish(),
+  "geo": zod.string().nullish(),
+  "closesAt": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "resolvedOutcome": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+})
+
+
+/**
  * @summary Admin — list all markets including drafts
  */
 export const AdminListMarketsResponse = zod.object({
@@ -662,7 +771,8 @@ export const AdminListMarketsResponse = zod.object({
   "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
-  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
 })),
   "total": zod.number()
 })
@@ -727,7 +837,8 @@ export const CreateMarketResponse = zod.object({
   "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
-  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
 })
 
 
@@ -774,7 +885,8 @@ export const ResolveMarketResponse = zod.object({
   "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
-  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
 })
 
 

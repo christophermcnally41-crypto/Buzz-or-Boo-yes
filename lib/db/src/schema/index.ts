@@ -4,3 +4,4 @@ export * from "./predictions";
 export * from "./sessions";
 export * from "./polls";
 export * from "./pins";
+export * from "./templates";

@@ -34,6 +34,7 @@ export const marketsTable = pgTable("markets", {
   refreshRule: text("refresh_rule"),                            // recurrence cadence for RECURRING_PULSE (e.g. "MONTHLY", "WEEKLY")
   freshnessScore: real("freshness_score"),                      // 0–100, recomputed by the clock worker
   seriesId: integer("series_id"),                               // links recurring editions back to the first market in the series
+  templateId: integer("template_id"),                           // FK to market_templates — which franchise mold was used
 });
 
 export const insertMarketSchema = createInsertSchema(marketsTable).omit({ id: true, createdAt: true });
