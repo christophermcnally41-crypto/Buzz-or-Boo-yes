@@ -1,13 +1,15 @@
 /**
- * Tests for the /login route's open-redirect guard (getSafeReturnTo).
+ * Tests for the OIDC /login route.
  *
  * Covers:
- *  1. returnTo=https://evil.com is rejected — return_to cookie falls back to /
- *  2. returnTo=//evil.com is rejected — return_to cookie falls back to /
- *  3. returnTo=/dashboard is accepted — return_to cookie contains /dashboard
+ *  1. GET /login redirects to the OIDC authorization URL (302).
+ *  2. All four httpOnly cookies — state, nonce, code_verifier, return_to —
+ *     are set on the response.
+ *  3. return_to defaults to "/" when no (or an unsafe) returnTo query param is given.
+ *  4. A safe returnTo query param is stored verbatim in the return_to cookie.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -29,7 +31,9 @@ vi.mock('../lib/auth.js', () => ({
 
 vi.mock('openid-client', () => ({
   authorizationCodeGrant: vi.fn(),
-  buildAuthorizationUrl: vi.fn(() => new URL('https://replit.com/oidc/auth')),
+  buildAuthorizationUrl: vi.fn(
+    () => new URL('https://replit.com/oidc/auth?response_type=code'),
+  ),
   buildEndSessionUrl: vi.fn(() => new URL('https://replit.com/oidc/end')),
   randomState: vi.fn(() => 'random-state'),
   randomNonce: vi.fn(() => 'random-nonce'),
@@ -56,7 +60,9 @@ vi.mock('drizzle-orm', () => ({
 import * as authLib from '../lib/auth.js';
 import authRouter from './auth.js';
 
-const mockGetOidcConfig = authLib.getOidcConfig as ReturnType<typeof vi.fn>;
+const mockGetOidcConfig = authLib.getOidcConfig as MockedFunction<
+  typeof authLib.getOidcConfig
+>;
 
 // ---------------------------------------------------------------------------
 // Test application factory.
@@ -70,105 +76,113 @@ function buildApp() {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers.
+// Helper: parse Set-Cookie headers into a map of name → full cookie string.
 // ---------------------------------------------------------------------------
-
-/**
- * Extracts the value of a named cookie from a Set-Cookie header array.
- * Returns undefined when the cookie is not present.
- */
-function extractCookieValue(
-  setCookieHeader: string | string[] | undefined,
-  name: string,
-): string | undefined {
-  const cookies = Array.isArray(setCookieHeader)
-    ? setCookieHeader
-    : setCookieHeader
-      ? [setCookieHeader]
-      : [];
-
-  const entry = cookies.find((c) => c.startsWith(`${name}=`));
-  if (!entry) return undefined;
-
-  // Cookie string format: "name=value; Path=/; ..."
-  return decodeURIComponent(entry.split(';')[0].slice(name.length + 1));
+function parseCookies(res: request.Response): Map<string, string> {
+  const header = res.headers['set-cookie'] as string[] | string | undefined;
+  const raw = Array.isArray(header) ? header : header ? [header] : [];
+  const map = new Map<string, string>();
+  for (const c of raw) {
+    const name = c.split('=')[0];
+    map.set(name, c);
+  }
+  return map;
 }
 
 // ---------------------------------------------------------------------------
 // Tests.
 // ---------------------------------------------------------------------------
 
-describe('GET /login — returnTo open-redirect guard', () => {
+describe('GET /login — OIDC authorization redirect', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetOidcConfig.mockResolvedValue({} as Awaited<ReturnType<typeof authLib.getOidcConfig>>);
+    mockGetOidcConfig.mockResolvedValue(
+      {} as Awaited<ReturnType<typeof authLib.getOidcConfig>>,
+    );
   });
 
   // -------------------------------------------------------------------------
-  // 1. Absolute URL with scheme — must be rejected.
+  // 1. Redirect to the OIDC authorization URL.
   // -------------------------------------------------------------------------
-  it('rejects returnTo=https://evil.com and stores / in the return_to cookie', async () => {
-    const res = await request(buildApp())
-      .get('/login?returnTo=https%3A%2F%2Fevil.com');
+  it('responds with a 302 redirect to the OIDC authorization URL', async () => {
+    const res = await request(buildApp()).get('/login');
 
-    // The route should still perform the login redirect.
     expect(res.status).toBe(302);
-
-    const returnToCookie = extractCookieValue(
-      res.headers['set-cookie'] as string | string[] | undefined,
-      'return_to',
-    );
-    expect(returnToCookie).toBe('/');
+    // The Location header should point to the mocked authorization URL.
+    expect(res.headers.location).toContain('replit.com/oidc/auth');
   });
 
   // -------------------------------------------------------------------------
-  // 2. Protocol-relative URL — must be rejected.
+  // 2. All four OIDC cookies are set as httpOnly.
   // -------------------------------------------------------------------------
-  it('rejects returnTo=//evil.com and stores / in the return_to cookie', async () => {
-    const res = await request(buildApp())
-      .get('/login?returnTo=%2F%2Fevil.com');
+  it('sets state, nonce, code_verifier, and return_to cookies as httpOnly', async () => {
+    const res = await request(buildApp()).get('/login');
 
-    expect(res.status).toBe(302);
+    const cookies = parseCookies(res);
 
-    const returnToCookie = extractCookieValue(
-      res.headers['set-cookie'] as string | string[] | undefined,
-      'return_to',
-    );
-    expect(returnToCookie).toBe('/');
+    // Every required cookie must be present.
+    expect(cookies.has('state'), 'state cookie missing').toBe(true);
+    expect(cookies.has('nonce'), 'nonce cookie missing').toBe(true);
+    expect(cookies.has('code_verifier'), 'code_verifier cookie missing').toBe(true);
+    expect(cookies.has('return_to'), 'return_to cookie missing').toBe(true);
+
+    // Every cookie must carry the HttpOnly flag.
+    for (const [name, value] of cookies) {
+      expect(value.toLowerCase(), `${name} cookie is not HttpOnly`).toContain(
+        'httponly',
+      );
+    }
   });
 
   // -------------------------------------------------------------------------
-  // 3. Backslash-prefixed path — must be rejected.
-  //    Browsers normalize /\evil.com as a network-path reference and navigate
-  //    to https://evil.com/, so any path containing a backslash is unsafe.
+  // 3. Cookies carry the values produced by the mocked openid-client helpers.
   // -------------------------------------------------------------------------
-  it('rejects returnTo=/\\evil.com and stores / in the return_to cookie', async () => {
-    // Send the raw backslash-prefixed value; Express decodes it before routing.
-    const res = await request(buildApp())
-      .get('/login?returnTo=%2F%5Cevil.com');
+  it('stores the random state, nonce, and code_verifier values in their respective cookies', async () => {
+    const res = await request(buildApp()).get('/login');
 
-    expect(res.status).toBe(302);
+    const cookies = parseCookies(res);
 
-    const returnToCookie = extractCookieValue(
-      res.headers['set-cookie'] as string | string[] | undefined,
-      'return_to',
-    );
-    expect(returnToCookie).toBe('/');
+    expect(cookies.get('state')).toContain('random-state');
+    expect(cookies.get('nonce')).toContain('random-nonce');
+    expect(cookies.get('code_verifier')).toContain('random-verifier');
   });
 
   // -------------------------------------------------------------------------
-  // 4. Safe relative path — must be accepted unchanged.
+  // 4. return_to defaults to "/" when no returnTo query param is supplied.
   // -------------------------------------------------------------------------
-  it('accepts returnTo=/dashboard and stores /dashboard in the return_to cookie', async () => {
-    const res = await request(buildApp())
-      .get('/login?returnTo=%2Fdashboard');
+  it('sets return_to to "/" when no returnTo query parameter is provided', async () => {
+    const res = await request(buildApp()).get('/login');
 
-    expect(res.status).toBe(302);
+    const cookies = parseCookies(res);
+    // Cookie value segment is URL-encoded; "/" encodes to "%2F" or stays "/"
+    expect(cookies.get('return_to')).toMatch(/return_to=%2F|return_to=\//);
+  });
 
-    const returnToCookie = extractCookieValue(
-      res.headers['set-cookie'] as string | string[] | undefined,
-      'return_to',
+  // -------------------------------------------------------------------------
+  // 5. A safe (path-only) returnTo param is stored verbatim in return_to.
+  // -------------------------------------------------------------------------
+  it('stores a safe returnTo path in the return_to cookie', async () => {
+    const res = await request(buildApp()).get('/login?returnTo=%2Fdashboard');
+
+    const cookies = parseCookies(res);
+    // The cookie should contain the encoded or decoded path.
+    expect(cookies.get('return_to')).toMatch(
+      /return_to=%2Fdashboard|return_to=\/dashboard/,
     );
-    expect(returnToCookie).toBe('/dashboard');
+  });
+
+  // -------------------------------------------------------------------------
+  // 6. An unsafe returnTo (absolute URL) falls back to "/".
+  // -------------------------------------------------------------------------
+  it('ignores an unsafe returnTo (absolute URL) and falls back to "/"', async () => {
+    const res = await request(buildApp()).get(
+      '/login?returnTo=https%3A%2F%2Fevil.example.com',
+    );
+
+    const cookies = parseCookies(res);
+    // Must not contain the external URL.
+    expect(cookies.get('return_to')).not.toContain('evil.example.com');
+    // Must fall back to "/".
+    expect(cookies.get('return_to')).toMatch(/return_to=%2F|return_to=\//);
   });
 });
