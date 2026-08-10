@@ -127,14 +127,14 @@ export const ListMarketsResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
-  "clockType": zod.string().optional(),
-  "publishAt": zod.string().nullish(),
-  "peakUntil": zod.string().nullish(),
-  "expireAt": zod.string().nullish(),
-  "refreshRule": zod.string().nullish(),
-  "freshnessScore": zod.number().nullish(),
-  "seriesId": zod.number().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
 })),
   "total": zod.number()
 })
@@ -176,14 +176,14 @@ export const GetTrendingMarketsResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
-  "clockType": zod.string().optional(),
-  "publishAt": zod.string().nullish(),
-  "peakUntil": zod.string().nullish(),
-  "expireAt": zod.string().nullish(),
-  "refreshRule": zod.string().nullish(),
-  "freshnessScore": zod.number().nullish(),
-  "seriesId": zod.number().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
 })),
   "total": zod.number()
 })
@@ -234,14 +234,14 @@ export const GetMarketResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
-  "clockType": zod.string().optional(),
-  "publishAt": zod.string().nullish(),
-  "peakUntil": zod.string().nullish(),
-  "expireAt": zod.string().nullish(),
-  "refreshRule": zod.string().nullish(),
-  "freshnessScore": zod.number().nullish(),
-  "seriesId": zod.number().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
 })
 
 
@@ -280,6 +280,28 @@ export const GetMarketTallyParams = zod.object({
 
 export const GetMarketTallyResponse = zod.object({
   "tallies": zod.record(zod.string(), zod.number()).describe('Map of choice key to vote count, e.g. {A: 14, B: 7}')
+})
+
+
+/**
+ * Returns the authenticated user's own prediction for this market, or null if they haven't predicted. Unauthenticated requests return null without an error.
+ * @summary Get the current user's prediction for a market
+ */
+export const GetMarketMyPredictionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetMarketMyPredictionResponse = zod.object({
+  "prediction": zod.union([zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "marketId": zod.number(),
+  "choice": zod.string().describe('YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets'),
+  "amount": zod.number(),
+  "isCorrect": zod.boolean().nullish(),
+  "tokensEarned": zod.number().nullish(),
+  "createdAt": zod.string()
+}),zod.null()])
 })
 
 
@@ -442,14 +464,14 @@ export const GetUserPinsResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
-  "clockType": zod.string().optional(),
-  "publishAt": zod.string().nullish(),
-  "peakUntil": zod.string().nullish(),
-  "expireAt": zod.string().nullish(),
-  "refreshRule": zod.string().nullish(),
-  "freshnessScore": zod.number().nullish(),
-  "seriesId": zod.number().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
 }))
 })
 
@@ -490,14 +512,14 @@ export const GetUserPredictionsResponseItem = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
-  "clockType": zod.string().optional(),
-  "publishAt": zod.string().nullish(),
-  "peakUntil": zod.string().nullish(),
-  "expireAt": zod.string().nullish(),
-  "refreshRule": zod.string().nullish(),
-  "freshnessScore": zod.number().nullish(),
-  "seriesId": zod.number().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
 }).optional(),
   "choice": zod.string().describe('YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets'),
   "amount": zod.number(),
@@ -617,14 +639,14 @@ export const AdminListMarketsResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
-  "clockType": zod.string().optional(),
-  "publishAt": zod.string().nullish(),
-  "peakUntil": zod.string().nullish(),
-  "expireAt": zod.string().nullish(),
-  "refreshRule": zod.string().nullish(),
-  "freshnessScore": zod.number().nullish(),
-  "seriesId": zod.number().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
 })),
   "total": zod.number()
 })
@@ -682,14 +704,14 @@ export const CreateMarketResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
-  "clockType": zod.string().optional(),
-  "publishAt": zod.string().nullish(),
-  "peakUntil": zod.string().nullish(),
-  "expireAt": zod.string().nullish(),
-  "refreshRule": zod.string().nullish(),
-  "freshnessScore": zod.number().nullish(),
-  "seriesId": zod.number().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
 })
 
 
@@ -729,14 +751,14 @@ export const ResolveMarketResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
-  "clockType": zod.string().optional(),
-  "publishAt": zod.string().nullish(),
-  "peakUntil": zod.string().nullish(),
-  "expireAt": zod.string().nullish(),
-  "refreshRule": zod.string().nullish(),
-  "freshnessScore": zod.number().nullish(),
-  "seriesId": zod.number().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series')
 })
 
 

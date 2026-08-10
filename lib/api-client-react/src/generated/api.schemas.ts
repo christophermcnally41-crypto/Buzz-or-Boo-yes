@@ -51,6 +51,21 @@ export const MarketStatus = {
   ARCHIVED: 'ARCHIVED',
 } as const;
 
+/**
+ * Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour
+ */
+export type MarketClockType = typeof MarketClockType[keyof typeof MarketClockType];
+
+
+export const MarketClockType = {
+  EVERGREEN: 'EVERGREEN',
+  SEASONAL: 'SEASONAL',
+  NOW: 'NOW',
+  EVENT_DRIVEN: 'EVENT_DRIVEN',
+  ROLLING_FORECAST: 'ROLLING_FORECAST',
+  RECURRING_PULSE: 'RECURRING_PULSE',
+} as const;
+
 export interface Market {
   id: number;
   title: string;
@@ -89,18 +104,37 @@ export interface Market {
   /** @nullable */
   resolvedOutcome?: string | null;
   createdAt: string;
-  clockType?: 'EVERGREEN' | 'SEASONAL' | 'NOW' | 'EVENT_DRIVEN' | 'ROLLING_FORECAST' | 'RECURRING_PULSE';
-  /** @nullable */
+  /** Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour */
+  clockType?: MarketClockType;
+  /**
+     * ISO timestamp when this market becomes publicly visible; null = immediately visible
+     * @nullable
+     */
   publishAt?: string | null;
-  /** @nullable */
+  /**
+     * ISO timestamp marking the end of the peak-freshness window
+     * @nullable
+     */
   peakUntil?: string | null;
-  /** @nullable */
+  /**
+     * ISO timestamp for hard expiry; null = never expires (EVERGREEN)
+     * @nullable
+     */
   expireAt?: string | null;
-  /** @nullable */
+  /**
+     * Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)
+     * @nullable
+     */
   refreshRule?: string | null;
-  /** @nullable */
+  /**
+     * 0–100 freshness score recomputed by the clock worker; 100 = fully fresh
+     * @nullable
+     */
   freshnessScore?: number | null;
-  /** @nullable */
+  /**
+     * ID of the root market in a recurring series
+     * @nullable
+     */
   seriesId?: number | null;
 }
 
@@ -178,6 +212,10 @@ export interface Prediction {
   createdAt: string;
 }
 
+export interface MyPredictionEnvelope {
+  prediction: Prediction | null;
+}
+
 export interface UserPrediction {
   id: number;
   userId: number;
@@ -248,6 +286,18 @@ export const MarketInputMarketFormat = {
   THE_CALL: 'THE_CALL',
 } as const;
 
+export type MarketInputClockType = typeof MarketInputClockType[keyof typeof MarketInputClockType];
+
+
+export const MarketInputClockType = {
+  EVERGREEN: 'EVERGREEN',
+  SEASONAL: 'SEASONAL',
+  NOW: 'NOW',
+  EVENT_DRIVEN: 'EVENT_DRIVEN',
+  ROLLING_FORECAST: 'ROLLING_FORECAST',
+  RECURRING_PULSE: 'RECURRING_PULSE',
+} as const;
+
 export interface MarketInput {
   title: string;
   question: string;
@@ -264,7 +314,7 @@ export interface MarketInput {
   voidRule?: string;
   geo?: string;
   closesAt?: string;
-  clockType?: 'EVERGREEN' | 'SEASONAL' | 'NOW' | 'EVENT_DRIVEN' | 'ROLLING_FORECAST' | 'RECURRING_PULSE';
+  clockType?: MarketInputClockType;
   publishAt?: string;
   peakUntil?: string;
   expireAt?: string;
@@ -413,6 +463,7 @@ export const ListMarketsStatus = {
   OPEN: 'OPEN',
   CLOSED: 'CLOSED',
   RESOLVED: 'RESOLVED',
+  ARCHIVED: 'ARCHIVED',
 } as const;
 
 export type ListMarketsFormat = typeof ListMarketsFormat[keyof typeof ListMarketsFormat];

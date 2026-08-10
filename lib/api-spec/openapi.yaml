@@ -118,7 +118,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [OPEN, CLOSED, RESOLVED]
+            enum: [OPEN, CLOSED, RESOLVED, ARCHIVED]
         - name: format
           in: query
           schema:
@@ -259,6 +259,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /markets/{id}/my-prediction:
+    get:
+      operationId: getMarketMyPrediction
+      tags: [predictions]
+      summary: Get the current user's prediction for a market
+      description: Returns the authenticated user's own prediction for this market, or null if they haven't predicted. Unauthenticated requests return null without an error.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: User's prediction or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyPredictionEnvelope"
+        "400":
+          description: Invalid market or user id
 
   /markets/{id}/predictions:
     get:
@@ -893,6 +915,16 @@ components:
           description: ISO timestamp of the last daily top-up, or null if never topped up
         createdAt:
           type: string
+
+    MyPredictionEnvelope:
+      type: object
+      required:
+        - prediction
+      properties:
+        prediction:
+          oneOf:
+            - $ref: "#/components/schemas/Prediction"
+            - type: "null"
 
     Prediction:
       type: object

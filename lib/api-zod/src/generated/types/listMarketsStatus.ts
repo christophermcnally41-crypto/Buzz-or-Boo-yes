@@ -13,4 +13,5 @@ export const ListMarketsStatus = {
   OPEN: 'OPEN',
   CLOSED: 'CLOSED',
   RESOLVED: 'RESOLVED',
+  ARCHIVED: 'ARCHIVED',
 } as const;

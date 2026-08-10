@@ -42,6 +42,7 @@ import type {
   MobileAuthTransaction,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
+  MyPredictionEnvelope,
   PinStatus,
   PinnedMarketsEnvelope,
   PlatformStats,
@@ -849,6 +850,84 @@ export function useGetMarketTally<TData = Awaited<ReturnType<typeof getMarketTal
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMarketTallyQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetMarketMyPredictionUrl = (id: number,) => {
+
+
+
+
+  return `/api/markets/${id}/my-prediction`
+}
+
+/**
+ * Returns the authenticated user's own prediction for this market, or null if they haven't predicted. Unauthenticated requests return null without an error.
+ * @summary Get the current user's prediction for a market
+ */
+export const getMarketMyPrediction = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<MyPredictionEnvelope> => {
+
+  return customFetch<MyPredictionEnvelope>(getGetMarketMyPredictionUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketMyPredictionQueryKey = (id: number,) => {
+    return [
+    `/api/markets/${id}/my-prediction`
+    ] as const;
+    }
+
+
+export const getGetMarketMyPredictionQueryOptions = <TData = Awaited<ReturnType<typeof getMarketMyPrediction>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketMyPrediction>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketMyPredictionQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketMyPrediction>>> = ({ signal }) => getMarketMyPrediction(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketMyPrediction>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketMyPredictionQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketMyPrediction>>>
+export type GetMarketMyPredictionQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the current user's prediction for a market
+ */
+
+export function useGetMarketMyPrediction<TData = Awaited<ReturnType<typeof getMarketMyPrediction>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketMyPrediction>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketMyPredictionQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

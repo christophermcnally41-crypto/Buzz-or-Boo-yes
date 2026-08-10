@@ -199,6 +199,52 @@ router.get("/markets/:id/predictions", async (req, res): Promise<void> => {
   );
 });
 
+/**
+ * GET /markets/:id/my-prediction
+ * Returns the authenticated user's own prediction for this market, or null if
+ * they haven't voted. Used by the mobile app to gate the Predict button without
+ * scanning the capped recent-predictions list.
+ */
+router.get("/markets/:id/my-prediction", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const marketId = Number(raw);
+  if (isNaN(marketId) || marketId <= 0) {
+    res.status(400).json({ error: "Invalid market id" });
+    return;
+  }
+
+  if (!req.isAuthenticated()) {
+    // Unauthenticated — no prediction can exist for this user
+    res.json({ prediction: null });
+    return;
+  }
+
+  const userId = parseInt(req.user.id, 10);
+  if (isNaN(userId)) {
+    res.status(400).json({ error: "Invalid user id in session" });
+    return;
+  }
+
+  const { predictionsTable } = await import("@workspace/db");
+  const [prediction] = await db
+    .select()
+    .from(predictionsTable)
+    .where(and(eq(predictionsTable.marketId, marketId), eq(predictionsTable.userId, userId)))
+    .limit(1);
+
+  if (!prediction) {
+    res.json({ prediction: null });
+    return;
+  }
+
+  res.json({
+    prediction: {
+      ...prediction,
+      createdAt: prediction.createdAt.toISOString(),
+    },
+  });
+});
+
 router.get("/stats/summary", async (_req, res): Promise<void> => {
   const { usersTable, predictionsTable } = await import("@workspace/db");
 

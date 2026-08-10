@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { MarketCategory } from './marketCategory';
+import type { MarketClockType } from './marketClockType';
 import type { MarketMarketFormat } from './marketMarketFormat';
 import type { MarketStatus } from './marketStatus';
 
@@ -47,18 +48,36 @@ export interface Market {
   /** @nullable */
   resolvedOutcome?: string | null;
   createdAt: string;
-  /** Clock type controlling freshness/expiry (Market Bible v0.5 §40) */
-  clockType?: string;
-  /** @nullable ISO timestamp when the market becomes visible */
+  /** Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour */
+  clockType?: MarketClockType;
+  /**
+     * ISO timestamp when this market becomes publicly visible; null = immediately visible
+     * @nullable
+     */
   publishAt?: string | null;
-  /** @nullable End of peak-freshness window */
+  /**
+     * ISO timestamp marking the end of the peak-freshness window
+     * @nullable
+     */
   peakUntil?: string | null;
-  /** @nullable Hard expiry timestamp; null = never expires */
+  /**
+     * ISO timestamp for hard expiry; null = never expires (EVERGREEN)
+     * @nullable
+     */
   expireAt?: string | null;
-  /** @nullable Recurrence cadence for RECURRING_PULSE (e.g. MONTHLY) */
+  /**
+     * Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)
+     * @nullable
+     */
   refreshRule?: string | null;
-  /** @nullable 0–100 freshness score recomputed by clock worker */
+  /**
+     * 0–100 freshness score recomputed by the clock worker; 100 = fully fresh
+     * @nullable
+     */
   freshnessScore?: number | null;
-  /** @nullable Root market ID for recurring series */
+  /**
+     * ID of the root market in a recurring series
+     * @nullable
+     */
   seriesId?: number | null;
 }

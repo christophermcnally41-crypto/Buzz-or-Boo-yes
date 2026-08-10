@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   useMakePrediction,
   useGetMarketPredictions,
   useGetMarketTally,
+  useGetMarketMyPrediction,
 } from '@workspace/api-client-react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -50,7 +51,16 @@ export default function MarketDetailScreen() {
   const { data: market, isLoading, error } = useGetMarket(marketId);
   const { data: predictions } = useGetMarketPredictions(marketId);
   const { data: tallyResult } = useGetMarketTally(marketId);
+  const { data: myPredictionData } = useGetMarketMyPrediction(marketId);
   const mutation = useMakePrediction();
+
+  // Seed `voted` from the server-authoritative my-prediction endpoint so the
+  // Predict button is disabled immediately when a user revisits a market they
+  // already voted on — independent of the capped recent-predictions list.
+  useEffect(() => {
+    if (!myPredictionData?.prediction || voted) return;
+    setVoted(myPredictionData.prediction.choice);
+  }, [myPredictionData, voted]);
 
   const handlePredict = useCallback(
     async (choice: string, isCallPick = false) => {
@@ -83,7 +93,8 @@ export default function MarketDetailScreen() {
           },
           onError: (err: any) => {
             setVoting(false);
-            const msg = err?.response?.data?.error ?? 'Failed to submit prediction.';
+            // ApiError places the parsed JSON body on err.data (not err.response.data)
+            const msg = err?.data?.error ?? err?.message ?? 'Failed to submit prediction.';
             Alert.alert('Error', msg);
           },
         },

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { MarketInputCategory } from './marketInputCategory';
+import type { MarketInputClockType } from './marketInputClockType';
 import type { MarketInputMarketFormat } from './marketInputMarketFormat';
 
 export interface MarketInput {
@@ -24,7 +25,7 @@ export interface MarketInput {
   voidRule?: string;
   geo?: string;
   closesAt?: string;
-  clockType?: 'EVERGREEN' | 'SEASONAL' | 'NOW' | 'EVENT_DRIVEN' | 'ROLLING_FORECAST' | 'RECURRING_PULSE';
+  clockType?: MarketInputClockType;
   publishAt?: string;
   peakUntil?: string;
   expireAt?: string;
