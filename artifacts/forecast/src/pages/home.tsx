@@ -1,5 +1,6 @@
 import { useGetTrendingMarkets, useGetPlatformStats, useGetMarketCategories, useListMarkets } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
+import { BuzzOrBooCard } from "@/components/buzz-or-boo-card";
 import { BostonSays } from "@/components/boston-says";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -13,6 +14,7 @@ export default function Home() {
   const { data: stats } = useGetPlatformStats();
   const { data: categories } = useGetMarketCategories();
   const { data: hotOrNotData, isLoading: loadingHotOrNot } = useListMarkets({ format: "HOT_OR_NOT", status: "OPEN", limit: 6 });
+  const { data: buzzOrBooData, isLoading: loadingBuzzOrBoo } = useListMarkets({ format: "BUZZ_OR_BOO", status: "OPEN", limit: 5 });
 
   return (
     <div className="pb-24">
@@ -178,6 +180,48 @@ export default function Home() {
                 ))}
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* Buzz or Boo */}
+      {(loadingBuzzOrBoo || (buzzOrBooData?.markets && buzzOrBooData.markets.length > 0)) && (
+        <section className="py-16 md:py-24 border-b border-border/40">
+          <div className="container mx-auto px-4">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-3" style={{ backgroundColor: "#CFEA3B22", color: "#CFEA3B", border: "1px solid #CFEA3B44" }}>
+                  ⚡ Buzz or Boo
+                </div>
+                <h2 className="text-3xl md:text-4xl font-editorial font-bold mb-2">Quick Verdicts</h2>
+                <p className="text-muted-foreground font-medium">Is it buzzing or getting boo'd? Drop your verdict in seconds.</p>
+              </div>
+              <Link href="/markets?format=BUZZ_OR_BOO">
+                <Button variant="ghost" className="hidden md:flex">
+                  See All <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+
+            {loadingBuzzOrBoo ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                {[1, 2, 3].map(i => <div key={i} className="h-64 bg-muted rounded-xl" />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[280px]">
+                {buzzOrBooData?.markets?.map((market) => (
+                  <BuzzOrBooCard key={market.id} market={market} />
+                ))}
+              </div>
+            )}
+
+            <div className="mt-8 text-center md:hidden">
+              <Link href="/markets?format=BUZZ_OR_BOO">
+                <Button variant="outline" className="w-full">
+                  See All Buzz or Boo <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </section>
       )}

@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { useSearch } from "wouter";
+import { useSearch, useLocation } from "wouter";
 import { useListMarkets } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
+import { BuzzOrBooCard } from "@/components/buzz-or-boo-card";
 import { getCategoryLabel, CATEGORIES } from "@/lib/categories";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
 export default function Markets() {
   const search = useSearch();
+  const [, navigate] = useLocation();
   const params = new URLSearchParams(search);
   const urlFormat = params.get("format") ?? undefined;
   const urlCategory = params.get("category") ?? undefined;
@@ -20,6 +22,8 @@ export default function Markets() {
   }, [urlCategory]);
 
   const isHotOrNot = urlFormat === "HOT_OR_NOT";
+  const isBuzzOrBoo = urlFormat === "BUZZ_OR_BOO";
+  const hasFormatFilter = isHotOrNot || isBuzzOrBoo;
 
   const { data, isLoading } = useListMarkets({
     category: category !== "ALL" ? (category as any) : undefined,
@@ -28,12 +32,32 @@ export default function Markets() {
     limit: 60,
   });
 
+  function handleFormatChange(val: string) {
+    if (val === "ALL") {
+      navigate("/markets");
+    } else {
+      navigate(`/markets?format=${val}`);
+    }
+  }
+
+  const activeFormat = urlFormat ?? "ALL";
+
   return (
     <div className="min-h-screen pb-24">
       {/* Header */}
       <div className="bg-muted/30 border-b border-border/50 pt-10 pb-8 md:pt-16 md:pb-12">
         <div className="container mx-auto px-4">
-          {isHotOrNot ? (
+          {isBuzzOrBoo ? (
+            <>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style={{ backgroundColor: "#CFEA3B22", color: "#CFEA3B", border: "1px solid #CFEA3B44" }}>
+                ⚡ Buzz or Boo
+              </div>
+              <h1 className="text-4xl md:text-5xl font-editorial font-bold mb-4">Quick Verdicts</h1>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Is it buzzing or getting boo'd? Drop your verdict in seconds.
+              </p>
+            </>
+          ) : isHotOrNot ? (
             <>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-600 text-xs font-bold uppercase tracking-widest mb-4">
                 🔥 Hot or Not
@@ -71,6 +95,27 @@ export default function Markets() {
               </Tabs>
             </>
           )}
+
+          {/* Format filter — shown on all views */}
+          <div className="mt-6 flex flex-wrap gap-2">
+            {[
+              { value: "ALL", label: "All Formats" },
+              { value: "HOT_OR_NOT", label: "🔥 Hot or Not" },
+              { value: "BUZZ_OR_BOO", label: "⚡ Buzz or Boo" },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => handleFormatChange(value)}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all ${
+                  activeFormat === value
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-transparent text-muted-foreground border-border/50 hover:border-foreground/30 hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -78,7 +123,9 @@ export default function Markets() {
       <div className="container mx-auto px-4 py-12">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold">{isHotOrNot ? "All Hot or Not Markets" : "Open Forecasts"}</h2>
+            <h2 className="text-xl font-bold">
+              {isBuzzOrBoo ? "All Buzz or Boo Markets" : isHotOrNot ? "All Hot or Not Markets" : "Open Forecasts"}
+            </h2>
             <Badge variant="secondary" className="font-mono-numbers">
               {data?.total || 0}
             </Badge>
@@ -93,9 +140,13 @@ export default function Markets() {
           </div>
         ) : data?.markets && data.markets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {data.markets.map(market => (
-              <MarketCard key={market.id} market={market} />
-            ))}
+            {data.markets.map(market =>
+              isBuzzOrBoo ? (
+                <BuzzOrBooCard key={market.id} market={market} />
+              ) : (
+                <MarketCard key={market.id} market={market} />
+              )
+            )}
           </div>
         ) : (
           <div className="py-32 text-center flex flex-col items-center justify-center bg-card rounded-2xl border border-dashed border-border">
