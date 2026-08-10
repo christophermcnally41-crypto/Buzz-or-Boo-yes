@@ -238,7 +238,7 @@ router.get('/callback', async (req: Request, res: Response) => {
   const nonce = req.cookies?.nonce;
   const expectedState = req.cookies?.state;
 
-  if (!codeVerifier || !expectedState) {
+  if (!codeVerifier || !expectedState || !nonce) {
     res.redirect('/api/login');
     return;
   }
