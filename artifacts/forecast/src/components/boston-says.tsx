@@ -81,14 +81,14 @@ export function BostonSays() {
               <button
                 key={poll.id}
                 onClick={() => setActiveIndex(i)}
-                className={`text-left px-4 py-3 rounded-2xl border transition-all text-sm font-medium leading-snug ${
+                className={`text-left px-4 py-3 rounded-2xl border transition-all duration-200 text-sm font-medium leading-snug ${
                   i === activeIndex
-                    ? "bg-white/10 border-white/40 text-foreground"
-                    : "bg-card border-white/15 hover:border-white/35 text-muted-foreground hover:text-foreground"
+                    ? "bg-white/10 border-white/70 text-white shadow-[0_0_18px_rgba(255,255,255,0.18)]"
+                    : "bg-card border-white/30 text-white/60 hover:border-white/55 hover:text-white/90 hover:bg-white/5 hover:shadow-[0_0_10px_rgba(255,255,255,0.10)]"
                 }`}
               >
                 <span className="line-clamp-2">{poll.question}</span>
-                <span className="text-xs font-mono-numbers mt-1 block opacity-60">
+                <span className="text-xs font-mono-numbers mt-1 block opacity-50">
                   {poll.totalVotes.toLocaleString()} votes
                 </span>
               </button>
