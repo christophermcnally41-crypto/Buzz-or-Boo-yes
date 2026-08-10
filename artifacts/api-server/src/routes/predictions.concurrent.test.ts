@@ -1,14 +1,17 @@
 /**
  * Concurrency tests for POST /markets/:id/predict.
  *
- * Verifies that the atomic balance-deduction guard prevents a user from
- * spending more tokens than they have when two requests race simultaneously.
+ * Verifies that the atomic balance-deduction guard (inside a DB transaction)
+ * prevents a user from spending more tokens than they have when two requests
+ * race simultaneously.
  *
  * Scenario:
  *   - User has tokenBalance = 100 (exactly one bet's worth at the default 100-token stake).
  *   - Two simultaneous predict requests are fired against two different open markets.
  *   - Exactly one should succeed (201) and one should fail (400 "Insufficient balance").
  *   - The user's final tokenBalance must be 0, never negative.
+ *   - No prediction row or market-count update persists for the loser because the
+ *     entire operation runs inside a DB transaction that is rolled back on failure.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from 'vitest';
@@ -25,6 +28,7 @@ vi.mock('@workspace/db', () => ({
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    transaction: vi.fn(),
   },
   usersTable: {},
   predictionsTable: {},
@@ -68,11 +72,28 @@ function makeUpdateChain(rows: Row[]) {
   };
 }
 
-/** Delete chain: .where() → void */
-function makeDeleteChain() {
-  return {
-    where: vi.fn().mockResolvedValue([]),
-  };
+// ---------------------------------------------------------------------------
+// Transaction helper.
+//
+// The route now wraps insert + market-count update + balance deduction in a
+// single db.transaction() call.  We make mockTransaction execute the callback
+// synchronously with a fake `tx` that delegates back to the same top-level
+// mock functions so each test can keep its existing mockInsert / mockUpdate
+// setup unchanged.
+// ---------------------------------------------------------------------------
+
+function setupTransaction(
+  mockTransaction: MockedFunction<typeof dbModule.db.transaction>,
+  mockInsert: MockedFunction<typeof dbModule.db.insert>,
+  mockUpdate: MockedFunction<typeof dbModule.db.update>,
+) {
+  mockTransaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+    const tx = {
+      insert: mockInsert,
+      update: mockUpdate,
+    };
+    return cb(tx);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -136,7 +157,7 @@ describe('POST /markets/:id/predict — concurrent balance guard', () => {
   const mockSelect = dbModule.db.select as MockedFunction<typeof dbModule.db.select>;
   const mockInsert = dbModule.db.insert as MockedFunction<typeof dbModule.db.insert>;
   const mockUpdate = dbModule.db.update as MockedFunction<typeof dbModule.db.update>;
-  const mockDelete = dbModule.db.delete as MockedFunction<typeof dbModule.db.delete>;
+  const mockTransaction = dbModule.db.transaction as MockedFunction<typeof dbModule.db.transaction>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -165,28 +186,18 @@ describe('POST /markets/:id/predict — concurrent balance guard', () => {
       .mockReturnValueOnce(makeSelectChain([OPEN_MARKET_2]) as never) // req2 market lookup
       .mockReturnValueOnce(makeSelectChain([USER_WITH_ONE_BET]) as never); // req2 user lookup
 
-    // db.insert: one successful insert per request (different predictions).
+    // Inside the transaction: insert + market-count update + balance deduction.
+    // Interleaving under Node.js microtasks with two concurrent requests:
+    //   tx.insert call 1  — req1 prediction insert (succeeds)
+    //   tx.insert call 2  — req2 prediction insert (succeeds)
+    //   tx.update call 1  — req1 market count update
+    //   tx.update call 2  — req2 market count update
+    //   tx.update call 3  — req1 balance deduction (wins — balance → 0)
+    //   tx.update call 4  — req2 balance deduction (fails — balance already 0)
     mockInsert
       .mockReturnValueOnce(makeInsertChain([PREDICTION_MARKET_1]) as never) // req1 prediction
       .mockReturnValueOnce(makeInsertChain([PREDICTION_MARKET_2]) as never); // req2 prediction
 
-    // db.update: called for (a) market count update and (b) balance deduction.
-    // Interleaving order under Node.js microtasks with two concurrent requests:
-    //   call 1 — req1 market count update
-    //   call 2 — req2 market count update
-    //   call 3 — req1 balance deduction (first → succeeds, balance → 0)
-    //   call 4 — req2 balance deduction (second → fails, balance already 0)
-    //
-    // We use mockImplementation to distinguish deduction calls by counting them.
-    mockUpdate.mockImplementation((() => {
-      // The first two update calls are market-count updates; they succeed trivially.
-      // The next calls are balance deductions; only the first one returns a row.
-      // We detect deduction calls by checking which invocation number we're on.
-      // Simple approach: a closure counter that tracks deduction-specific calls.
-      return makeUpdateChain([]) as never; // default — overridden below for deductions
-    }) as never);
-
-    // Override with explicit sequence that mirrors the real atomic guard.
     mockUpdate
       .mockReturnValueOnce(makeUpdateChain([{ totalPredictions: 1 }]) as never) // market 1 count
       .mockReturnValueOnce(makeUpdateChain([{ totalPredictions: 1 }]) as never) // market 2 count
@@ -201,8 +212,7 @@ describe('POST /markets/:id/predict — concurrent balance guard', () => {
         return makeUpdateChain([]) as never;
       }) as never);
 
-    // db.delete: rolls back the prediction that lost the balance race.
-    mockDelete.mockReturnValue(makeDeleteChain() as never);
+    setupTransaction(mockTransaction, mockInsert, mockUpdate);
 
     // Fire both requests truly concurrently.
     const [res1, res2] = await Promise.all([
@@ -222,8 +232,9 @@ describe('POST /markets/:id/predict — concurrent balance guard', () => {
     // Both deduction slots should have been reached (one win, one loss).
     expect(deductionCallCount).toBe(2);
 
-    // The losing prediction must have been cleaned up with a DELETE.
-    expect(mockDelete).toHaveBeenCalledOnce();
+    // The transaction (not a compensating DELETE) is what prevents the orphan.
+    // db.transaction must have been called twice — once per request.
+    expect(mockTransaction).toHaveBeenCalledTimes(2);
   });
 
   // -------------------------------------------------------------------------
@@ -242,16 +253,19 @@ describe('POST /markets/:id/predict — concurrent balance guard', () => {
       .mockReturnValueOnce(makeUpdateChain([{ totalPredictions: 1 }]) as never) // market count
       .mockReturnValueOnce(makeUpdateChain([{ ...USER_WITH_ONE_BET, tokenBalance: 0 }]) as never); // deduction
 
+    setupTransaction(mockTransaction, mockInsert, mockUpdate);
+
     const res = await request(app)
       .post('/markets/1/predict')
       .send({ choice: 'YES', amount: 100 });
 
     expect(res.status).toBe(201);
-    expect(mockDelete).not.toHaveBeenCalled();
+    expect(mockTransaction).toHaveBeenCalledOnce();
   });
 
   // -------------------------------------------------------------------------
-  // Guard: a single request with insufficient balance is rejected immediately.
+  // Guard: a single request with insufficient balance is rejected immediately,
+  // and the transaction is rolled back — no prediction or count update persists.
   // -------------------------------------------------------------------------
   it('returns 400 "Insufficient balance" when the user has fewer tokens than the bet', async () => {
     const app = buildApp();
@@ -268,7 +282,7 @@ describe('POST /markets/:id/predict — concurrent balance guard', () => {
       .mockReturnValueOnce(makeUpdateChain([{ totalPredictions: 1 }]) as never) // market count
       .mockReturnValueOnce(makeUpdateChain([]) as never); // deduction fails — no matching row
 
-    mockDelete.mockReturnValue(makeDeleteChain() as never);
+    setupTransaction(mockTransaction, mockInsert, mockUpdate);
 
     const res = await request(app)
       .post('/markets/1/predict')
@@ -277,8 +291,38 @@ describe('POST /markets/:id/predict — concurrent balance guard', () => {
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: 'Insufficient balance' });
 
-    // The inserted prediction must be rolled back.
-    expect(mockDelete).toHaveBeenCalledOnce();
+    // The transaction was invoked (and rolled back internally by Drizzle when
+    // InsufficientBalanceError was thrown). There is no compensating DELETE call.
+    expect(mockTransaction).toHaveBeenCalledOnce();
+  });
+
+  // -------------------------------------------------------------------------
+  // Rollback durability: an unexpected DB error inside the transaction surfaces
+  // as 500 and does not silently disappear.
+  //
+  // This is the key regression guard for the original bug: previously a failing
+  // compensating DELETE would leave a dangling prediction row. Now the entire
+  // operation is atomic — if the transaction throws for any reason other than
+  // InsufficientBalance or a duplicate-key violation, the route returns 500 and
+  // the DB is guaranteed to have rolled back (no orphaned row is possible).
+  // -------------------------------------------------------------------------
+  it('surfaces a 500 when the transaction throws an unexpected DB error', async () => {
+    const app = buildApp();
+
+    mockSelect
+      .mockReturnValueOnce(makeSelectChain([OPEN_MARKET_1]) as never)
+      .mockReturnValueOnce(makeSelectChain([USER_WITH_ONE_BET]) as never);
+
+    // Simulate a transient DB failure inside the transaction (e.g. connection drop).
+    const dbError = new Error('DB connection lost');
+    mockTransaction.mockRejectedValueOnce(dbError as never);
+
+    const res = await request(app)
+      .post('/markets/1/predict')
+      .send({ choice: 'YES', amount: 100 });
+
+    // The route must not silently swallow the error.
+    expect(res.status).toBe(500);
   });
 
   // -------------------------------------------------------------------------
@@ -312,7 +356,7 @@ describe('POST /markets/:id/predict — concurrent balance guard', () => {
       }) as never)
       .mockReturnValueOnce(makeUpdateChain([]) as never); // second deduction — no rows
 
-    mockDelete.mockReturnValue(makeDeleteChain() as never);
+    setupTransaction(mockTransaction, mockInsert, mockUpdate);
 
     await Promise.all([
       request(app).post('/markets/1/predict').send({ choice: 'YES', amount: 100 }),

@@ -9,6 +9,17 @@ import {
 
 const router: IRouter = Router();
 
+/**
+ * Sentinel thrown inside the transaction when the user's balance is insufficient.
+ * Drizzle rolls the transaction back automatically when the callback throws, so
+ * neither the prediction row nor the market-count increment will persist.
+ */
+class InsufficientBalanceError extends Error {
+  constructor() {
+    super("insufficient_balance");
+  }
+}
+
 router.post("/markets/:id/predict", async (req, res): Promise<void> => {
   // Require authentication
   if (!req.isAuthenticated()) {
@@ -131,16 +142,67 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     ? FIXED_STAKE
     : (amount ?? 100);
 
-  // Create prediction — the unique index on (user_id, market_id) enforces one-per-user at
-  // the database level, so concurrent requests can't both slip through the old SELECT guard.
+  // Execute the prediction inside a single DB transaction so that the prediction
+  // row, market-count increment, and token deduction are all committed or all
+  // rolled back together — no compensating DELETE is ever needed.
   let prediction: typeof predictionsTable.$inferSelect;
   try {
-    const [inserted] = await db
-      .insert(predictionsTable)
-      .values({ userId, marketId, choice, amount: betAmount })
-      .returning();
-    prediction = inserted;
+    prediction = await db.transaction(async (tx) => {
+      // 1. Insert the prediction.
+      //    The unique index on (user_id, market_id) rejects duplicates with 23505.
+      const [inserted] = await tx
+        .insert(predictionsTable)
+        .values({ userId, marketId, choice, amount: betAmount })
+        .returning();
+
+      // 2. Update market counts.
+      if (market.marketFormat === "MULTI_CHOICE" || market.marketFormat === "THE_CALL") {
+        await tx
+          .update(marketsTable)
+          .set({ totalPredictions: market.totalPredictions + 1 })
+          .where(eq(marketsTable.id, marketId));
+      } else if (choice === "YES") {
+        await tx
+          .update(marketsTable)
+          .set({
+            yesCount: market.yesCount + 1,
+            totalPredictions: market.totalPredictions + 1,
+          })
+          .where(eq(marketsTable.id, marketId));
+      } else {
+        await tx
+          .update(marketsTable)
+          .set({
+            noCount: market.noCount + 1,
+            totalPredictions: market.totalPredictions + 1,
+          })
+          .where(eq(marketsTable.id, marketId));
+      }
+
+      // 3. Atomically deduct tokens — only succeeds if balance is still sufficient.
+      //    This guards against two concurrent bets both reading the same stale balance.
+      const [deducted] = await tx
+        .update(usersTable)
+        .set({
+          tokenBalance: sql`${usersTable.tokenBalance} - ${betAmount}`,
+          totalPredictions: sql`${usersTable.totalPredictions} + 1`,
+        })
+        .where(and(eq(usersTable.id, userId), gte(usersTable.tokenBalance, betAmount)))
+        .returning();
+
+      if (!deducted) {
+        // Throwing here causes Drizzle to roll back the entire transaction,
+        // so neither the prediction row nor the market-count increment persists.
+        throw new InsufficientBalanceError();
+      }
+
+      return inserted;
+    });
   } catch (err: unknown) {
+    if (err instanceof InsufficientBalanceError) {
+      res.status(400).json({ error: "Insufficient balance" });
+      return;
+    }
     // PostgreSQL unique-violation error code is '23505'
     const pg = err as { code?: string };
     if (pg.code === "23505") {
@@ -148,51 +210,6 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
       return;
     }
     throw err;
-  }
-
-  // Update market counts — for MULTI_CHOICE and THE_CALL only increment total;
-  // for YES/NO markets update yes/no counts as well.
-  if (market.marketFormat === "MULTI_CHOICE" || market.marketFormat === "THE_CALL") {
-    await db
-      .update(marketsTable)
-      .set({ totalPredictions: market.totalPredictions + 1 })
-      .where(eq(marketsTable.id, marketId));
-  } else if (choice === "YES") {
-    await db
-      .update(marketsTable)
-      .set({
-        yesCount: market.yesCount + 1,
-        totalPredictions: market.totalPredictions + 1,
-      })
-      .where(eq(marketsTable.id, marketId));
-  } else {
-    await db
-      .update(marketsTable)
-      .set({
-        noCount: market.noCount + 1,
-        totalPredictions: market.totalPredictions + 1,
-      })
-      .where(eq(marketsTable.id, marketId));
-  }
-
-  // Atomically deduct tokens — only succeeds if balance is still sufficient.
-  // This guards against two concurrent bets both reading the same stale balance.
-  const [deducted] = await db
-    .update(usersTable)
-    .set({
-      tokenBalance: sql`${usersTable.tokenBalance} - ${betAmount}`,
-      totalPredictions: sql`${usersTable.totalPredictions} + 1`,
-    })
-    .where(and(eq(usersTable.id, userId), gte(usersTable.tokenBalance, betAmount)))
-    .returning();
-
-  if (!deducted) {
-    // Roll back the prediction we just inserted — balance was insufficient
-    await db
-      .delete(predictionsTable)
-      .where(eq(predictionsTable.id, prediction.id));
-    res.status(400).json({ error: "Insufficient balance" });
-    return;
   }
 
   res.status(201).json(
