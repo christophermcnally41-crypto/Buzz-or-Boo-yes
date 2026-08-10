@@ -19,5 +19,6 @@ export const GetMyLeaderboardEntryCategory = {
   LOCAL_PULSE: 'LOCAL_PULSE',
   BEAUTY: 'BEAUTY',
   ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
   OVERALL: 'OVERALL',
 } as const;

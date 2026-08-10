@@ -11,6 +11,7 @@ export function getCategoryLabel(category: MarketCategory | string): string {
     LOCAL_PULSE: "Local Pulse",
     BEAUTY: "Beauty",
     ACCESSORIES: "Accessories",
+    MOVIES: "Movies & TV",
   };
   return map[category] || category;
 }
@@ -26,6 +27,7 @@ export function getCategoryIcon(category: MarketCategory | string): string {
     LOCAL_PULSE: "🔥",
     BEAUTY: "✨",
     ACCESSORIES: "👜",
+    MOVIES: "🎬",
   };
   return map[category] || "✨";
 }
@@ -35,6 +37,7 @@ export const CATEGORIES: (MarketCategory | string)[] = [
   "STYLE",
   "BEAUTY",
   "ACCESSORIES",
+  "MOVIES",
   "HOME",
   "CITY",
   "REAL_ESTATE",

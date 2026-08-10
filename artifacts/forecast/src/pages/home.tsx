@@ -26,11 +26,14 @@ export default function Home() {
               <Zap className="w-4 h-4" style={{ color: "hsl(43 72% 48%)" }} />
               Boston's Cultural Prediction Engine
             </div>
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-editorial font-bold leading-[1.05] tracking-tight text-balance mb-6 animate-slide-up" style={{ animationDelay: "100ms" }}>
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-editorial font-bold leading-[1.05] tracking-tight text-balance mb-4 animate-slide-up" style={{ animationDelay: "100ms" }}>
               Call what's next.
             </h1>
+            <p className="text-base md:text-lg font-bold tracking-widest uppercase text-muted-foreground mb-4 animate-slide-up" style={{ animationDelay: "150ms", letterSpacing: "0.14em" }}>
+              What's hot. What's better. What's next.
+            </p>
             <p className="text-xl md:text-2xl text-muted-foreground font-medium text-balance max-w-2xl mb-10 animate-slide-up" style={{ animationDelay: "200ms" }}>
-              Forecast style, food, nightlife, and neighborhoods before they blow up. Earn your BuzzRank.
+              Boston's cultural prediction platform. Make a call before everyone else and build a public record of how good you are at seeing what's coming.
             </p>
             <div className="flex flex-wrap items-center gap-4 animate-slide-up" style={{ animationDelay: "300ms" }}>
               <Link href="/markets">

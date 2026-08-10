@@ -26,6 +26,7 @@ export const MarketCategory = {
   LOCAL_PULSE: 'LOCAL_PULSE',
   BEAUTY: 'BEAUTY',
   ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
 } as const;
 
 export type MarketMarketFormat = typeof MarketMarketFormat[keyof typeof MarketMarketFormat];
@@ -217,6 +218,7 @@ export const MarketInputCategory = {
   LOCAL_PULSE: 'LOCAL_PULSE',
   BEAUTY: 'BEAUTY',
   ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
 } as const;
 
 export type MarketInputMarketFormat = typeof MarketInputMarketFormat[keyof typeof MarketInputMarketFormat];
@@ -369,6 +371,7 @@ export const ListMarketsCategory = {
   LOCAL_PULSE: 'LOCAL_PULSE',
   BEAUTY: 'BEAUTY',
   ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
 } as const;
 
 export type ListMarketsStatus = typeof ListMarketsStatus[keyof typeof ListMarketsStatus];
@@ -413,6 +416,7 @@ export const GetLeaderboardCategory = {
   LOCAL_PULSE: 'LOCAL_PULSE',
   BEAUTY: 'BEAUTY',
   ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
   OVERALL: 'OVERALL',
 } as const;
 
@@ -433,6 +437,7 @@ export const GetMyLeaderboardEntryCategory = {
   LOCAL_PULSE: 'LOCAL_PULSE',
   BEAUTY: 'BEAUTY',
   ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
   OVERALL: 'OVERALL',
 } as const;
 
@@ -448,3 +453,4 @@ state?: string;
 export type LogoutBrowserSessionParams = {
 returnTo?: string;
 };
+

@@ -19,4 +19,5 @@ export const MarketInputCategory = {
   LOCAL_PULSE: 'LOCAL_PULSE',
   BEAUTY: 'BEAUTY',
   ACCESSORIES: 'ACCESSORIES',
+  MOVIES: 'MOVIES',
 } as const;

@@ -1,4 +1,4 @@
-import { Shirt, Home, Building2, Landmark, CloudSun, Palette, Flame, Sparkles, Wand2, ShoppingBag } from "lucide-react";
+import { Shirt, Home, Building2, Landmark, CloudSun, Palette, Flame, Sparkles, Wand2, ShoppingBag, Film } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const GOLD = "hsl(43 72% 48%)";
@@ -13,6 +13,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?:
   LOCAL_PULSE: Flame,
   BEAUTY: Wand2,
   ACCESSORIES: ShoppingBag,
+  MOVIES: Film,
 };
 
 export function CategoryIcon({
