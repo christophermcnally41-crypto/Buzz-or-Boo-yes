@@ -26,12 +26,82 @@ import { getCategoryLabel } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { formatNumber, cn } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
-import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck } from "lucide-react";
+import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck, ChevronDown, ChevronUp, Database, FlaskConical, MapPin, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useMemo, useEffect } from "react";
 
 const BUZZ_COLOR = "#CFEA3B";
 const BOO_COLOR = "#E8503E";
+
+interface ResolutionRulesDrawerProps {
+  market: {
+    resolutionSource?: string | null;
+    sourcePrimary?: string | null;
+    sourceBackup?: string | null;
+    baselineSnapshot?: string | null;
+    formula?: string | null;
+    voidRule?: string | null;
+    geo?: string | null;
+  };
+}
+
+function ResolutionRulesDrawer({ market }: ResolutionRulesDrawerProps) {
+  const [open, setOpen] = useState(false);
+
+  const rules = [
+    { icon: <Database className="w-4 h-4" />, label: "Primary Source", value: market.sourcePrimary },
+    { icon: <Database className="w-4 h-4 opacity-60" />, label: "Backup Source", value: market.sourceBackup },
+    { icon: <FlaskConical className="w-4 h-4" />, label: "Formula", value: market.formula },
+    { icon: <Info className="w-4 h-4" />, label: "Baseline Snapshot", value: market.baselineSnapshot },
+    { icon: <Shield className="w-4 h-4" />, label: "Void Criteria", value: market.voidRule },
+    { icon: <MapPin className="w-4 h-4" />, label: "Geography", value: market.geo },
+  ].filter(r => r.value);
+
+  // Don't render drawer if no rule fields are populated
+  if (rules.length === 0 && !market.resolutionSource) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-border overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-2">
+          <Shield className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-bold tracking-tight">Resolution Rules</span>
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+      </button>
+
+      {open && (
+        <div className="px-5 py-4 space-y-4 bg-card border-t border-border">
+          {market.resolutionSource && (
+            <div className="flex items-start gap-3">
+              <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Resolution Authority</div>
+                <div className="text-sm">{market.resolutionSource}</div>
+              </div>
+            </div>
+          )}
+          {rules.map(r => (
+            <div key={r.label} className="flex items-start gap-3">
+              <span className="text-muted-foreground shrink-0 mt-0.5">{r.icon}</span>
+              <div>
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{r.label}</div>
+                <div className="text-sm">{r.value}</div>
+              </div>
+            </div>
+          ))}
+          <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+            These rules are set at market creation and govern how this market resolves. Contact an admin if you have questions.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 const BUZZ_OR_BOO_STAKE = 10; // fixed one-tap stake
 
 interface Contender {
@@ -400,6 +470,9 @@ export default function MarketDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Resolution Rules Drawer */}
+            <ResolutionRulesDrawer market={market} />
           </div>
 
           {/* Right Sidebar — Action Area */}

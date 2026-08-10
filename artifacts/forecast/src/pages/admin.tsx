@@ -35,6 +35,12 @@ const formSchema = z.object({
   imageUrl: z.string().url().optional().or(z.literal("")),
   description: z.string().optional(),
   resolutionSource: z.string().optional(),
+  sourcePrimary: z.string().optional(),
+  sourceBackup: z.string().optional(),
+  baselineSnapshot: z.string().optional(),
+  formula: z.string().optional(),
+  voidRule: z.string().optional(),
+  geo: z.string().optional(),
   closesAt: z.string().optional(),
 });
 
@@ -129,6 +135,12 @@ export default function Admin() {
         marketFormat: selectedFormat as any,
         description,
         imageUrl: data.imageUrl || undefined,
+        sourcePrimary: data.sourcePrimary || undefined,
+        sourceBackup: data.sourceBackup || undefined,
+        baselineSnapshot: data.baselineSnapshot || undefined,
+        formula: data.formula || undefined,
+        voidRule: data.voidRule || undefined,
+        geo: data.geo || undefined,
         closesAt: data.closesAt ? new Date(data.closesAt).toISOString() : undefined,
       }
     }, {
@@ -309,6 +321,41 @@ export default function Admin() {
                   <div className="space-y-2">
                     <Label>Close Date</Label>
                     <Input type="date" {...form.register("closesAt")} />
+                  </div>
+                </div>
+
+                <div className="space-y-3 bg-muted/40 rounded-xl p-4 border border-border">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Resolution Rules (optional)</p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Primary Source</Label>
+                      <Input {...form.register("sourcePrimary")} placeholder="e.g. Yelp star rating" className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Backup Source</Label>
+                      <Input {...form.register("sourceBackup")} placeholder="e.g. Google Maps" className="h-8 text-sm" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Formula / Scoring Rule</Label>
+                    <Input {...form.register("formula")} placeholder="e.g. Average of 3 data pulls" className="h-8 text-sm" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Baseline Snapshot</Label>
+                    <Input {...form.register("baselineSnapshot")} placeholder="e.g. 4.2 stars on Aug 1 2026" className="h-8 text-sm" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Void Criteria</Label>
+                    <Input {...form.register("voidRule")} placeholder="e.g. Market voids if venue closes" className="h-8 text-sm" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Geography</Label>
+                    <Input {...form.register("geo")} placeholder="e.g. Boston · South End" className="h-8 text-sm" />
                   </div>
                 </div>
 

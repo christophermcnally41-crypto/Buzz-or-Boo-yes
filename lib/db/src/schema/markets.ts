@@ -16,6 +16,12 @@ export const marketsTable = pgTable("markets", {
   noCount: integer("no_count").notNull().default(0),
   totalPredictions: integer("total_predictions").notNull().default(0),
   resolutionSource: text("resolution_source"),
+  sourcePrimary: text("source_primary"),
+  sourceBackup: text("source_backup"),
+  baselineSnapshot: text("baseline_snapshot"),
+  formula: text("formula"),
+  voidRule: text("void_rule"),
+  geo: text("geo"),
   closesAt: timestamp("closes_at", { withTimezone: true }),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   resolvedOutcome: text("resolved_outcome"), // YES or NO

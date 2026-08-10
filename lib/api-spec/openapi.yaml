@@ -744,6 +744,18 @@ components:
           type: number
         resolutionSource:
           type: ["string", "null"]
+        sourcePrimary:
+          type: ["string", "null"]
+        sourceBackup:
+          type: ["string", "null"]
+        baselineSnapshot:
+          type: ["string", "null"]
+        formula:
+          type: ["string", "null"]
+        voidRule:
+          type: ["string", "null"]
+        geo:
+          type: ["string", "null"]
         closesAt:
           type: ["string", "null"]
         resolvedAt:
@@ -971,6 +983,18 @@ components:
         imageUrl:
           type: string
         resolutionSource:
+          type: string
+        sourcePrimary:
+          type: string
+        sourceBackup:
+          type: string
+        baselineSnapshot:
+          type: string
+        formula:
+          type: string
+        voidRule:
+          type: string
+        geo:
           type: string
         closesAt:
           type: string

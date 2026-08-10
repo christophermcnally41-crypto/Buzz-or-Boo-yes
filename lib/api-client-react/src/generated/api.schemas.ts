@@ -66,6 +66,18 @@ export interface Market {
   /** @nullable */
   resolutionSource?: string | null;
   /** @nullable */
+  sourcePrimary?: string | null;
+  /** @nullable */
+  sourceBackup?: string | null;
+  /** @nullable */
+  baselineSnapshot?: string | null;
+  /** @nullable */
+  formula?: string | null;
+  /** @nullable */
+  voidRule?: string | null;
+  /** @nullable */
+  geo?: string | null;
+  /** @nullable */
   closesAt?: string | null;
   /** @nullable */
   resolvedAt?: string | null;
@@ -216,6 +228,12 @@ export interface MarketInput {
   marketFormat?: MarketInputMarketFormat;
   imageUrl?: string;
   resolutionSource?: string;
+  sourcePrimary?: string;
+  sourceBackup?: string;
+  baselineSnapshot?: string;
+  formula?: string;
+  voidRule?: string;
+  geo?: string;
   closesAt?: string;
 }
 

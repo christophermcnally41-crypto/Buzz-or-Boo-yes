@@ -44,7 +44,7 @@ router.post("/admin/markets", async (req, res): Promise<void> => {
     return;
   }
 
-  const { title, question, description, category, subcategory, imageUrl, resolutionSource, closesAt, marketFormat } = parsed.data;
+  const { title, question, description, category, subcategory, imageUrl, resolutionSource, sourcePrimary, sourceBackup, baselineSnapshot, formula, voidRule, geo, closesAt, marketFormat } = parsed.data;
 
   const [market] = await db
     .insert(marketsTable)
@@ -57,6 +57,12 @@ router.post("/admin/markets", async (req, res): Promise<void> => {
       marketFormat: marketFormat ?? "STANDARD",
       imageUrl: imageUrl ?? null,
       resolutionSource: resolutionSource ?? null,
+      sourcePrimary: sourcePrimary ?? null,
+      sourceBackup: sourceBackup ?? null,
+      baselineSnapshot: baselineSnapshot ?? null,
+      formula: formula ?? null,
+      voidRule: voidRule ?? null,
+      geo: geo ?? null,
       closesAt: closesAt ? new Date(closesAt) : null,
       status: "OPEN",
     })
