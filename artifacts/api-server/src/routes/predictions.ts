@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, sql } from "drizzle-orm";
 import { db, marketsTable, predictionsTable, usersTable } from "@workspace/db";
 import {
   MakePredictionParams,
@@ -82,7 +82,7 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     }
   }
 
-  // Validate user exists and has enough tokens
+  // Validate user exists
   const [user] = await db
     .select()
     .from(usersTable)
@@ -94,10 +94,6 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
   }
 
   const betAmount = amount ?? 100;
-  if (user.tokenBalance < betAmount) {
-    res.status(400).json({ error: "Insufficient balance" });
-    return;
-  }
 
   // Check if user already predicted on this market
   const [existing] = await db
@@ -140,14 +136,25 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
       .where(eq(marketsTable.id, marketId));
   }
 
-  // Deduct tokens and increment prediction count
-  await db
+  // Atomically deduct tokens — only succeeds if balance is still sufficient.
+  // This guards against two concurrent bets both reading the same stale balance.
+  const [deducted] = await db
     .update(usersTable)
     .set({
-      tokenBalance: user.tokenBalance - betAmount,
-      totalPredictions: user.totalPredictions + 1,
+      tokenBalance: sql`${usersTable.tokenBalance} - ${betAmount}`,
+      totalPredictions: sql`${usersTable.totalPredictions} + 1`,
     })
-    .where(eq(usersTable.id, userId));
+    .where(and(eq(usersTable.id, userId), gte(usersTable.tokenBalance, betAmount)))
+    .returning();
+
+  if (!deducted) {
+    // Roll back the prediction we just inserted — balance was insufficient
+    await db
+      .delete(predictionsTable)
+      .where(eq(predictionsTable.id, prediction.id));
+    res.status(400).json({ error: "Insufficient balance" });
+    return;
+  }
 
   res.status(201).json(
     MakePredictionResponse.parse({
