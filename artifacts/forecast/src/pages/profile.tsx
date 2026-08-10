@@ -242,8 +242,16 @@ export default function Profile() {
                                 <div className="flex flex-col items-start md:items-end">
                                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">My Call</span>
                                   <Badge
-                                    variant={pred.choice === 'YES' ? 'default' : pred.choice === 'NO' ? 'destructive' : 'secondary'}
-                                    className="font-mono-numbers"
+                                    variant={
+                                      isMultiChoice
+                                        ? (isResolved ? 'secondary' : 'secondary')
+                                        : (pred.choice === 'YES' ? 'default' : pred.choice === 'NO' ? 'destructive' : 'secondary')
+                                    }
+                                    className={cn(
+                                      "font-mono-numbers",
+                                      isMultiChoice && isResolved && won && "bg-green-600 text-white hover:bg-green-700 border-transparent",
+                                      isMultiChoice && isResolved && !won && "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-transparent",
+                                    )}
                                   >
                                     {choiceLabel} · {formatNumber(pred.amount)} FP
                                   </Badge>
