@@ -1,4 +1,4 @@
-import { Market, useGetMarketPredictions, getGetMarketPredictionsQueryKey } from "@workspace/api-client-react";
+import { Market, useGetMarketTally, getGetMarketTallyQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Link } from "wouter";
@@ -43,24 +43,24 @@ export function MultiChoiceCard({ market }: { market: Market }) {
   const isResolved = market.status === "RESOLVED";
   const contenders = data?.contenders ?? [];
 
-  // Fetch real prediction counts for live vote bars
-  const { data: predictions } = useGetMarketPredictions(market.id, {
-    query: { queryKey: getGetMarketPredictionsQueryKey(market.id) }
+  // Fetch server-aggregated vote tallies — much lighter than fetching all predictions
+  const { data: tallyData } = useGetMarketTally(market.id, {
+    query: { queryKey: getGetMarketTallyQueryKey(market.id) }
   });
 
-  const contenderCounts = useMemo(() => {
+  const { contenderCounts, totalVotes, hasRealData } = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const c of contenders) counts[c.key] = 0;
-    if (predictions) {
-      for (const p of predictions) {
-        if (p.choice in counts) counts[p.choice]++;
+
+    if (tallyData?.tallies) {
+      for (const [key, count] of Object.entries(tallyData.tallies)) {
+        if (key in counts) counts[key] = count;
       }
     }
-    return counts;
-  }, [predictions, contenders]);
 
-  const totalVotes = Object.values(contenderCounts).reduce((a, b) => a + b, 0);
-  const hasRealData = totalVotes > 0;
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    return { contenderCounts: counts, totalVotes: total, hasRealData: total > 0 };
+  }, [tallyData, contenders]);
 
   return (
     <Link href={`/markets/${market.id}`}>
