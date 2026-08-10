@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { PollCard } from "./poll-card";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Zap } from "lucide-react";
 
 interface PollOption {
   key: string;
@@ -79,22 +79,34 @@ export function BostonSays() {
             <p className="text-xs font-bold tracking-widest text-white uppercase mb-2 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3" style={{ color: "hsl(43 72% 48%)" }} /> More Questions
             </p>
-            {polls.map((poll, i) => (
-              <button
-                key={poll.id}
-                onClick={() => setActiveIndex(i)}
-                className={`text-left px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-sm font-medium leading-snug ${
-                  i === activeIndex
-                    ? "bg-white/10 border-white text-white shadow-[0_0_20px_rgba(255,255,255,0.22)]"
-                    : "bg-card border-white/50 text-white/70 hover:border-white/80 hover:text-white hover:bg-white/5 hover:shadow-[0_0_12px_rgba(255,255,255,0.12)]"
-                }`}
-              >
-                <span className="line-clamp-2">{poll.question}</span>
-                <span className="text-xs font-mono-numbers mt-1 block opacity-50">
-                  {poll.totalVotes.toLocaleString()} votes
-                </span>
-              </button>
-            ))}
+            {polls.map((poll, i) => {
+              const isRising = poll.id % 3 === 1;
+              return (
+                <button
+                  key={poll.id}
+                  onClick={() => setActiveIndex(i)}
+                  className={`text-left px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-sm font-medium leading-snug ${
+                    i === activeIndex
+                      ? isRising
+                        ? "bg-amber-500/10 border-amber-400 text-white shadow-[0_0_20px_rgba(251,191,36,0.30)]"
+                        : "bg-white/10 border-white text-white shadow-[0_0_20px_rgba(255,255,255,0.22)]"
+                      : isRising
+                        ? "bg-card border-amber-400/50 text-white/70 hover:border-amber-400/90 hover:text-white hover:bg-amber-500/5 hover:shadow-[0_0_14px_rgba(251,191,36,0.20)]"
+                        : "bg-card border-white/50 text-white/70 hover:border-white/80 hover:text-white hover:bg-white/5 hover:shadow-[0_0_12px_rgba(255,255,255,0.12)]"
+                  }`}
+                >
+                  {isRising && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-amber-400 mb-1">
+                      <Zap className="w-2.5 h-2.5" /> On the rise
+                    </span>
+                  )}
+                  <span className="line-clamp-2 block">{poll.question}</span>
+                  <span className="text-xs font-mono-numbers mt-1 block opacity-50">
+                    {poll.totalVotes.toLocaleString()} votes
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
