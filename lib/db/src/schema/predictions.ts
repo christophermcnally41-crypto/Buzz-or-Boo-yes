@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -13,7 +13,9 @@ export const predictionsTable = pgTable("predictions", {
   isCorrect: boolean("is_correct"),
   tokensEarned: integer("tokens_earned"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("predictions_user_market_unique").on(table.userId, table.marketId),
+]);
 
 export const insertPredictionSchema = createInsertSchema(predictionsTable).omit({ id: true, createdAt: true });
 export type InsertPrediction = z.infer<typeof insertPredictionSchema>;

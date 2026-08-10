@@ -100,22 +100,24 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     ? BUZZ_OR_BOO_STAKE
     : (amount ?? 100);
 
-  // Check if user already predicted on this market
-  const [existing] = await db
-    .select()
-    .from(predictionsTable)
-    .where(and(eq(predictionsTable.userId, userId), eq(predictionsTable.marketId, marketId)));
-
-  if (existing) {
-    res.status(400).json({ error: "You have already predicted on this market" });
-    return;
+  // Create prediction — the unique index on (user_id, market_id) enforces one-per-user at
+  // the database level, so concurrent requests can't both slip through the old SELECT guard.
+  let prediction: typeof predictionsTable.$inferSelect;
+  try {
+    const [inserted] = await db
+      .insert(predictionsTable)
+      .values({ userId, marketId, choice, amount: betAmount })
+      .returning();
+    prediction = inserted;
+  } catch (err: unknown) {
+    // PostgreSQL unique-violation error code is '23505'
+    const pg = err as { code?: string };
+    if (pg.code === "23505") {
+      res.status(400).json({ error: "You have already predicted on this market" });
+      return;
+    }
+    throw err;
   }
-
-  // Create prediction
-  const [prediction] = await db
-    .insert(predictionsTable)
-    .values({ userId, marketId, choice, amount: betAmount })
-    .returning();
 
   // Update market counts — for MULTI_CHOICE only increment total; for YES/NO markets update yes/no counts
   if (market.marketFormat === "MULTI_CHOICE") {
