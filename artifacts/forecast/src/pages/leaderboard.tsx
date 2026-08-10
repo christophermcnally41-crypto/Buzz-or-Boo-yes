@@ -29,9 +29,9 @@ export default function Leaderboard() {
 
   const currentUserId = myEntry?.user?.id ?? null;
 
-  const getTierInfo = (accuracy: number) => {
-    if (accuracy >= 80) return { label: "Elite", color: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Trophy };
-    if (accuracy >= 65) return { label: "Expert", color: "bg-blue-500/10 text-blue-600 border-blue-500/20", icon: Medal };
+  const getTierInfo = (score: number) => {
+    if (score >= 80) return { label: "Elite", color: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Trophy };
+    if (score >= 65) return { label: "Expert", color: "bg-blue-500/10 text-blue-600 border-blue-500/20", icon: Medal };
     return { label: "Developing", color: "bg-slate-500/10 text-slate-600 border-slate-500/20", icon: Award };
   };
 
@@ -46,7 +46,7 @@ export default function Leaderboard() {
         <div className="container mx-auto px-4 relative z-10">
           <h1 className="text-4xl md:text-5xl font-editorial font-bold mb-4">BuzzRank</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mb-8">
-            The callers who called it right. Ranked by prediction accuracy across every category.
+            The callers who called it right. Ranked by BuzzScore across every category.
           </p>
 
           <Tabs value={category} onValueChange={setCategory} className="w-full overflow-x-auto hide-scrollbar">
@@ -85,7 +85,7 @@ export default function Leaderboard() {
               <div className="col-span-2 md:col-span-1 text-center">Rank</div>
               <div className="col-span-6 md:col-span-5">Forecaster</div>
               <div className="hidden md:block md:col-span-3 text-center">Record</div>
-              <div className="col-span-4 md:col-span-3 text-right pr-4">Accuracy</div>
+              <div className="col-span-4 md:col-span-3 text-right pr-4">BuzzScore</div>
             </div>
 
             {/* Sticky "You" row */}
@@ -114,9 +114,16 @@ export default function Leaderboard() {
                           <User className="w-3 h-3 mr-1" /> You
                         </Badge>
                       </div>
-                      <Badge variant="outline" className={cn("text-[10px] mt-1 hidden md:inline-flex", getTierInfo(myEntry.accuracy).color)}>
-                        {(() => { const t = getTierInfo(myEntry.accuracy); const I = t.icon; return <><I className="w-3 h-3 mr-1" />{t.label}</>; })()}
-                      </Badge>
+                      {(() => {
+                        const score = myEntry.buzzScore ?? myEntry.accuracy;
+                        const t = getTierInfo(score);
+                        const I = t.icon;
+                        return (
+                          <Badge variant="outline" className={cn("text-[10px] mt-1 hidden md:inline-flex", t.color)}>
+                            <I className="w-3 h-3 mr-1" />{t.label}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -130,12 +137,20 @@ export default function Leaderboard() {
                     <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Resolved</span>
                   </div>
 
-                  {/* Accuracy */}
+                  {/* BuzzScore */}
                   <div className="col-span-4 md:col-span-3 text-right pr-2 md:pr-4 flex flex-col items-end">
-                    <div className="font-mono-numbers text-xl font-bold flex items-center gap-1.5 text-primary">
-                      {myEntry.accuracy.toFixed(1)}%
-                      {myEntry.accuracy >= 70 && <TrendingUp className="w-4 h-4 text-green-500" />}
-                    </div>
+                    {(() => {
+                      const score = myEntry.buzzScore ?? myEntry.accuracy;
+                      return (
+                        <>
+                          <div className="font-mono-numbers text-xl font-bold flex items-center gap-1.5 text-primary">
+                            {score}
+                            {score >= 70 && <TrendingUp className="w-4 h-4 text-green-500" />}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">BuzzScore</span>
+                        </>
+                      );
+                    })()}
                     {myEntry.tokensEarned && myEntry.tokensEarned > 0 && (
                       <div className="text-[10px] text-primary font-mono-numbers font-medium mt-1">
                         +{formatNumber(myEntry.tokensEarned)} FP
@@ -148,7 +163,8 @@ export default function Leaderboard() {
 
             <div className="divide-y divide-border">
               {leaderboard.map((entry) => {
-                const tier = getTierInfo(entry.accuracy);
+                const score = entry.buzzScore ?? entry.accuracy;
+                const tier = getTierInfo(score);
                 const TierIcon = tier.icon;
                 
                 return (
@@ -200,12 +216,13 @@ export default function Leaderboard() {
                         <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Resolved</span>
                       </div>
 
-                      {/* Accuracy */}
+                      {/* BuzzScore */}
                       <div className="col-span-4 md:col-span-3 text-right pr-2 md:pr-4 flex flex-col items-end">
                         <div className="font-mono-numbers text-xl font-bold flex items-center gap-1.5">
-                          {entry.accuracy.toFixed(1)}%
-                          {entry.accuracy >= 70 && <TrendingUp className="w-4 h-4 text-green-500" />}
+                          {score}
+                          {score >= 70 && <TrendingUp className="w-4 h-4 text-green-500" />}
                         </div>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">BuzzScore</span>
                         {entry.tokensEarned && entry.tokensEarned > 0 && (
                           <div className="text-[10px] text-primary font-mono-numbers font-medium mt-1">
                             +{formatNumber(entry.tokensEarned)} FP

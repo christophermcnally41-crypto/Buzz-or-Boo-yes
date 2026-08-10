@@ -133,6 +133,11 @@ export interface User {
   weatherAccuracy?: number | null;
   /** @nullable */
   cultureAccuracy?: number | null;
+  /**
+     * 0–100 BuzzScore (Brier-style calibration metric). Null until the user has at least one resolved prediction.
+     * @nullable
+     */
+  buzzScore?: number | null;
   /** @nullable */
   rank?: number | null;
   /**
@@ -176,6 +181,8 @@ export interface LeaderboardEntry {
   rank: number;
   user: User;
   accuracy: number;
+  /** 0–100 BuzzScore used as the primary ranking and display metric */
+  buzzScore?: number;
   totalPredictions: number;
   totalCorrect: number;
   tokensEarned?: number;
@@ -441,4 +448,3 @@ state?: string;
 export type LogoutBrowserSessionParams = {
 returnTo?: string;
 };
-

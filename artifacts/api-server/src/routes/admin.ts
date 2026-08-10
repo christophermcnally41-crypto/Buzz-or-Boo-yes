@@ -160,6 +160,10 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
             const newResolved = user.totalResolved + 1;
             const newCorrect = user.totalCorrect + (isCorrect ? 1 : 0);
             const newAccuracy = newResolved > 0 ? Math.round((newCorrect / newResolved) * 100) / 100 : null;
+            // BuzzScore: Brier-style 0–100 integer. For binary YES/NO predictions
+            // without explicit confidence, Brier reduces to accuracy. Stored as an
+            // integer so it displays cleanly as "73" rather than "0.73%".
+            const newBuzzScore = newResolved > 0 ? Math.round((newCorrect / newResolved) * 100) : null;
 
             await tx
               .update(usersTable)
@@ -168,6 +172,7 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
                 totalResolved: newResolved,
                 totalCorrect: newCorrect,
                 overallAccuracy: newAccuracy,
+                buzzScore: newBuzzScore,
               })
               .where(eq(usersTable.id, pred.userId));
           }

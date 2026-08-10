@@ -11,6 +11,8 @@ export interface LeaderboardEntry {
   rank: number;
   user: User;
   accuracy: number;
+  /** 0–100 BuzzScore used as the primary ranking and display metric */
+  buzzScore?: number;
   totalPredictions: number;
   totalCorrect: number;
   tokensEarned?: number;

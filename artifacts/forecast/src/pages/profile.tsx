@@ -45,18 +45,22 @@ export default function Profile() {
     return <div className="min-h-screen flex items-center justify-center">User not found</div>;
   }
 
-  const accuracyData = [
-    { label: "Overall", value: user.overallAccuracy },
-    { label: "Style", value: user.styleAccuracy },
-    { label: "Home", value: user.homeAccuracy },
-    { label: "City", value: user.cityAccuracy },
-    { label: "Culture", value: user.cultureAccuracy },
-  ].filter(d => d.value !== undefined && d.value !== null);
+  // Category accuracy stored as fraction 0–1; convert to 0–100 for BuzzScore display
+  const toBuzzScore = (v: number | null | undefined) =>
+    v != null ? Math.round(v * 100) : null;
 
-  const getTierLabel = (acc?: number | null) => {
-    if (!acc) return "Developing";
-    if (acc >= 80) return "Elite";
-    if (acc >= 65) return "Expert";
+  const accuracyData = [
+    { label: "Overall", value: user.buzzScore ?? toBuzzScore(user.overallAccuracy) },
+    { label: "Style", value: toBuzzScore(user.styleAccuracy) },
+    { label: "Home", value: toBuzzScore(user.homeAccuracy) },
+    { label: "City", value: toBuzzScore(user.cityAccuracy) },
+    { label: "Culture", value: toBuzzScore(user.cultureAccuracy) },
+  ].filter(d => d.value !== undefined && d.value !== null) as { label: string; value: number }[];
+
+  const getTierLabel = (score?: number | null) => {
+    if (!score) return "Developing";
+    if (score >= 80) return "Elite";
+    if (score >= 65) return "Expert";
     return "Developing";
   };
 
@@ -103,9 +107,13 @@ export default function Profile() {
                 </div>
                 <div className="w-px h-10 bg-border hidden md:block" />
                 <div className="flex flex-col">
-                  <span className="text-muted-foreground">Accuracy</span>
+                  <span className="text-muted-foreground">BuzzScore</span>
                   <span className="text-2xl font-mono-numbers font-bold text-foreground">
-                    {user.overallAccuracy ? `${user.overallAccuracy.toFixed(1)}%` : '—'}
+                    {user.buzzScore != null
+                      ? user.buzzScore
+                      : user.overallAccuracy != null
+                        ? Math.round(user.overallAccuracy * 100)
+                        : '—'}
                   </span>
                 </div>
                 <div className="w-px h-10 bg-border hidden md:block" />
@@ -126,7 +134,7 @@ export default function Profile() {
             <Card>
               <CardHeader className="pb-4">
                 <h3 className="font-editorial text-xl font-bold flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-primary" /> Category Accuracy
+                  <Activity className="w-5 h-5 text-primary" /> BuzzScore by Category
                 </h3>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -140,7 +148,7 @@ export default function Profile() {
                             {getTierLabel(stat.value)}
                           </Badge>
                         </span>
-                        <span className="font-mono-numbers font-bold">{stat.value?.toFixed(1)}%</span>
+                        <span className="font-mono-numbers font-bold">{stat.value}</span>
                       </div>
                       <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                         <div 

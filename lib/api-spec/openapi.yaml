@@ -835,6 +835,9 @@ components:
           type: ["number", "null"]
         cultureAccuracy:
           type: ["number", "null"]
+        buzzScore:
+          type: ["number", "null"]
+          description: 0–100 BuzzScore (Brier-style calibration metric). Null until the user has at least one resolved prediction.
         rank:
           type: ["number", "null"]
         lastTopupAt:
@@ -916,6 +919,9 @@ components:
           $ref: "#/components/schemas/User"
         accuracy:
           type: number
+        buzzScore:
+          type: number
+          description: 0–100 BuzzScore used as the primary ranking and display metric
         totalPredictions:
           type: number
         totalCorrect:

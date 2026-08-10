@@ -31,6 +31,11 @@ export interface User {
   weatherAccuracy?: number | null;
   /** @nullable */
   cultureAccuracy?: number | null;
+  /**
+     * 0–100 BuzzScore (Brier-style calibration metric). Null until the user has at least one resolved prediction.
+     * @nullable
+     */
+  buzzScore?: number | null;
   /** @nullable */
   rank?: number | null;
   /**

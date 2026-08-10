@@ -302,6 +302,7 @@ export const GetMeResponse = zod.object({
   "realEstateAccuracy": zod.number().nullish(),
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
+  "buzzScore": zod.number().nullish().describe('0–100 BuzzScore (Brier-style calibration metric). Null until the user has at least one resolved prediction.'),
   "rank": zod.number().nullish(),
   "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
@@ -331,6 +332,7 @@ export const GetUserResponse = zod.object({
   "realEstateAccuracy": zod.number().nullish(),
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
+  "buzzScore": zod.number().nullish().describe('0–100 BuzzScore (Brier-style calibration metric). Null until the user has at least one resolved prediction.'),
   "rank": zod.number().nullish(),
   "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
@@ -486,11 +488,13 @@ export const GetLeaderboardResponseItem = zod.object({
   "realEstateAccuracy": zod.number().nullish(),
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
+  "buzzScore": zod.number().nullish().describe('0–100 BuzzScore (Brier-style calibration metric). Null until the user has at least one resolved prediction.'),
   "rank": zod.number().nullish(),
   "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
 }),
   "accuracy": zod.number(),
+  "buzzScore": zod.number().optional().describe('0–100 BuzzScore used as the primary ranking and display metric'),
   "totalPredictions": zod.number(),
   "totalCorrect": zod.number(),
   "tokensEarned": zod.number().optional()
@@ -523,11 +527,13 @@ export const GetMyLeaderboardEntryResponse = zod.object({
   "realEstateAccuracy": zod.number().nullish(),
   "weatherAccuracy": zod.number().nullish(),
   "cultureAccuracy": zod.number().nullish(),
+  "buzzScore": zod.number().nullish().describe('0–100 BuzzScore (Brier-style calibration metric). Null until the user has at least one resolved prediction.'),
   "rank": zod.number().nullish(),
   "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
 }),
   "accuracy": zod.number(),
+  "buzzScore": zod.number().optional().describe('0–100 BuzzScore used as the primary ranking and display metric'),
   "totalPredictions": zod.number(),
   "totalCorrect": zod.number(),
   "tokensEarned": zod.number().optional()
@@ -728,10 +734,6 @@ export const InitMobileAuthTransactionResponse = zod.object({
  */
 
 
-
-
-
-
 export const ExchangeMobileAuthorizationCodeBody = zod.object({
   "code": zod.string().min(1),
   "code_verifier": zod.string().min(1),
@@ -754,5 +756,4 @@ export const LogoutMobileSessionHeader = zod.object({
 export const LogoutMobileSessionResponse = zod.object({
   "success": zod.boolean()
 })
-
 
