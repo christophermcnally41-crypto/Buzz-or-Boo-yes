@@ -96,6 +96,7 @@ export default function Admin() {
   ]);
   const [metric, setMetric] = useState("");
   const [period, setPeriod] = useState("");
+  const [recurring, setRecurring] = useState(false);
 
   const { data: markets, isLoading } = useAdminListMarkets({
     query: { queryKey: getAdminListMarketsQueryKey() }
@@ -142,6 +143,7 @@ export default function Admin() {
         })),
         ...(metric ? { metric } : {}),
         ...(period ? { period } : {}),
+        ...(recurring ? { recurring: true } : {}),
       });
     }
 
@@ -189,7 +191,7 @@ export default function Admin() {
           { key: "B", name: "", venue: "" },
           { key: "C", name: "", venue: "" },
         ]);
-        setMetric(""); setPeriod("");
+        setMetric(""); setPeriod(""); setRecurring(false);
         queryClient.invalidateQueries({ queryKey: getAdminListMarketsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListMarketsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetTrendingMarketsQueryKey() });
@@ -370,6 +372,15 @@ export default function Admin() {
                         <Input value={period} onChange={e => setPeriod(e.target.value)} placeholder="e.g. September 2026" className="h-8 text-xs mt-1" />
                       </div>
                     </div>
+                    <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
+                      <input
+                        type="checkbox"
+                        checked={recurring}
+                        onChange={e => setRecurring(e.target.checked)}
+                        className="h-4 w-4 rounded border-primary/40 accent-primary"
+                      />
+                      <span className="text-xs font-medium">🔁 Recurring — auto-spawn next edition monthly</span>
+                    </label>
                   </div>
                 )}
 
