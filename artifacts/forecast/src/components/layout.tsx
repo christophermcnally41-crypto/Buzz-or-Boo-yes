@@ -55,8 +55,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="logo-glint font-editorial select-none" style={{ fontWeight: 700, lineHeight: 1, letterSpacing: "0.22em" }}>
-              <span style={{ fontSize: "1.6rem" }}>BUZZ</span><span style={{ fontSize: "0.75rem", verticalAlign: "middle", letterSpacing: "0.1em", opacity: 0.5, margin: "0 0.3rem" }}>or</span><span style={{ fontSize: "1.6rem" }}>BOO</span>
+            <span className="font-editorial select-none flex items-baseline gap-0" style={{ fontWeight: 700, lineHeight: 1 }}>
+              <span className="logo-glint" style={{ fontSize: "1.6rem", letterSpacing: "0.22em" }}>BUZZ</span>
+              <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", margin: "0 0.25rem 0 0.05rem" }}>or</span>
+              <span className="logo-glint" style={{ fontSize: "1.6rem", letterSpacing: "0.22em" }}>BOO</span>
             </span>
           </Link>
 

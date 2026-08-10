@@ -83,8 +83,8 @@ export function BostonSays() {
                 onClick={() => setActiveIndex(i)}
                 className={`text-left px-4 py-3 rounded-2xl border transition-all text-sm font-medium leading-snug ${
                   i === activeIndex
-                    ? "bg-primary/10 border-primary/30 text-foreground"
-                    : "bg-card border-border hover:border-primary/20 text-muted-foreground hover:text-foreground"
+                    ? "bg-white/10 border-white/40 text-foreground"
+                    : "bg-card border-white/15 hover:border-white/35 text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <span className="line-clamp-2">{poll.question}</span>
