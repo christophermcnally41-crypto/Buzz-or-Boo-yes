@@ -55,8 +55,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="logo-glint font-editorial tracking-tight select-none" style={{ fontWeight: 700, lineHeight: 1 }}>
-              <span style={{ fontSize: "1.6rem" }}>buzz</span><span style={{ fontSize: "0.95rem", verticalAlign: "middle", letterSpacing: "0.02em" }}>or</span><span style={{ fontSize: "1.6rem" }}>boo</span>
+            <span className="logo-glint font-editorial select-none" style={{ fontWeight: 700, lineHeight: 1, letterSpacing: "0.22em" }}>
+              <span style={{ fontSize: "1.6rem" }}>BUZZ</span><span style={{ fontSize: "0.75rem", verticalAlign: "middle", letterSpacing: "0.1em", opacity: 0.5, margin: "0 0.3rem" }}>or</span><span style={{ fontSize: "1.6rem" }}>BOO</span>
             </span>
           </Link>
 
@@ -124,8 +124,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="p-1 rounded-sm" style={{ background: "hsl(268 50% 22%)" }}>
               <Sparkles className="w-3 h-3 text-white" />
             </div>
-            <span className="font-editorial tracking-tight leading-none" style={{ WebkitTextFillColor: "hsl(268 50% 28%)", fontWeight: 600, fontSize: "1rem" }}>
-              <span style={{ fontSize: "1.1em" }}>buzz</span><span style={{ fontSize: "0.75em", opacity: 0.7 }}>or</span><span style={{ fontSize: "1.1em" }}>boo</span>
+            <span className="font-editorial leading-none" style={{ WebkitTextFillColor: "hsl(268 50% 28%)", fontWeight: 600, fontSize: "1rem", letterSpacing: "0.08em" }}>
+              <span style={{ fontSize: "1.1em" }}>BUZZ</span><span style={{ fontSize: "0.7em", opacity: 0.6, letterSpacing: "0.1em" }}> or </span><span style={{ fontSize: "1.1em" }}>BOO</span>
             </span>
             <span className="ml-2">Boston's cultural prediction engine.</span>
           </div>
