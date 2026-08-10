@@ -262,6 +262,34 @@ describe('POST /mobile-auth/token-exchange — mobile OIDC token exchange', () =
   });
 
   // -------------------------------------------------------------------------
+  // 5a. Null claims — authorizationCodeGrant succeeds but claims() returns null.
+  //     The route must return 401 and must not call createSession.
+  // -------------------------------------------------------------------------
+  it('returns 401 and does not create a session when claims() returns null', async () => {
+    const app = buildApp();
+
+    const initRes = await request(app).post('/mobile-auth/init-transaction');
+    expect(initRes.status).toBe(200);
+    const { state } = initRes.body as { state: string };
+
+    // Token response whose claims() returns null — simulates a missing/malformed ID token.
+    mockAuthorizationCodeGrant.mockResolvedValue({
+      access_token: 'access-token-xyz',
+      refresh_token: 'refresh-token-xyz',
+      expiresIn: () => 3600,
+      claims: () => null,
+    } as never);
+
+    const res = await request(app)
+      .post('/mobile-auth/token-exchange')
+      .send(makeExchangeBody(state));
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ error: expect.stringContaining('No claims') });
+    expect(mockCreateSession).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
   // 5. Single-use: the same state cannot be reused after a successful exchange.
   // -------------------------------------------------------------------------
   it('returns 400 on a second exchange attempt with the same state', async () => {
