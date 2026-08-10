@@ -7,6 +7,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import * as AuthSession from 'expo-auth-session';
+import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -115,7 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
     } catch {
-      // Network unavailable — keep whatever cached state was already set.
+      // Confirm this is a real network outage (vs an unexpected runtime error)
+      // so callers can surface an appropriate offline indicator.
+      Network.getNetworkStateAsync().catch(() => {
+        // Ignore errors from the connectivity probe itself.
+      });
+      // Keep whatever cached state was already restored so the app stays usable.
       setUser((prev) => prev);
     } finally {
       setIsLoading(false);

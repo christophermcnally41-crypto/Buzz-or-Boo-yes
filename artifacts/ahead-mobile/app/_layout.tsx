@@ -16,6 +16,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as SecureStore from 'expo-secure-store';
 import { setBaseUrl, setAuthTokenGetter } from '@workspace/api-client-react';
 import { AuthProvider } from '@/lib/auth';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 // Set base URL so the Expo bundle (outside the web proxy) can reach the API server.
 // EXPO_PUBLIC_API_URL explicitly targets the shared-proxy domain where /api is routed
@@ -82,6 +83,8 @@ export default function RootLayout() {
             <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
                 <RootLayoutNav />
+                {/* Global offline banner — sits above all content, animates in/out */}
+                <OfflineBanner />
               </KeyboardProvider>
             </GestureHandlerRootView>
           </AuthProvider>
