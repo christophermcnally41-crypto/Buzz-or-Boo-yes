@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React, { useEffect, useRef } from 'react';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -17,6 +17,45 @@ import * as SecureStore from 'expo-secure-store';
 import { setBaseUrl, setAuthTokenGetter } from '@workspace/api-client-react';
 import { AuthProvider } from '@/lib/auth';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+
+/**
+ * Watches for offline → online transitions and invalidates all active queries
+ * so data refreshes automatically without any user action.
+ *
+ * A 1-second debounce prevents duplicate invalidations when the device
+ * flickers between states rapidly.
+ */
+function NetworkReconnectHandler() {
+  const client = useQueryClient();
+  const { isConnected } = useNetworkStatus();
+  const prevConnected = useRef(isConnected);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const wasOffline = !prevConnected.current;
+    const isNowOnline = isConnected;
+
+    if (wasOffline && isNowOnline) {
+      // Clear any pending debounce so rapid flicker doesn't fire twice.
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(() => {
+        client.invalidateQueries();
+        debounceRef.current = null;
+      }, 1000);
+    } else if (!isNowOnline && debounceRef.current !== null) {
+      // Went offline again before the debounce fired — cancel it.
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    prevConnected.current = isConnected;
+  }, [isConnected, client]);
+
+  return null;
+}
 
 // Set base URL so the Expo bundle (outside the web proxy) can reach the API server.
 // EXPO_PUBLIC_API_URL explicitly targets the shared-proxy domain where /api is routed
@@ -79,6 +118,8 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
+          {/* Invalidates active queries whenever connectivity is restored */}
+          <NetworkReconnectHandler />
           <AuthProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
