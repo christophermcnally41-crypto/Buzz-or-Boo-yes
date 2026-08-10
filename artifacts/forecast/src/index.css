@@ -100,46 +100,41 @@
   animation: logo-glint 4.5s ease-in-out infinite;
 }
 
-/* LIGHT MODE */
+/* BASE THEME — Black canvas, white text */
 :root {
-  /* Silver pearl background */
-  --background: 220 22% 96%;
-  /* Warm espresso — not cold blue-black */
-  --foreground: 22 18% 11%;
+  --background: 0 0% 4%;
+  --foreground: 0 0% 96%;
 
-  /* Borders — warm sand */
-  --border: 220 18% 87%;
-  --input: 38 18% 86%;
-  --ring: 268 45% 40%;
+  --border: 0 0% 14%;
+  --input: 0 0% 14%;
+  --ring: 268 50% 55%;
 
-  /* Cards — soft warm white */
-  --card: 220 20% 99%;
-  --card-foreground: 220 18% 11%;
-  --card-border: 220 18% 87%;
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 96%;
+  --card-border: 0 0% 14%;
 
-  /* Popover matches card */
-  --popover: 40 20% 99%;
-  --popover-foreground: 22 18% 11%;
-  --popover-border: 38 18% 86%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 96%;
+  --popover-border: 0 0% 14%;
 
-  /* Primary: deep obsidian purple — the new brand */
-  --primary: 268 50% 22%;
+  /* Primary: obsidian purple — brightened for black bg */
+  --primary: 268 50% 55%;
   --primary-foreground: 0 0% 98%;
 
-  /* Secondary: Warm Mushroom */
-  --secondary: 38 14% 88%;
-  --secondary-foreground: 22 18% 11%;
+  /* Secondary: dark charcoal */
+  --secondary: 0 0% 13%;
+  --secondary-foreground: 0 0% 96%;
 
   /* Muted */
-  --muted: 220 18% 93%;
-  --muted-foreground: 220 8% 46%;
+  --muted: 0 0% 11%;
+  --muted-foreground: 0 0% 52%;
 
-  /* Accent: keep terracotta warmth */
-  --accent: 16 62% 50%;
+  /* Accent */
+  --accent: 16 62% 55%;
   --accent-foreground: 0 0% 100%;
 
   /* Destructive */
-  --destructive: 4 72% 52%;
+  --destructive: 4 72% 55%;
   --destructive-foreground: 0 0% 100%;
 
   --radius: 0.5rem;
