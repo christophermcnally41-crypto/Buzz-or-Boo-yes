@@ -29,6 +29,13 @@ export default function Leaderboard() {
 
   const currentUserId = myEntry?.user?.id ?? null;
 
+  /** accuracy is stored as a 0–1 fraction; buzzScore is already 0–100 */
+  const toScore = (buzzScore: number | null | undefined, accuracy: number | null | undefined): number => {
+    if (buzzScore != null) return buzzScore;
+    if (accuracy != null) return Math.round(accuracy * 100);
+    return 0;
+  };
+
   const getTierInfo = (score: number) => {
     if (score >= 80) return { label: "Elite", color: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Trophy };
     if (score >= 65) return { label: "Expert", color: "bg-blue-500/10 text-blue-600 border-blue-500/20", icon: Medal };
@@ -115,7 +122,7 @@ export default function Leaderboard() {
                         </Badge>
                       </div>
                       {(() => {
-                        const score = myEntry.buzzScore ?? myEntry.accuracy;
+                        const score = toScore(myEntry.buzzScore, myEntry.accuracy);
                         const t = getTierInfo(score);
                         const I = t.icon;
                         return (
@@ -140,7 +147,7 @@ export default function Leaderboard() {
                   {/* BuzzScore */}
                   <div className="col-span-4 md:col-span-3 text-right pr-2 md:pr-4 flex flex-col items-end">
                     {(() => {
-                      const score = myEntry.buzzScore ?? myEntry.accuracy;
+                      const score = toScore(myEntry.buzzScore, myEntry.accuracy);
                       return (
                         <>
                           <div className="font-mono-numbers text-xl font-bold flex items-center gap-1.5 text-primary">
@@ -163,7 +170,7 @@ export default function Leaderboard() {
 
             <div className="divide-y divide-border">
               {leaderboard.map((entry) => {
-                const score = entry.buzzScore ?? entry.accuracy;
+                const score = toScore(entry.buzzScore, entry.accuracy);
                 const tier = getTierInfo(score);
                 const TierIcon = tier.icon;
                 
