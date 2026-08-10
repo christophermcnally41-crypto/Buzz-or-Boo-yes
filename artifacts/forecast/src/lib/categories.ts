@@ -9,6 +9,8 @@ export function getCategoryLabel(category: MarketCategory | string): string {
     WEATHER: "Weather",
     CULTURE: "Culture",
     LOCAL_PULSE: "Local Pulse",
+    BEAUTY: "Beauty",
+    ACCESSORIES: "Accessories",
   };
   return map[category] || category;
 }
@@ -22,6 +24,8 @@ export function getCategoryIcon(category: MarketCategory | string): string {
     WEATHER: "🌦",
     CULTURE: "🎭",
     LOCAL_PULSE: "🔥",
+    BEAUTY: "✨",
+    ACCESSORIES: "👜",
   };
   return map[category] || "✨";
 }
@@ -29,6 +33,8 @@ export function getCategoryIcon(category: MarketCategory | string): string {
 export const CATEGORIES: (MarketCategory | string)[] = [
   "LOCAL_PULSE",
   "STYLE",
+  "BEAUTY",
+  "ACCESSORIES",
   "HOME",
   "CITY",
   "REAL_ESTATE",

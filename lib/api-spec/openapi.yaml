@@ -113,7 +113,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE]
+            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, BEAUTY, ACCESSORIES]
         - name: status
           in: query
           schema:
@@ -410,7 +410,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, OVERALL]
+            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, BEAUTY, ACCESSORIES, OVERALL]
         - name: limit
           in: query
           schema:
@@ -436,7 +436,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, OVERALL]
+            enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, BEAUTY, ACCESSORIES, OVERALL]
       responses:
         "200":
           description: The authenticated user's rank entry
@@ -721,7 +721,7 @@ components:
           type: ["string", "null"]
         category:
           type: string
-          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE]
+          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, BEAUTY, ACCESSORIES]
         subcategory:
           type: string
         marketFormat:
@@ -974,7 +974,7 @@ components:
           type: string
         category:
           type: string
-          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE]
+          enum: [STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE, BEAUTY, ACCESSORIES]
         subcategory:
           type: string
         marketFormat:

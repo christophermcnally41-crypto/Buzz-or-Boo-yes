@@ -17,4 +17,6 @@ export const MarketCategory = {
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
   LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
 } as const;

@@ -17,5 +17,7 @@ export const GetMyLeaderboardEntryCategory = {
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
   LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
   OVERALL: 'OVERALL',
 } as const;

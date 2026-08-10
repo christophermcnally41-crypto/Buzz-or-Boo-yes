@@ -24,6 +24,8 @@ export const MarketCategory = {
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
   LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
 } as const;
 
 export type MarketMarketFormat = typeof MarketMarketFormat[keyof typeof MarketMarketFormat];
@@ -206,6 +208,8 @@ export const MarketInputCategory = {
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
   LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
 } as const;
 
 export type MarketInputMarketFormat = typeof MarketInputMarketFormat[keyof typeof MarketInputMarketFormat];
@@ -356,6 +360,8 @@ export const ListMarketsCategory = {
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
   LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
 } as const;
 
 export type ListMarketsStatus = typeof ListMarketsStatus[keyof typeof ListMarketsStatus];
@@ -398,6 +404,8 @@ export const GetLeaderboardCategory = {
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
   LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
   OVERALL: 'OVERALL',
 } as const;
 
@@ -416,6 +424,8 @@ export const GetMyLeaderboardEntryCategory = {
   WEATHER: 'WEATHER',
   CULTURE: 'CULTURE',
   LOCAL_PULSE: 'LOCAL_PULSE',
+  BEAUTY: 'BEAUTY',
+  ACCESSORIES: 'ACCESSORIES',
   OVERALL: 'OVERALL',
 } as const;
 

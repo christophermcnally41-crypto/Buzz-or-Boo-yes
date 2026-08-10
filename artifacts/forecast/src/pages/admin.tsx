@@ -23,7 +23,7 @@ import { getCategoryLabel } from "@/lib/categories";
 import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 
-const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE"] as const;
+const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE", "BEAUTY", "ACCESSORIES"] as const;
 const ALL_FORMATS = ["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE", "BUZZ_OR_BOO"] as const;
 
 const formSchema = z.object({

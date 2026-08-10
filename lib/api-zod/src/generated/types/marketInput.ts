@@ -17,5 +17,11 @@ export interface MarketInput {
   marketFormat?: MarketInputMarketFormat;
   imageUrl?: string;
   resolutionSource?: string;
+  sourcePrimary?: string;
+  sourceBackup?: string;
+  baselineSnapshot?: string;
+  formula?: string;
+  voidRule?: string;
+  geo?: string;
   closesAt?: string;
 }
