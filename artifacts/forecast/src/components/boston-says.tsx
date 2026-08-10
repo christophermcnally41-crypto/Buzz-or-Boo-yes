@@ -76,15 +76,17 @@ export function BostonSays() {
 
           {/* Poll Navigator — right sidebar */}
           <div className="lg:col-span-5 flex flex-col gap-3">
-            <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-1">More Questions</p>
+            <p className="text-xs font-bold tracking-widest text-white uppercase mb-2 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3" style={{ color: "hsl(43 72% 48%)" }} /> More Questions
+            </p>
             {polls.map((poll, i) => (
               <button
                 key={poll.id}
                 onClick={() => setActiveIndex(i)}
-                className={`text-left px-4 py-3 rounded-2xl border transition-all duration-200 text-sm font-medium leading-snug ${
+                className={`text-left px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-sm font-medium leading-snug ${
                   i === activeIndex
-                    ? "bg-white/10 border-white/70 text-white shadow-[0_0_18px_rgba(255,255,255,0.18)]"
-                    : "bg-card border-white/30 text-white/60 hover:border-white/55 hover:text-white/90 hover:bg-white/5 hover:shadow-[0_0_10px_rgba(255,255,255,0.10)]"
+                    ? "bg-white/10 border-white text-white shadow-[0_0_20px_rgba(255,255,255,0.22)]"
+                    : "bg-card border-white/50 text-white/70 hover:border-white/80 hover:text-white hover:bg-white/5 hover:shadow-[0_0_12px_rgba(255,255,255,0.12)]"
                 }`}
               >
                 <span className="line-clamp-2">{poll.question}</span>
