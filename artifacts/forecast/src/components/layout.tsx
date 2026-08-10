@@ -51,7 +51,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-[1.03] active:scale-95">
             <div
               className="p-1.5 rounded-md flex items-center justify-center"
-              style={{ background: "hsl(268 50% 22%)" }}
+              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
             >
               <Sparkles className="w-5 h-5 text-white" />
             </div>
@@ -121,10 +121,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <footer className="hidden md:block border-t border-border/50 bg-background/60 mt-8">
         <div className="container mx-auto px-4 py-8 flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="p-1 rounded-sm" style={{ background: "hsl(268 50% 22%)" }}>
+            <div className="p-1 rounded-sm" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
               <Sparkles className="w-3 h-3 text-white" />
             </div>
-            <span className="font-editorial leading-none" style={{ WebkitTextFillColor: "hsl(268 50% 28%)", fontWeight: 600, fontSize: "1rem", letterSpacing: "0.08em" }}>
+            <span className="font-editorial leading-none" style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600, fontSize: "1rem", letterSpacing: "0.08em" }}>
               <span style={{ fontSize: "1.1em" }}>BUZZ</span><span style={{ fontSize: "0.7em", opacity: 0.6, letterSpacing: "0.1em" }}> or </span><span style={{ fontSize: "1.1em" }}>BOO</span>
             </span>
             <span className="ml-2">Boston's cultural prediction engine.</span>

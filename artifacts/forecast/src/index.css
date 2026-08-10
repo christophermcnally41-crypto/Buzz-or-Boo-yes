@@ -86,11 +86,11 @@
 .logo-glint {
   background: linear-gradient(
     105deg,
-    hsl(270 50% 22%) 20%,
-    hsl(280 40% 22%) 38%,
-    hsl(260 20% 75%) 50%,
-    hsl(280 40% 22%) 62%,
-    hsl(270 50% 22%) 80%
+    hsl(0 0% 82%) 20%,
+    hsl(0 0% 88%) 38%,
+    hsl(0 0% 100%) 50%,
+    hsl(0 0% 88%) 62%,
+    hsl(0 0% 82%) 80%
   );
   background-size: 300% auto;
   -webkit-background-clip: text;
@@ -107,7 +107,7 @@
 
   --border: 0 0% 14%;
   --input: 0 0% 14%;
-  --ring: 268 50% 55%;
+  --ring: 0 0% 60%;
 
   --card: 0 0% 8%;
   --card-foreground: 0 0% 96%;
@@ -117,9 +117,9 @@
   --popover-foreground: 0 0% 96%;
   --popover-border: 0 0% 14%;
 
-  /* Primary: obsidian purple — brightened for black bg */
-  --primary: 268 50% 55%;
-  --primary-foreground: 0 0% 98%;
+  /* Primary: white — pure black & white */
+  --primary: 0 0% 94%;
+  --primary-foreground: 0 0% 4%;
 
   /* Secondary: dark charcoal */
   --secondary: 0 0% 13%;
