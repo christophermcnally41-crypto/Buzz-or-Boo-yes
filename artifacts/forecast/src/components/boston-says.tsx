@@ -16,6 +16,7 @@ interface Poll {
   tally: Record<string, number>;
   totalVotes: number;
   status: string;
+  isRising?: boolean;
 }
 
 export function BostonSays() {
@@ -80,7 +81,7 @@ export function BostonSays() {
               <Sparkles className="w-3 h-3" style={{ color: "hsl(43 72% 48%)" }} /> More Questions
             </p>
             {polls.map((poll, i) => {
-              const isRising = poll.id % 3 === 1;
+              const isRising = !!poll.isRising;
               return (
                 <button
                   key={poll.id}

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, jsonb, boolean } from "drizzle-orm/pg-core";
 
 export interface PollOption {
   key: string;
@@ -14,6 +14,7 @@ export const pollsTable = pgTable("polls", {
   status: text("status").notNull().default("OPEN"), // OPEN, CLOSED, CONVERTED
   closesAt: timestamp("closes_at", { withTimezone: true }),
   generatedMarketId: integer("generated_market_id"), // FK to markets if converted
+  isRising: boolean("is_rising").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
