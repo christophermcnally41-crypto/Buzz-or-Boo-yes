@@ -49,7 +49,7 @@ router.get("/markets/trending", async (req, res): Promise<void> => {
 });
 
 router.get("/markets/categories", async (_req, res): Promise<void> => {
-  const categories = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE"];
+  const categories = ["LOCAL_PULSE", "STYLE", "BEAUTY", "ACCESSORIES", "MOVIES", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE"];
   const stats = await Promise.all(
     categories.map(async (category) => {
       const [{ total, open, preds }] = await db
