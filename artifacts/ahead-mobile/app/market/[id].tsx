@@ -16,6 +16,7 @@ import {
   useGetMarket,
   useMakePrediction,
   useGetMarketPredictions,
+  useGetMarketTally,
 } from '@workspace/api-client-react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,7 +39,7 @@ export default function MarketDetailScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [voted, setVoted] = useState<'YES' | 'NO' | null>(null);
+  const [voted, setVoted] = useState<string | null>(null); // option key, 'YES', or 'NO'
   const [voting, setVoting] = useState(false);
 
   const { isAuthenticated, login } = useAuth();
@@ -48,10 +49,11 @@ export default function MarketDetailScreen() {
 
   const { data: market, isLoading, error } = useGetMarket(marketId);
   const { data: predictions } = useGetMarketPredictions(marketId);
+  const { data: tallyResult } = useGetMarketTally(marketId);
   const mutation = useMakePrediction();
 
   const handlePredict = useCallback(
-    async (choice: 'YES' | 'NO') => {
+    async (choice: string, isCallPick = false) => {
       if (voting || voted) return;
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -69,8 +71,10 @@ export default function MarketDetailScreen() {
       }
 
       setVoting(true);
+      // THE_CALL uses a fixed 10-token stake; all other formats use 100
+      const amount = isCallPick ? 10 : 100;
       mutation.mutate(
-        { id: marketId, data: { choice, amount: 100 } },
+        { id: marketId, data: { choice, amount } },
         {
           onSuccess: async () => {
             setVoted(choice);
@@ -119,9 +123,23 @@ export default function MarketDetailScreen() {
   const isHotOrNot = market.marketFormat === 'HOT_OR_NOT';
   const isHeadToHead = market.marketFormat === 'HEAD_TO_HEAD';
   const isBuzzOrBoo = market.marketFormat === 'BUZZ_OR_BOO';
+  const isTheCall = market.marketFormat === 'THE_CALL';
 
   const BUZZ_COLOR = '#CFEA3B';
   const BOO_COLOR = '#E8503E';
+  const THE_CALL_ACCENT = '#7C5CFC';
+
+  // Parse THE_CALL options from description JSON
+  const theCallData = isTheCall ? (() => {
+    try {
+      const p = JSON.parse(market.description ?? '{}');
+      if (Array.isArray(p.options)) return p as { options: { key: string; label: string }[]; context?: string };
+      return null;
+    } catch { return null; }
+  })() : null;
+
+  const theCallTally = tallyResult?.tallies ?? {};
+  const theCallTotal = theCallData?.options.reduce((s, o) => s + (theCallTally[o.key] ?? 0), 0) ?? 0;
 
   const yesLabel = isHotOrNot ? 'HOT' : isBuzzOrBoo ? 'BUZZ' : 'YES';
   const noLabel = isHotOrNot ? 'NOT' : isBuzzOrBoo ? 'BOO' : 'NO';
@@ -182,35 +200,63 @@ export default function MarketDetailScreen() {
               <Text style={styles.fmtText}>⚡ Buzz or Boo</Text>
             </View>
           )}
-
-          {/* Big probability numbers */}
-          <View style={styles.bigProb}>
-            <View style={styles.bigProbSide}>
-              <Text style={styles.bigPct}>{Math.round(yesPercent)}%</Text>
-              <Text style={styles.bigProbLabel}>{yesLabel}</Text>
+          {isTheCall && (
+            <View style={styles.fmtRow}>
+              <Text style={styles.fmtText}>🎯 The Call</Text>
             </View>
-            <View style={styles.bigProbDivider} />
-            <View style={[styles.bigProbSide, styles.bigProbRight]}>
-              <Text style={styles.bigPct}>{Math.round(noPercent)}%</Text>
-              <Text style={styles.bigProbLabel}>{noLabel}</Text>
-            </View>
-          </View>
+          )}
 
-          {/* Bar */}
-          <View style={styles.barTrack}>
-            <View
-              style={[
-                styles.barYes,
-                { flex: yesFloor, backgroundColor: isBuzzOrBoo ? BUZZ_COLOR : 'rgba(255,255,255,0.9)' },
-              ]}
-            />
-            <View
-              style={[
-                styles.barNo,
-                { flex: noFloor, backgroundColor: isBuzzOrBoo ? BOO_COLOR : 'rgba(255,255,255,0.3)' },
-              ]}
-            />
-          </View>
+          {/* THE_CALL: option vote bars */}
+          {isTheCall && theCallData ? (
+            <View style={styles.callOptions}>
+              {theCallData.options.map((o) => {
+                const count = theCallTally[o.key] ?? 0;
+                const pct = theCallTotal > 0 ? Math.round((count / theCallTotal) * 100) : 0;
+                const barFlex = Math.max(pct, 3);
+                return (
+                  <View key={o.key} style={styles.callOptionRow}>
+                    <Text style={styles.callOptionLabel} numberOfLines={1}>{o.label}</Text>
+                    <View style={styles.callBarTrack}>
+                      <View style={[styles.callBarFill, { flex: barFlex, backgroundColor: THE_CALL_ACCENT }]} />
+                      <View style={{ flex: Math.max(100 - barFlex, 3), backgroundColor: 'rgba(255,255,255,0.15)' }} />
+                    </View>
+                    <Text style={styles.callPct}>{pct}%</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : !isTheCall ? (
+            <>
+              {/* Big probability numbers */}
+              <View style={styles.bigProb}>
+                <View style={styles.bigProbSide}>
+                  <Text style={styles.bigPct}>{Math.round(yesPercent)}%</Text>
+                  <Text style={styles.bigProbLabel}>{yesLabel}</Text>
+                </View>
+                <View style={styles.bigProbDivider} />
+                <View style={[styles.bigProbSide, styles.bigProbRight]}>
+                  <Text style={styles.bigPct}>{Math.round(noPercent)}%</Text>
+                  <Text style={styles.bigProbLabel}>{noLabel}</Text>
+                </View>
+              </View>
+
+              {/* Bar */}
+              <View style={styles.barTrack}>
+                <View
+                  style={[
+                    styles.barYes,
+                    { flex: yesFloor, backgroundColor: isBuzzOrBoo ? BUZZ_COLOR : 'rgba(255,255,255,0.9)' },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.barNo,
+                    { flex: noFloor, backgroundColor: isBuzzOrBoo ? BOO_COLOR : 'rgba(255,255,255,0.3)' },
+                  ]}
+                />
+              </View>
+            </>
+          ) : null}
 
           {/* Stats */}
           <View style={styles.statsRow}>
@@ -228,11 +274,18 @@ export default function MarketDetailScreen() {
           </View>
         </LinearGradient>
 
-        {/* Description */}
-        {market.description && (
+        {/* Description — skip raw JSON for THE_CALL (options are shown in the hero) */}
+        {market.description && !isTheCall && (
           <View style={[styles.descCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.descLabel, { color: colors.mutedForeground }]}>ABOUT</Text>
             <Text style={[styles.descText, { color: colors.foreground }]}>{market.description}</Text>
+          </View>
+        )}
+        {/* THE_CALL context / question flavour */}
+        {isTheCall && theCallData?.context && (
+          <View style={[styles.descCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.descLabel, { color: colors.mutedForeground }]}>CONTEXT</Text>
+            <Text style={[styles.descText, { color: colors.foreground }]}>{theCallData.context}</Text>
           </View>
         )}
 
@@ -248,16 +301,24 @@ export default function MarketDetailScreen() {
         {predictions && predictions.length > 0 && (
           <View style={[styles.descCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.descLabel, { color: colors.mutedForeground }]}>
-              {isBuzzOrBoo ? 'RECENT VERDICTS' : 'RECENT PREDICTIONS'}
+              {isBuzzOrBoo ? 'RECENT VERDICTS' : isTheCall ? 'RECENT PICKS' : 'RECENT PREDICTIONS'}
             </Text>
             {predictions.slice(0, 5).map((p) => {
-              const isBuzz = p.choice === 'YES';
-              const choiceColor = isBuzzOrBoo
-                ? (isBuzz ? BUZZ_COLOR : BOO_COLOR)
-                : (isBuzz ? pair.yes : pair.no);
-              const choiceLabel = isBuzzOrBoo
-                ? (isBuzz ? '⚡ BUZZ' : '👎 BOO')
-                : p.choice;
+              let choiceColor: string;
+              let choiceLabel: string;
+              if (isBuzzOrBoo) {
+                const isBuzz = p.choice === 'YES';
+                choiceColor = isBuzz ? BUZZ_COLOR : BOO_COLOR;
+                choiceLabel = isBuzz ? '⚡ BUZZ' : '👎 BOO';
+              } else if (isTheCall) {
+                choiceColor = THE_CALL_ACCENT;
+                const opt = theCallData?.options.find((o) => o.key === p.choice);
+                choiceLabel = opt ? `🎯 ${opt.label}` : `🎯 ${p.choice}`;
+              } else {
+                const isYes = p.choice === 'YES';
+                choiceColor = isYes ? pair.yes : pair.no;
+                choiceLabel = p.choice;
+              }
               return (
                 <View key={p.id} style={[styles.predRow, { borderBottomColor: colors.border }]}>
                   <View
@@ -280,7 +341,7 @@ export default function MarketDetailScreen() {
         )}
       </ScrollView>
 
-      {/* Sticky YES / NO buttons */}
+      {/* Sticky pick buttons */}
       {market.status === 'OPEN' && (
         <View
           style={[
@@ -296,14 +357,46 @@ export default function MarketDetailScreen() {
             <View style={styles.votedContainer}>
               <Feather name="check-circle" size={20} color={colors.primary} />
               <Text style={[styles.votedText, { color: colors.foreground }]}>
-                {isBuzzOrBoo
-                  ? voted === 'YES'
-                    ? '⚡ Buzzed — nice call!'
-                    : '👎 Boo\'d — noted!'
-                  : `Predicted ${voted} — nice call!`}
+                {isTheCall
+                  ? (() => {
+                      const opt = theCallData?.options.find((o) => o.key === voted);
+                      return opt ? `🎯 Picked: ${opt.label}` : '🎯 Pick cast!';
+                    })()
+                  : isBuzzOrBoo
+                    ? voted === 'YES'
+                      ? '⚡ Buzzed — nice call!'
+                      : '👎 Boo\'d — noted!'
+                    : `Predicted ${voted} — nice call!`}
               </Text>
             </View>
+          ) : isTheCall && theCallData ? (
+            /* THE_CALL: vertical stack of option buttons */
+            <View style={styles.callButtonColumn}>
+              {theCallData.options.map((o) => {
+                const count = theCallTally[o.key] ?? 0;
+                const pct = theCallTotal > 0 ? Math.round((count / theCallTotal) * 100) : 0;
+                return (
+                  <TouchableOpacity
+                    key={o.key}
+                    activeOpacity={0.85}
+                    onPress={() => handlePredict(o.key, true)}
+                    disabled={voting}
+                    style={[styles.callPickBtn, { borderColor: THE_CALL_ACCENT + '66', backgroundColor: THE_CALL_ACCENT + '15' }]}
+                  >
+                    {voting ? (
+                      <ActivityIndicator color={THE_CALL_ACCENT} />
+                    ) : (
+                      <>
+                        <Text style={[styles.callPickLabel, { color: colors.foreground }]} numberOfLines={1}>{o.label}</Text>
+                        <Text style={[styles.callPickPct, { color: THE_CALL_ACCENT }]}>{pct}%</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           ) : (
+            /* Standard YES / NO / BUZZ BOO buttons */
             <View style={styles.buttonRow}>
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -634,5 +727,63 @@ const styles = StyleSheet.create({
   closedText: {
     fontSize: 15,
     fontFamily: 'Inter_500Medium',
+  },
+  // THE_CALL hero option bars
+  callOptions: {
+    gap: 10,
+    marginTop: 4,
+  },
+  callOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  callOptionLabel: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: 'Inter_500Medium',
+    width: 100,
+    flexShrink: 0,
+  },
+  callBarTrack: {
+    flex: 1,
+    flexDirection: 'row',
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  callBarFill: {
+    borderRadius: 3,
+  },
+  callPct: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+    width: 36,
+    textAlign: 'right',
+  },
+  // THE_CALL pick buttons column
+  callButtonColumn: {
+    gap: 8,
+  },
+  callPickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  callPickLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  callPickPct: {
+    fontSize: 14,
+    fontFamily: 'Inter_600SemiBold',
+    marginLeft: 8,
   },
 });

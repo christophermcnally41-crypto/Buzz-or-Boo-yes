@@ -24,7 +24,7 @@ import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2 } from "lucide-react
 import { Link } from "wouter";
 
 const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE", "BEAUTY", "ACCESSORIES", "MOVIES"] as const;
-const ALL_FORMATS = ["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE", "BUZZ_OR_BOO"] as const;
+const ALL_FORMATS = ["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE", "BUZZ_OR_BOO", "THE_CALL"] as const;
 
 const formSchema = z.object({
   title: z.string().min(5),
@@ -125,6 +125,21 @@ export default function Admin() {
         })),
         ...(metric ? { metric } : {}),
         ...(period ? { period } : {}),
+      });
+    }
+
+    if (selectedFormat === "THE_CALL") {
+      const validOptions = contenders.filter(c => c.name.trim());
+      if (validOptions.length < 2) {
+        toast({ title: "Add at least 2 options", variant: "destructive" });
+        return;
+      }
+      description = JSON.stringify({
+        options: validOptions.map(c => ({
+          key: c.key,
+          label: c.name.trim(),
+        })),
+        ...(metric ? { context: metric } : {}),
       });
     }
 
@@ -249,9 +264,44 @@ export default function Admin() {
                       <SelectItem value="HEAD_TO_HEAD">Head to Head (A vs B)</SelectItem>
                       <SelectItem value="MULTI_CHOICE">⚡ Buzz Battle (3–5 contenders)</SelectItem>
                       <SelectItem value="BUZZ_OR_BOO">⚡ Buzz or Boo (one-tap verdict)</SelectItem>
+                      <SelectItem value="THE_CALL">🎯 The Call (crowd intelligence)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* THE_CALL option builder */}
+                {selectedFormat === "THE_CALL" && (
+                  <div className="space-y-3 bg-primary/5 rounded-xl p-4 border border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-primary font-bold">🎯 Answer Options</Label>
+                      {contenders.length < 6 && (
+                        <Button type="button" variant="ghost" size="sm" onClick={addContender} className="h-7 text-xs gap-1">
+                          <Plus className="w-3 h-3" /> Add
+                        </Button>
+                      )}
+                    </div>
+                    {contenders.map((c, i) => (
+                      <div key={c.key} className="flex gap-2 items-center">
+                        <span className="text-xs font-bold text-primary w-5 shrink-0">{c.key}</span>
+                        <Input
+                          value={c.name}
+                          onChange={e => updateContender(i, "name", e.target.value)}
+                          placeholder="Option label (e.g. Whole Foods)"
+                          className="h-8 text-sm"
+                        />
+                        {contenders.length > 2 && (
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeContender(i)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <div>
+                      <Label className="text-xs">Context (optional)</Label>
+                      <Input value={metric} onChange={e => setMetric(e.target.value)} placeholder="e.g. Best for weekly grocery run" className="h-8 text-xs mt-1" />
+                    </div>
+                  </div>
+                )}
 
                 {/* MULTI_CHOICE contender builder */}
                 {selectedFormat === "MULTI_CHOICE" && (
@@ -301,7 +351,7 @@ export default function Admin() {
                   </div>
                 )}
 
-                {selectedFormat !== "MULTI_CHOICE" && (
+                {selectedFormat !== "MULTI_CHOICE" && selectedFormat !== "THE_CALL" && (
                   <div className="space-y-2">
                     <Label>Description (optional)</Label>
                     <Textarea {...form.register("description")} placeholder="Additional context..." />
@@ -380,7 +430,14 @@ export default function Admin() {
               {openMarkets.map(market => {
                 const isMultiChoice = market.marketFormat === 'MULTI_CHOICE';
                 const isBuzzOrBoo = market.marketFormat === 'BUZZ_OR_BOO';
+                const isTheCall = market.marketFormat === 'THE_CALL';
                 const contenders = isMultiChoice ? parseContenders(market.description) : [];
+                const theCallOptions = isTheCall ? (() => {
+                  try {
+                    const p = JSON.parse(market.description ?? '{}');
+                    return Array.isArray(p.options) ? p.options as { key: string; label: string }[] : [];
+                  } catch { return []; }
+                })() : [];
                 const isResolving = resolvingId === market.id;
 
                 return (
@@ -400,6 +457,11 @@ export default function Admin() {
                                 ⚡ Buzz or Boo
                               </Badge>
                             )}
+                            {isTheCall && (
+                              <Badge variant="outline" className="gap-1 text-cyan-600 border-cyan-300">
+                                🎯 The Call
+                              </Badge>
+                            )}
                             <span className="text-muted-foreground">ID: {market.id}</span>
                           </div>
                           <Link href={`/markets/${market.id}`}>
@@ -408,13 +470,13 @@ export default function Admin() {
                             </h4>
                           </Link>
                           <div className="text-sm text-muted-foreground mt-2 font-mono-numbers">
-                            {market.totalPredictions} {isBuzzOrBoo ? "verdicts" : "calls"}
-                            {!isMultiChoice && !isBuzzOrBoo && ` · ${market.yesCount} Buzzed / ${market.noCount} Boo'd`}
+                            {market.totalPredictions} {isBuzzOrBoo ? "verdicts" : isTheCall ? "picks" : "calls"}
+                            {!isMultiChoice && !isBuzzOrBoo && !isTheCall && ` · ${market.yesCount} Buzzed / ${market.noCount} Boo'd`}
                             {isBuzzOrBoo && ` · ${market.yesPercent ?? 50}% BUZZ / ${market.noPercent ?? 50}% BOO`}
                           </div>
                         </div>
 
-                        {!isMultiChoice && (
+                        {!isMultiChoice && !isTheCall && (
                           <div className="flex flex-col md:items-end justify-center gap-2 shrink-0 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-4">
                             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                               {isBuzzOrBoo ? "Lock Sentiment" : "Declare Outcome"}
@@ -444,6 +506,27 @@ export default function Admin() {
                             {isBuzzOrBoo && (
                               <p className="text-[10px] text-muted-foreground">Locks the current crowd sentiment</p>
                             )}
+                          </div>
+                        )}
+
+                        {isTheCall && theCallOptions.length > 0 && (
+                          <div className="border-t border-border pt-4">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Lock Crowd Verdict</p>
+                            <div className="flex flex-wrap gap-2">
+                              {theCallOptions.map(o => (
+                                <Button
+                                  key={o.key}
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5 hover:bg-cyan-500 hover:text-white border-cyan-300/50"
+                                  onClick={() => handleResolve(market.id, o.key)}
+                                  disabled={isResolving}
+                                >
+                                  🎯 {o.label}
+                                </Button>
+                              ))}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-2">Locks the crowd snapshot — no token redistribution</p>
                           </div>
                         )}
                       </div>

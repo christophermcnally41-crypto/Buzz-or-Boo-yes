@@ -38,9 +38,14 @@ export function MarketCard({ market, isHot, onPress, style }: MarketCardProps) {
   const yesFloor = Math.max(yesPercent, 3);
   const noFloor = Math.max(noPercent, 3);
 
+  const isTheCall = market.marketFormat === 'THE_CALL';
+  const isBuzzOrBooCard = market.marketFormat === 'BUZZ_OR_BOO';
+
   const formatBadge = () => {
     if (market.marketFormat === 'HOT_OR_NOT') return { icon: 'fire', label: 'Hot or Not' };
     if (market.marketFormat === 'HEAD_TO_HEAD') return { icon: 'sword-cross', label: 'Head to Head' };
+    if (market.marketFormat === 'THE_CALL') return { icon: 'target', label: '🎯 The Call' };
+    if (market.marketFormat === 'BUZZ_OR_BOO') return { icon: 'flash', label: '⚡ Buzz or Boo' };
     return null;
   };
   const fmt = formatBadge();

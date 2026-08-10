@@ -15,4 +15,5 @@ export const MarketInputMarketFormat = {
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   MULTI_CHOICE: 'MULTI_CHOICE',
   BUZZ_OR_BOO: 'BUZZ_OR_BOO',
+  THE_CALL: 'THE_CALL',
 } as const;

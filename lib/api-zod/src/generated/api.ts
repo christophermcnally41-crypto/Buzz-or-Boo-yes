@@ -96,7 +96,7 @@ export const listMarketsQueryOffsetDefault = 0;
 export const ListMarketsQueryParams = zod.object({
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']).optional(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']).optional(),
-  "format": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "format": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "limit": zod.coerce.number().default(listMarketsQueryLimitDefault),
   "offset": zod.coerce.number().default(listMarketsQueryOffsetDefault)
 })
@@ -109,7 +109,7 @@ export const ListMarketsResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -151,7 +151,7 @@ export const GetTrendingMarketsResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -202,7 +202,7 @@ export const GetMarketResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -246,6 +246,19 @@ export const MakePredictionResponse = zod.object({
   "isCorrect": zod.boolean().nullish(),
   "tokensEarned": zod.number().nullish(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * Returns the total vote count per choice key for a market, computed server-side. Use this instead of fetching all predictions for aggregate display.
+ * @summary Get aggregate vote tallies for a market
+ */
+export const GetMarketTallyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetMarketTallyResponse = zod.object({
+  "tallies": zod.record(zod.string(), zod.number()).describe('Map of choice key to vote count, e.g. {A: 14, B: 7}')
 })
 
 
@@ -390,7 +403,7 @@ export const GetUserPinsResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -431,7 +444,7 @@ export const GetUserPredictionsResponseItem = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -551,7 +564,7 @@ export const AdminListMarketsResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -584,7 +597,7 @@ export const CreateMarketBody = zod.object({
   "description": zod.string().optional(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().optional(),
   "resolutionSource": zod.string().optional(),
   "sourcePrimary": zod.string().optional(),
@@ -603,7 +616,7 @@ export const CreateMarketResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),
@@ -643,7 +656,7 @@ export const ResolveMarketResponse = zod.object({
   "description": zod.string().nullish(),
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
   "subcategory": zod.string(),
-  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO']).optional(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
   "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
   "yesCount": zod.number(),

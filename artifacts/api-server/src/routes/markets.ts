@@ -114,6 +114,42 @@ router.get("/markets/:id", async (req, res): Promise<void> => {
   res.json(GetMarketResponse.parse(enrichMarket(market)));
 });
 
+router.get("/markets/:id/tally", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const marketId = Number(raw);
+  if (isNaN(marketId) || marketId <= 0) {
+    res.status(400).json({ error: "Invalid market id" });
+    return;
+  }
+
+  const [market] = await db
+    .select({ id: marketsTable.id })
+    .from(marketsTable)
+    .where(eq(marketsTable.id, marketId));
+
+  if (!market) {
+    res.status(404).json({ error: "Market not found" });
+    return;
+  }
+
+  const { predictionsTable } = await import("@workspace/db");
+  const rows = await db
+    .select({
+      choice: predictionsTable.choice,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(predictionsTable)
+    .where(eq(predictionsTable.marketId, marketId))
+    .groupBy(predictionsTable.choice);
+
+  const tallies: Record<string, number> = {};
+  for (const row of rows) {
+    tallies[row.choice] = row.count;
+  }
+
+  res.json({ tallies });
+});
+
 router.get("/markets/:id/predictions", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = GetMarketPredictionsParams.safeParse({ id: Number(raw) });

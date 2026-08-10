@@ -8,7 +8,7 @@ export const marketsTable = pgTable("markets", {
   question: text("question").notNull(),
   description: text("description"),
   category: text("category").notNull(), // STYLE, HOME, CITY, REAL_ESTATE, WEATHER, CULTURE, LOCAL_PULSE
-  marketFormat: text("market_format").notNull().default("STANDARD"), // STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE, BUZZ_OR_BOO
+  marketFormat: text("market_format").notNull().default("STANDARD"), // STANDARD, HOT_OR_NOT, HEAD_TO_HEAD, MULTI_CHOICE, BUZZ_OR_BOO, THE_CALL
   subcategory: text("subcategory").notNull(),
   imageUrl: text("image_url"),
   status: text("status").notNull().default("OPEN"), // OPEN, CLOSED, RESOLVED

@@ -115,6 +115,26 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
     }
   }
 
+  // For THE_CALL, validate outcome is one of the declared option keys
+  if (market.marketFormat === "THE_CALL") {
+    let validKeys: string[] = [];
+    try {
+      const desc = market.description ? JSON.parse(market.description) : null;
+      if (Array.isArray(desc?.options)) {
+        validKeys = desc.options.map((o: { key: string }) => o.key);
+      }
+    } catch { /* fall through — validKeys stays empty */ }
+
+    if (validKeys.length === 0) {
+      res.status(400).json({ error: "Market has no valid options to resolve against" });
+      return;
+    }
+    if (!validKeys.includes(outcome)) {
+      res.status(400).json({ error: `Invalid outcome. Must be one of: ${validKeys.join(", ")}` });
+      return;
+    }
+  }
+
   // Atomically resolve + award + auto-cycle inside a transaction.
   // The UPDATE WHERE status != RESOLVED acts as a compare-and-swap: only the first
   // concurrent request transitions the row; subsequent ones return 0 rows and bail.
@@ -137,9 +157,9 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
 
       const resolvedMarket = rows[0];
 
-      // BUZZ_OR_BOO markets are sentiment snapshots — no win/loss, no token redistribution,
-      // no accuracy updates. Just lock the sentiment split and return.
-      if (resolvedMarket.marketFormat !== "BUZZ_OR_BOO") {
+      // BUZZ_OR_BOO and THE_CALL markets are crowd snapshots — no win/loss, no token redistribution,
+      // no accuracy updates. Just lock the current split/verdict and return.
+      if (resolvedMarket.marketFormat !== "BUZZ_OR_BOO" && resolvedMarket.marketFormat !== "THE_CALL") {
         // Award tokens to correct predictors and update user stats
         const allPredictions = await tx
           .select()

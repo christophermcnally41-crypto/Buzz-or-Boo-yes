@@ -74,6 +74,25 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
       res.status(400).json({ error: `Invalid choice. Must be one of: ${validKeys.join(", ")}` });
       return;
     }
+  } else if (market.marketFormat === "THE_CALL") {
+    // Parse options from description and require choice to be a valid option key
+    let validKeys: string[] = [];
+    try {
+      const desc = market.description ? JSON.parse(market.description) : null;
+      if (Array.isArray(desc?.options)) {
+        validKeys = desc.options.map((o: { key: string }) => o.key);
+      }
+    } catch {
+      // malformed description — reject
+    }
+    if (validKeys.length === 0) {
+      res.status(400).json({ error: "This market has no valid options" });
+      return;
+    }
+    if (!validKeys.includes(choice)) {
+      res.status(400).json({ error: `Invalid choice. Must be one of: ${validKeys.join(", ")}` });
+      return;
+    }
   } else {
     // Standard / HOT_OR_NOT / HEAD_TO_HEAD / BUZZ_OR_BOO — only YES or NO allowed
     if (choice !== "YES" && choice !== "NO") {
@@ -93,11 +112,11 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     return;
   }
 
-  // BUZZ_OR_BOO markets use a fixed one-tap stake regardless of client-supplied amount.
-  // This prevents bypass of the one-tap UX contract by submitting arbitrary amounts.
-  const BUZZ_OR_BOO_STAKE = 10;
-  const betAmount = market.marketFormat === "BUZZ_OR_BOO"
-    ? BUZZ_OR_BOO_STAKE
+  // BUZZ_OR_BOO and THE_CALL markets use a fixed one-tap stake regardless of client-supplied
+  // amount. This enforces the one-tap UX contract and prevents bypass via arbitrary amounts.
+  const FIXED_STAKE = 10;
+  const betAmount = (market.marketFormat === "BUZZ_OR_BOO" || market.marketFormat === "THE_CALL")
+    ? FIXED_STAKE
     : (amount ?? 100);
 
   // Create prediction — the unique index on (user_id, market_id) enforces one-per-user at
@@ -119,8 +138,9 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     throw err;
   }
 
-  // Update market counts — for MULTI_CHOICE only increment total; for YES/NO markets update yes/no counts
-  if (market.marketFormat === "MULTI_CHOICE") {
+  // Update market counts — for MULTI_CHOICE and THE_CALL only increment total;
+  // for YES/NO markets update yes/no counts as well.
+  if (market.marketFormat === "MULTI_CHOICE" || market.marketFormat === "THE_CALL") {
     await db
       .update(marketsTable)
       .set({ totalPredictions: market.totalPredictions + 1 })

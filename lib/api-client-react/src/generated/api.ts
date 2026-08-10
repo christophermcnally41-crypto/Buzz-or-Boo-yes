@@ -38,6 +38,7 @@ import type {
   MarketInput,
   MarketList,
   MarketResolution,
+  MarketTally,
   MobileAuthTransaction,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
@@ -781,6 +782,84 @@ export const useMakePrediction = <TError = ErrorType<Error>,
       > => {
       return useMutation(getMakePredictionMutationOptions(options));
     }
+
+export const getGetMarketTallyUrl = (id: number,) => {
+
+
+
+
+  return `/api/markets/${id}/tally`
+}
+
+/**
+ * Returns the total vote count per choice key for a market, computed server-side. Use this instead of fetching all predictions for aggregate display.
+ * @summary Get aggregate vote tallies for a market
+ */
+export const getMarketTally = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<MarketTally> => {
+
+  return customFetch<MarketTally>(getGetMarketTallyUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketTallyQueryKey = (id: number,) => {
+    return [
+    `/api/markets/${id}/tally`
+    ] as const;
+    }
+
+
+export const getGetMarketTallyQueryOptions = <TData = Awaited<ReturnType<typeof getMarketTally>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketTally>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketTallyQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketTally>>> = ({ signal }) => getMarketTally(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketTally>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketTallyQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketTally>>>
+export type GetMarketTallyQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get aggregate vote tallies for a market
+ */
+
+export function useGetMarketTally<TData = Awaited<ReturnType<typeof getMarketTally>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketTally>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketTallyQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetMarketPredictionsUrl = (id: number,) => {
 

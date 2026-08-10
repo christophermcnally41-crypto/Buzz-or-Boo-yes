@@ -2,6 +2,7 @@ import { useParams } from "wouter";
 import { 
   useGetMarket, 
   useGetMarketPredictions, 
+  useGetMarketTally,
   useMakePrediction,
   useGetMe,
   useGetMarketPinStatus,
@@ -9,6 +10,7 @@ import {
   useUnpinMarket,
   getGetMarketQueryKey,
   getGetMarketPredictionsQueryKey,
+  getGetMarketTallyQueryKey,
   getGetMeQueryKey,
   getGetPlatformStatsQueryKey,
   getGetUserPredictionsQueryKey,
@@ -125,9 +127,30 @@ function parseMultiChoiceData(desc: string | null | undefined): MultiChoiceData 
   return null;
 }
 
+interface TheCallOption {
+  key: string;
+  label: string;
+}
+
+interface TheCallData {
+  options: TheCallOption[];
+  context?: string;
+}
+
+function parseTheCallData(desc: string | null | undefined): TheCallData | null {
+  if (!desc) return null;
+  try {
+    const p = JSON.parse(desc);
+    if (Array.isArray(p.options)) return p as TheCallData;
+  } catch {}
+  return null;
+}
+
 const CONTENDER_COLORS = ["#CFEA3B", "#3ECDE8", "#E87B3E", "#8B5CF6", "#EC4899"];
+const THE_CALL_COLORS = ["#CFEA3B", "#3ECDE8", "#E87B3E", "#8B5CF6", "#EC4899", "#22D3EE"];
 
 const TOPUP_THRESHOLD = 500;
+const THE_CALL_STAKE = 10;
 export default function MarketDetail() {
   const params = useParams();
   const marketId = parseInt(params.id || "0", 10);
@@ -141,6 +164,11 @@ export default function MarketDetail() {
 
   const { data: predictions } = useGetMarketPredictions(marketId, {
     query: { enabled: !!marketId, queryKey: getGetMarketPredictionsQueryKey(marketId) }
+  });
+
+  // Aggregate tally for THE_CALL markets — uses server-side GROUP BY, accurate at any scale
+  const { data: tallyData } = useGetMarketTally(marketId, {
+    query: { enabled: !!marketId && market?.marketFormat === "THE_CALL", queryKey: getGetMarketTallyQueryKey(marketId) }
   });
 
   const { data: meData } = useGetMe({
@@ -193,8 +221,10 @@ export default function MarketDetail() {
   const isClosed = market?.status === "CLOSED" || isResolved;
   const isMultiChoice = market?.marketFormat === "MULTI_CHOICE";
   const isBuzzOrBoo = market?.marketFormat === "BUZZ_OR_BOO";
+  const isTheCall = market?.marketFormat === "THE_CALL";
 
   const multiChoiceData = isMultiChoice ? parseMultiChoiceData(market?.description) : null;
+  const theCallData = isTheCall ? parseTheCallData(market?.description) : null;
 
   // Compute per-contender vote counts from predictions
   const contenderCounts = useMemo(() => {
@@ -209,14 +239,29 @@ export default function MarketDetail() {
 
   const totalContenderVotes = Object.values(contenderCounts).reduce((a, b) => a + b, 0);
 
+  // Compute per-option vote counts for THE_CALL from the server-side aggregate tally
+  const theCallCounts: Record<string, number> = useMemo(() => {
+    if (!theCallData) return {};
+    const counts: Record<string, number> = {};
+    for (const o of theCallData.options) {
+      counts[o.key] = tallyData?.tallies?.[o.key] ?? 0;
+    }
+    return counts;
+  }, [theCallData, tallyData]);
+
+  const totalTheCallVotes = Object.values(theCallCounts).reduce((a, b) => a + b, 0);
+
   const handlePredict = (choice: string) => {
     if (!isAuthenticated || !authUser) {
       login();
       return;
     }
 
-    const stake = isBuzzOrBoo ? BUZZ_OR_BOO_STAKE : amount[0];
+    const stake = isBuzzOrBoo ? BUZZ_OR_BOO_STAKE : isTheCall ? THE_CALL_STAKE : amount[0];
     setIsPredicting(choice);
+    const theCallLabel = isTheCall && theCallData
+      ? (theCallData.options.find(o => o.key === choice)?.label ?? choice)
+      : choice;
     makePrediction.mutate({
       id: marketId,
       data: {
@@ -227,13 +272,16 @@ export default function MarketDetail() {
     }, {
       onSuccess: () => {
         toast({
-          title: isBuzzOrBoo ? "Verdict cast!" : "Prediction Cast!",
+          title: isBuzzOrBoo ? "Verdict cast!" : isTheCall ? "Pick registered!" : "Prediction Cast!",
           description: isBuzzOrBoo
             ? `You voted ${choice === "YES" ? "⚡ BUZZ" : "👎 BOO"} on this one.`
+            : isTheCall
+            ? `Your pick: ${theCallLabel}`
             : `You placed ${formatNumber(stake)} points on ${choice}.`,
         });
         queryClient.invalidateQueries({ queryKey: getGetMarketQueryKey(marketId) });
         queryClient.invalidateQueries({ queryKey: getGetMarketPredictionsQueryKey(marketId) });
+        queryClient.invalidateQueries({ queryKey: getGetMarketTallyQueryKey(marketId) });
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         if (authUser) queryClient.invalidateQueries({ queryKey: getGetUserPredictionsQueryKey(parseInt(authUser.id, 10)) });
         queryClient.invalidateQueries({ queryKey: getGetPlatformStatsQueryKey() });
@@ -318,7 +366,7 @@ export default function MarketDetail() {
               {market.question}
             </h1>
 
-            {market.description && !isMultiChoice && !isBuzzOrBoo && (
+            {market.description && !isMultiChoice && !isBuzzOrBoo && !isTheCall && (
               <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
                 {market.description}
               </p>
@@ -356,6 +404,66 @@ export default function MarketDetail() {
                 <div className="flex justify-between mt-3 text-sm font-mono-numbers text-muted-foreground">
                   <span>{formatNumber(market.yesCount)} BUZZ votes</span>
                   <span>{formatNumber(market.noCount)} BOO votes</span>
+                </div>
+              </div>
+            )}
+
+            {/* THE CALL: Crowd Intelligence display */}
+            {isTheCall && theCallData && (
+              <div className="bg-card border border-border shadow-sm rounded-3xl p-6 md:p-10 mb-8">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-2xl">🎯</span>
+                  <h2 className="font-editorial text-2xl font-bold">The Call</h2>
+                </div>
+                <p className="text-sm text-muted-foreground mb-8">
+                  {isResolved ? "Crowd verdict locked — no resolution, the crowd IS the answer" : "Crowd intelligence — pick the best answer"}
+                </p>
+
+                {theCallData.context && (
+                  <p className="text-sm text-muted-foreground mb-6 italic">{theCallData.context}</p>
+                )}
+
+                {totalTheCallVotes > 0 && (() => {
+                  const leadingKey = Object.entries(theCallCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+                  const leadingOption = theCallData.options.find(o => o.key === leadingKey);
+                  return leadingOption ? (
+                    <div className="mb-6 px-4 py-3 rounded-2xl border border-primary/30 bg-primary/5">
+                      <p className="text-xs font-bold tracking-wider text-muted-foreground uppercase mb-1">The crowd says…</p>
+                      <p className="font-editorial text-2xl font-bold text-primary">{leadingOption.label}</p>
+                    </div>
+                  ) : null;
+                })()}
+
+                <div className="space-y-4">
+                  {theCallData.options.map((o, i) => {
+                    const count = theCallCounts[o.key] ?? 0;
+                    const pct = totalTheCallVotes > 0
+                      ? Math.round((count / totalTheCallVotes) * 100)
+                      : Math.floor(100 / theCallData.options.length);
+                    const color = THE_CALL_COLORS[i % THE_CALL_COLORS.length];
+                    const isLeading = totalTheCallVotes > 0 &&
+                      count === Math.max(...Object.values(theCallCounts));
+
+                    return (
+                      <div key={o.key} className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${isLeading ? "bg-primary/10 border border-primary/30" : "bg-muted/30"}`}>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="font-editorial font-bold text-lg">{o.label}</span>
+                            <span className="font-mono-numbers font-bold text-sm" style={{ color }}>{pct}%</span>
+                          </div>
+                          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${pct}%`, backgroundColor: color }} />
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-1">{count} picks</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-between mt-6 text-sm font-mono-numbers text-muted-foreground">
+                  <span>{formatNumber(totalTheCallVotes)} total picks</span>
+                  {isResolved && <span className="text-muted-foreground">Snapshot locked</span>}
                 </div>
               </div>
             )}
@@ -407,7 +515,7 @@ export default function MarketDetail() {
                   })}
                 </div>
               </div>
-            ) : (
+            ) : !isTheCall ? (
               /* STANDARD: Giant Probability Display */
               <div className="bg-card border border-border shadow-sm rounded-3xl p-6 md:p-10 mb-8">
                 <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
@@ -436,7 +544,7 @@ export default function MarketDetail() {
                   <span>{formatNumber(market.noCount)} points</span>
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Market Metadata */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -480,15 +588,15 @@ export default function MarketDetail() {
             <Card className="sticky top-24 border-primary/20 shadow-lg">
               <CardContent className="p-6">
                 <h3 className="font-editorial text-2xl font-bold mb-6">
-                  {isBuzzOrBoo ? "Cast Your Verdict" : "Make a Forecast"}
+                  {isBuzzOrBoo ? "Cast Your Verdict" : isTheCall ? "What's Your Pick?" : "Make a Forecast"}
                 </h3>
 
                 {/* Not authenticated */}
                 {!isAuthenticated && !isClosed && (
                   <div className="text-center py-6 bg-muted/50 rounded-xl border border-dashed border-border mb-4">
                     <LogIn className="w-8 h-8 mx-auto text-muted-foreground mb-3 opacity-50" />
-                    <p className="font-medium mb-1">Log in to {isBuzzOrBoo ? "vote" : "predict"}</p>
-                    <p className="text-sm text-muted-foreground mb-4">You need an account to {isBuzzOrBoo ? "cast your verdict" : "place Forecast Points"}.</p>
+                    <p className="font-medium mb-1">Log in to {isBuzzOrBoo || isTheCall ? "vote" : "predict"}</p>
+                    <p className="text-sm text-muted-foreground mb-4">You need an account to {isBuzzOrBoo ? "cast your verdict" : isTheCall ? "cast your pick" : "place Forecast Points"}.</p>
                     <Button onClick={login} className="rounded-full px-6">Log in</Button>
                   </div>
                 )}
@@ -501,11 +609,13 @@ export default function MarketDetail() {
                       : {}
                   }>
                     <p className="text-sm font-bold mb-1" style={isBuzzOrBoo ? { color: userPrediction.choice === "YES" ? BUZZ_COLOR : BOO_COLOR } : { color: "var(--primary)" }}>
-                      {isBuzzOrBoo ? "Your verdict" : "Your prediction"}
+                      {isBuzzOrBoo ? "Your verdict" : isTheCall ? "Your pick" : "Your prediction"}
                     </p>
                     <p className="font-mono-numbers font-bold text-lg">
                       {isBuzzOrBoo
                         ? (userPrediction.choice === "YES" ? "⚡ BUZZ" : "👎 BOO")
+                        : isTheCall
+                        ? (theCallData?.options.find(o => o.key === userPrediction.choice)?.label ?? userPrediction.choice)
                         : `${userPrediction.choice} · ${formatNumber(userPrediction.amount)} FP`}
                     </p>
                   </div>
@@ -514,7 +624,7 @@ export default function MarketDetail() {
                 {isClosed ? (
                   <div className="text-center py-6 bg-muted/50 rounded-xl border border-dashed border-border">
                     <Clock className="w-8 h-8 mx-auto text-muted-foreground mb-3 opacity-50" />
-                    <p className="font-medium">{isBuzzOrBoo ? "Voting has closed." : "Market is closed."}</p>
+                    <p className="font-medium">{isBuzzOrBoo || isTheCall ? "Voting has closed." : "Market is closed."}</p>
                     {isResolved && (
                       <div className="mt-3">
                         {isBuzzOrBoo ? (
@@ -522,6 +632,10 @@ export default function MarketDetail() {
                             Final sentiment: <span className="font-bold" style={{ color: market.resolvedOutcome === "YES" ? BUZZ_COLOR : BOO_COLOR }}>
                               {market.resolvedOutcome === "YES" ? "⚡ BUZZ" : "👎 BOO"}
                             </span>
+                          </p>
+                        ) : isTheCall ? (
+                          <p className="text-sm text-muted-foreground">
+                            Crowd verdict locked — snapshot preserved.
                           </p>
                         ) : (
                           <Badge variant="default" className="text-base px-4 py-1">
@@ -533,7 +647,7 @@ export default function MarketDetail() {
                   </div>
                 ) : isAuthenticated && !userPrediction ? (
                   <>
-                    {/* BUZZ_OR_BOO: one-tap verdict — no amount slider */}
+                    {/* BUZZ_OR_BOO / THE_CALL: one-tap verdict — no amount slider */}
                     {isBuzzOrBoo ? (
                       <div className="space-y-3">
                         <p className="text-xs text-muted-foreground text-center mb-4">One tap. No take-backs. What does the culture say?</p>
@@ -556,6 +670,27 @@ export default function MarketDetail() {
                           {isPredicting === "NO" ? "Casting..." : "👎 BOO"}
                         </Button>
                         <p className="text-[11px] text-muted-foreground text-center">Uses {BUZZ_OR_BOO_STAKE} FP · Balance: {formatNumber(tokenBalance)} FP</p>
+                      </div>
+                    ) : isTheCall && theCallData ? (
+                      /* THE_CALL: pick one option — fixed stake, no slider */
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground text-center mb-4">One pick. No take-backs. What does the crowd say?</p>
+                        {theCallData.options.map((o, i) => {
+                          const color = THE_CALL_COLORS[i % THE_CALL_COLORS.length];
+                          return (
+                            <Button
+                              key={o.key}
+                              size="lg"
+                              className="w-full h-14 text-base rounded-2xl border-0 font-bold transition-all hover:-translate-y-0.5 active:scale-95"
+                              style={{ backgroundColor: color, color: i === 0 ? "#1a1a1a" : "#fff", boxShadow: `0 6px 20px ${color}55` }}
+                              onClick={() => handlePredict(o.key)}
+                              disabled={isPredicting !== null || tokenBalance <= 0}
+                            >
+                              {isPredicting === o.key ? "Casting..." : o.label}
+                            </Button>
+                          );
+                        })}
+                        <p className="text-[11px] text-muted-foreground text-center">Uses {THE_CALL_STAKE} FP · Balance: {formatNumber(tokenBalance)} FP</p>
                       </div>
                     ) : (
                       <>
@@ -634,7 +769,7 @@ export default function MarketDetail() {
                   </>
                 ) : null}
 
-                {!isBuzzOrBoo && userTotalInvested > 0 && (
+                {!isBuzzOrBoo && !isTheCall && userTotalInvested > 0 && (
                   <div className="mt-6 pt-6 border-t border-border/50 text-center">
                     <p className="text-sm text-muted-foreground mb-1">Your total position</p>
                     <p className="font-mono-numbers font-bold text-xl">{formatNumber(userTotalInvested)} FP</p>
@@ -656,6 +791,8 @@ export default function MarketDetail() {
                         ? multiChoiceData.contenders.find(c => c.key === pred.choice)?.name ?? pred.choice
                         : isBuzzOrBoo
                           ? (pred.choice === 'YES' ? '⚡ BUZZ' : '👎 BOO')
+                          : isTheCall && theCallData
+                          ? (theCallData.options.find(o => o.key === pred.choice)?.label ?? pred.choice)
                           : pred.choice;
                       const isYes = pred.choice === 'YES';
                       return (
@@ -665,6 +802,8 @@ export default function MarketDetail() {
                               <Crown className="w-4 h-4 text-primary" />
                             ) : isBuzzOrBoo ? (
                               <span>{isYes ? "⚡" : "👎"}</span>
+                            ) : isTheCall ? (
+                              <span>🎯</span>
                             ) : isYes ? (
                               <CheckCircle2 className="w-4 h-4" style={{ color: colors.yes }} />
                             ) : (

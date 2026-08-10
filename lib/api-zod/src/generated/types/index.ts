@@ -36,6 +36,8 @@ export * from './marketList';
 export * from './marketMarketFormat';
 export * from './marketResolution';
 export * from './marketStatus';
+export * from './marketTally';
+export * from './marketTallyTallies';
 export * from './mobileAuthTransaction';
 export * from './mobileTokenExchangeRequest';
 export * from './mobileTokenExchangeSuccess';

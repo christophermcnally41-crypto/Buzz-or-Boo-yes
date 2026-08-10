@@ -38,6 +38,7 @@ export const MarketMarketFormat = {
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   MULTI_CHOICE: 'MULTI_CHOICE',
   BUZZ_OR_BOO: 'BUZZ_OR_BOO',
+  THE_CALL: 'THE_CALL',
 } as const;
 
 export type MarketStatus = typeof MarketStatus[keyof typeof MarketStatus];
@@ -230,6 +231,7 @@ export const MarketInputMarketFormat = {
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   MULTI_CHOICE: 'MULTI_CHOICE',
   BUZZ_OR_BOO: 'BUZZ_OR_BOO',
+  THE_CALL: 'THE_CALL',
 } as const;
 
 export interface MarketInput {
@@ -341,6 +343,16 @@ export interface PollVoteResult {
   totalVotes: number;
 }
 
+/**
+ * Map of choice key to vote count, e.g. {A: 14, B: 7}
+ */
+export type MarketTallyTallies = {[key: string]: number};
+
+export interface MarketTally {
+  /** Map of choice key to vote count, e.g. {A: 14, B: 7} */
+  tallies: MarketTallyTallies;
+}
+
 export interface MarketResolution {
   outcome: string;
 }
@@ -392,6 +404,7 @@ export const ListMarketsFormat = {
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   MULTI_CHOICE: 'MULTI_CHOICE',
   BUZZ_OR_BOO: 'BUZZ_OR_BOO',
+  THE_CALL: 'THE_CALL',
 } as const;
 
 export type GetTrendingMarketsParams = {
