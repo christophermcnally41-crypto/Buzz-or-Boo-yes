@@ -118,9 +118,13 @@ export default function MarketDetailScreen() {
 
   const isHotOrNot = market.marketFormat === 'HOT_OR_NOT';
   const isHeadToHead = market.marketFormat === 'HEAD_TO_HEAD';
+  const isBuzzOrBoo = market.marketFormat === 'BUZZ_OR_BOO';
 
-  const yesLabel = isHotOrNot ? 'HOT' : 'YES';
-  const noLabel = isHotOrNot ? 'NOT' : 'NO';
+  const BUZZ_COLOR = '#CFEA3B';
+  const BOO_COLOR = '#E8503E';
+
+  const yesLabel = isHotOrNot ? 'HOT' : isBuzzOrBoo ? 'BUZZ' : 'YES';
+  const noLabel = isHotOrNot ? 'NOT' : isBuzzOrBoo ? 'BOO' : 'NO';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -173,6 +177,11 @@ export default function MarketDetailScreen() {
               <Text style={styles.fmtText}>Head to Head</Text>
             </View>
           )}
+          {isBuzzOrBoo && (
+            <View style={styles.fmtRow}>
+              <Text style={styles.fmtText}>⚡ Buzz or Boo</Text>
+            </View>
+          )}
 
           {/* Big probability numbers */}
           <View style={styles.bigProb}>
@@ -189,8 +198,18 @@ export default function MarketDetailScreen() {
 
           {/* Bar */}
           <View style={styles.barTrack}>
-            <View style={[styles.barYes, { flex: yesFloor }]} />
-            <View style={[styles.barNo, { flex: noFloor }]} />
+            <View
+              style={[
+                styles.barYes,
+                { flex: yesFloor, backgroundColor: isBuzzOrBoo ? BUZZ_COLOR : 'rgba(255,255,255,0.9)' },
+              ]}
+            />
+            <View
+              style={[
+                styles.barNo,
+                { flex: noFloor, backgroundColor: isBuzzOrBoo ? BOO_COLOR : 'rgba(255,255,255,0.3)' },
+              ]}
+            />
           </View>
 
           {/* Stats */}
@@ -228,24 +247,35 @@ export default function MarketDetailScreen() {
         {/* Recent predictions */}
         {predictions && predictions.length > 0 && (
           <View style={[styles.descCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.descLabel, { color: colors.mutedForeground }]}>RECENT PREDICTIONS</Text>
-            {predictions.slice(0, 5).map((p) => (
-              <View key={p.id} style={[styles.predRow, { borderBottomColor: colors.border }]}>
-                <View
-                  style={[
-                    styles.predChoiceBadge,
-                    { backgroundColor: p.choice === 'YES' ? pair.yes + '33' : pair.no + '33' },
-                  ]}
-                >
-                  <Text style={[styles.predChoice, { color: p.choice === 'YES' ? pair.yes : pair.no }]}>
-                    {p.choice}
+            <Text style={[styles.descLabel, { color: colors.mutedForeground }]}>
+              {isBuzzOrBoo ? 'RECENT VERDICTS' : 'RECENT PREDICTIONS'}
+            </Text>
+            {predictions.slice(0, 5).map((p) => {
+              const isBuzz = p.choice === 'YES';
+              const choiceColor = isBuzzOrBoo
+                ? (isBuzz ? BUZZ_COLOR : BOO_COLOR)
+                : (isBuzz ? pair.yes : pair.no);
+              const choiceLabel = isBuzzOrBoo
+                ? (isBuzz ? '⚡ BUZZ' : '👎 BOO')
+                : p.choice;
+              return (
+                <View key={p.id} style={[styles.predRow, { borderBottomColor: colors.border }]}>
+                  <View
+                    style={[
+                      styles.predChoiceBadge,
+                      { backgroundColor: choiceColor + '33' },
+                    ]}
+                  >
+                    <Text style={[styles.predChoice, { color: choiceColor }]}>
+                      {choiceLabel}
+                    </Text>
+                  </View>
+                  <Text style={[styles.predMeta, { color: colors.mutedForeground }]}>
+                    {p.amount} tokens · {new Date(p.createdAt).toLocaleDateString()}
                   </Text>
                 </View>
-                <Text style={[styles.predMeta, { color: colors.mutedForeground }]}>
-                  {p.amount} tokens · {new Date(p.createdAt).toLocaleDateString()}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -266,7 +296,11 @@ export default function MarketDetailScreen() {
             <View style={styles.votedContainer}>
               <Feather name="check-circle" size={20} color={colors.primary} />
               <Text style={[styles.votedText, { color: colors.foreground }]}>
-                Predicted {voted} — nice call!
+                {isBuzzOrBoo
+                  ? voted === 'YES'
+                    ? '⚡ Buzzed — nice call!'
+                    : '👎 Boo\'d — noted!'
+                  : `Predicted ${voted} — nice call!`}
               </Text>
             </View>
           ) : (
@@ -275,15 +309,32 @@ export default function MarketDetailScreen() {
                 activeOpacity={0.85}
                 onPress={() => handlePredict('YES')}
                 disabled={voting}
-                style={[styles.predictBtn, { backgroundColor: pair.yes }]}
+                style={[
+                  styles.predictBtn,
+                  { backgroundColor: isBuzzOrBoo ? '#CFEA3B' : pair.yes },
+                ]}
               >
                 {voting ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={isBuzzOrBoo ? '#1A1A1A' : '#FFFFFF'} />
                 ) : (
                   <>
                     {isHotOrNot && <MaterialCommunityIcons name="fire" size={18} color="#FFFFFF" />}
-                    <Text style={styles.predictBtnText}>{yesLabel}</Text>
-                    <Text style={styles.predictBtnPct}>{Math.round(yesPercent)}%</Text>
+                    <Text
+                      style={[
+                        styles.predictBtnText,
+                        isBuzzOrBoo && { color: '#1A1A1A' },
+                      ]}
+                    >
+                      {isBuzzOrBoo ? '⚡ BUZZ' : yesLabel}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.predictBtnPct,
+                        isBuzzOrBoo && { color: 'rgba(0,0,0,0.6)' },
+                      ]}
+                    >
+                      {Math.round(yesPercent)}%
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -292,14 +343,19 @@ export default function MarketDetailScreen() {
                 activeOpacity={0.85}
                 onPress={() => handlePredict('NO')}
                 disabled={voting}
-                style={[styles.predictBtn, { backgroundColor: pair.no }]}
+                style={[
+                  styles.predictBtn,
+                  { backgroundColor: isBuzzOrBoo ? '#E8503E' : pair.no },
+                ]}
               >
                 {voting ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <>
                     {isHotOrNot && <MaterialCommunityIcons name="snowflake" size={18} color="#FFFFFF" />}
-                    <Text style={styles.predictBtnText}>{noLabel}</Text>
+                    <Text style={styles.predictBtnText}>
+                      {isBuzzOrBoo ? '👎 BOO' : noLabel}
+                    </Text>
                     <Text style={styles.predictBtnPct}>{Math.round(noPercent)}%</Text>
                   </>
                 )}

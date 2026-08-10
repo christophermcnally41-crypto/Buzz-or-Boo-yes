@@ -15,6 +15,7 @@ import { useColors } from '@/hooks/useColors';
 import { useListMarkets } from '@workspace/api-client-react';
 import type { Market } from '@workspace/api-client-react';
 import { MarketCard } from '@/components/MarketCard';
+import { BuzzOrBooCard } from '@/components/BuzzOrBooCard';
 import { MarketCardSkeleton } from '@/components/SkeletonLoader';
 import { Feather } from '@expo/vector-icons';
 
@@ -83,12 +84,20 @@ export default function DiscoverScreen() {
 
   const renderCard = ({ item }: { item: CardItem }) => (
     <View style={styles.cardSlot}>
-      <MarketCard
-        market={item.market}
-        isHot={item.isHot}
-        style={styles.card}
-        onPress={() => router.push(`/market/${item.market.id}`)}
-      />
+      {item.market.marketFormat === 'BUZZ_OR_BOO' ? (
+        <BuzzOrBooCard
+          market={item.market}
+          style={styles.card}
+          onPress={() => router.push(`/market/${item.market.id}`)}
+        />
+      ) : (
+        <MarketCard
+          market={item.market}
+          isHot={item.isHot}
+          style={styles.card}
+          onPress={() => router.push(`/market/${item.market.id}`)}
+        />
+      )}
     </View>
   );
 
