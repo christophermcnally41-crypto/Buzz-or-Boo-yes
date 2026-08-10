@@ -7,7 +7,7 @@
  *   3. PATCH /admin/markets/:id/resolve — outcome key validation, no token redistribution
  */
 
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import request from 'supertest';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import { eq, inArray } from 'drizzle-orm';
@@ -47,9 +47,32 @@ function buildPredictApp(platformUserId: number) {
   return app;
 }
 
+// requireAdmin does a live DB lookup; adminUserId must exist with is_admin=true.
+let adminUserId: number;
+
+beforeAll(async () => {
+  const res = await pool.query<{ id: number }>(
+    `INSERT INTO users (username, token_balance, is_admin) VALUES ($1, 0, true) RETURNING id`,
+    [`_test_thecall_admin_${Date.now()}`],
+  );
+  adminUserId = res.rows[0].id;
+});
+
+afterAll(async () => {
+  if (adminUserId) {
+    await pool.query(`DELETE FROM users WHERE id = $1`, [adminUserId]);
+  }
+  await pool.end();
+});
+
 function buildAdminApp() {
   const app = express();
   app.use(express.json());
+  app.use((_req: Request, _res: Response, next: NextFunction) => {
+    (_req as any).isAuthenticated = () => true;
+    (_req as any).user = { id: String(adminUserId) };
+    next();
+  });
   app.use(adminRouter);
   return app;
 }
@@ -86,10 +109,6 @@ afterEach(async () => {
   await db.delete(predictionsTable).where(eq(predictionsTable.userId, testUserId));
   await db.delete(marketsTable).where(eq(marketsTable.id, theCallMarketId));
   await db.delete(usersTable).where(eq(usersTable.id, testUserId));
-});
-
-afterAll(async () => {
-  await pool.end();
 });
 
 // ---------------------------------------------------------------------------

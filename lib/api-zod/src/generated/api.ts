@@ -903,7 +903,8 @@ export const GetCurrentAuthUserResponse = zod.object({
   "email": zod.string().nullable(),
   "firstName": zod.string().nullable(),
   "lastName": zod.string().nullable(),
-  "profileImageUrl": zod.string().nullable()
+  "profileImageUrl": zod.string().nullable(),
+  "isAdmin": zod.boolean()
 }),zod.null()])
 })
 
@@ -962,6 +963,39 @@ export const InitMobileAuthTransactionResponse = zod.object({
 
 
 
+
+/**
+ * @summary Admin — edit an existing market's mutable fields
+ */
+export const PatchMarketParams = zod.object({
+  "id": zod.number()
+})
+
+export const PatchMarketBody = zod.object({
+  "title": zod.string().min(3).max(200).optional(),
+  "question": zod.string().min(10).max(500).optional(),
+  "description": zod.union([zod.string(), zod.null()]).optional(),
+  "subcategory": zod.string().min(2).max(100).optional(),
+  "imageUrl": zod.union([zod.string().url(), zod.null()]).optional(),
+  "geo": zod.union([zod.string(), zod.null()]).optional(),
+  "closesAt": zod.union([zod.string().datetime(), zod.null()]).optional(),
+  "resolutionSource": zod.union([zod.string(), zod.null()]).optional(),
+  "sourcePrimary": zod.union([zod.string(), zod.null()]).optional(),
+  "sourceBackup": zod.union([zod.string(), zod.null()]).optional(),
+  "baselineSnapshot": zod.union([zod.string(), zod.null()]).optional(),
+  "formula": zod.union([zod.string(), zod.null()]).optional(),
+  "voidRule": zod.union([zod.string(), zod.null()]).optional()
+})
+
+export const PatchMarketResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "question": zod.string(),
+  "status": zod.string(),
+  "marketFormat": zod.string(),
+  "category": zod.string(),
+  "subcategory": zod.string()
+})
 
 export const ExchangeMobileAuthorizationCodeBody = zod.object({
   "code": zod.string().min(1),

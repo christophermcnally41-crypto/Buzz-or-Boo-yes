@@ -16,4 +16,6 @@ export interface AuthUser {
   lastName: string | null;
   /** @nullable */
   profileImageUrl: string | null;
+  /** True if this user has platform-admin privileges. */
+  isAdmin: boolean;
 }

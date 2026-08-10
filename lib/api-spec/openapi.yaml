@@ -604,6 +604,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /admin/markets/{id}:
+    patch:
+      operationId: patchMarket
+      tags: [admin]
+      summary: Admin — edit an existing market's mutable fields
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketPatch"
+      responses:
+        "200":
+          description: Updated market
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/markets/{id}/resolve:
     patch:
       operationId: resolveMarket
@@ -1125,6 +1162,37 @@ components:
         amount:
           type: number
 
+    MarketPatch:
+      type: object
+      description: Mutable fields that can be updated on an existing market. marketFormat is immutable.
+      properties:
+        title:
+          type: string
+        question:
+          type: string
+        description:
+          type: string
+        subcategory:
+          type: string
+        imageUrl:
+          type: string
+        geo:
+          type: string
+        closesAt:
+          type: string
+        resolutionSource:
+          type: string
+        sourcePrimary:
+          type: string
+        sourceBackup:
+          type: string
+        baselineSnapshot:
+          type: string
+        formula:
+          type: string
+        voidRule:
+          type: string
+
     MarketInput:
       type: object
       required:
@@ -1181,7 +1249,7 @@ components:
 
     AuthUser:
       type: object
-      required: [id, email, firstName, lastName, profileImageUrl]
+      required: [id, email, firstName, lastName, profileImageUrl, isAdmin]
       properties:
         id:
           type: string
@@ -1193,6 +1261,9 @@ components:
           type: [string, 'null']
         profileImageUrl:
           type: [string, 'null']
+        isAdmin:
+          type: boolean
+          description: True if this user has platform-admin privileges.
     AuthUserEnvelope:
       type: object
       required: [user]

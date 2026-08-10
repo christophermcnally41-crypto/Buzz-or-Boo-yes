@@ -312,6 +312,23 @@ export const MarketInputClockType = {
   RECURRING_PULSE: 'RECURRING_PULSE',
 } as const;
 
+/** Mutable fields that can be updated on an existing market. marketFormat is immutable. */
+export interface MarketPatch {
+  title?: string;
+  question?: string;
+  description?: string;
+  subcategory?: string;
+  imageUrl?: string;
+  geo?: string;
+  closesAt?: string;
+  resolutionSource?: string;
+  sourcePrimary?: string;
+  sourceBackup?: string;
+  baselineSnapshot?: string;
+  formula?: string;
+  voidRule?: string;
+}
+
 export interface MarketInput {
   title: string;
   question: string;
@@ -346,6 +363,8 @@ export interface AuthUser {
   lastName: string | null;
   /** @nullable */
   profileImageUrl: string | null;
+  /** True if this user has platform-admin privileges. */
+  isAdmin: boolean;
 }
 
 export interface AuthUserEnvelope {

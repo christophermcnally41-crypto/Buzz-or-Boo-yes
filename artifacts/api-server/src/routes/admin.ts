@@ -8,6 +8,9 @@ import {
   ResolveMarketParams,
   ResolveMarketBody,
   ResolveMarketResponse,
+  PatchMarketParams,
+  PatchMarketBody,
+  PatchMarketResponse,
 } from "@workspace/api-zod";
 import { z } from "zod";
 import { refreshLeaderboardRanks } from "../lib/rankRefresh.js";
@@ -29,7 +32,7 @@ function enrichMarket(m: typeof marketsTable.$inferSelect) {
   };
 }
 
-router.get("/admin/markets", async (_req, res): Promise<void> => {
+router.get("/admin/markets", requireAdmin, async (_req, res): Promise<void> => {
   const markets = await db
     .select()
     .from(marketsTable)
@@ -42,7 +45,7 @@ router.get("/admin/markets", async (_req, res): Promise<void> => {
   res.json(AdminListMarketsResponse.parse({ markets: markets.map(enrichMarket), total: count }));
 });
 
-router.post("/admin/markets", async (req, res): Promise<void> => {
+router.post("/admin/markets", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateMarketBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -82,7 +85,143 @@ router.post("/admin/markets", async (req, res): Promise<void> => {
   res.status(201).json(CreateMarketResponse.parse(enrichMarket(market)));
 });
 
-router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
+router.patch("/admin/markets/:id", requireAdmin, async (req, res): Promise<void> => {
+  // Must come before /admin/markets/:id/resolve so Express doesn't swallow it
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = PatchMarketParams.safeParse({ id: Number(raw) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const parsed = PatchMarketBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(marketsTable)
+    .where(eq(marketsTable.id, params.data.id));
+
+  if (!existing) {
+    res.status(404).json({ error: "Market not found" });
+    return;
+  }
+
+  if (existing.status !== "OPEN") {
+    res.status(400).json({ error: "Only OPEN markets can be edited" });
+    return;
+  }
+
+  const {
+    title, question, description, subcategory, imageUrl,
+    geo, closesAt, resolutionSource, sourcePrimary, sourceBackup,
+    baselineSnapshot, formula, voidRule,
+  } = parsed.data;
+
+  // Guard: when patching description for a choice-keyed format, ensure that
+  // no key which already has predictions cast against it is removed or reused
+  // for a different option.  Removing or renumbering such a key would silently
+  // re-attribute existing votes to a different contender/option.
+  // A null description on a voted choice-keyed market is also rejected: it
+  // would wipe the key-to-label configuration while historical predictions remain.
+  if (description !== undefined) {
+    const isChoiceKeyed =
+      existing.marketFormat === "MULTI_CHOICE" ||
+      existing.marketFormat === "THE_CALL";
+
+    if (isChoiceKeyed) {
+      const castRows = await db
+        .selectDistinct({ choice: predictionsTable.choice })
+        .from(predictionsTable)
+        .where(eq(predictionsTable.marketId, params.data.id));
+
+      const castChoices = castRows.map(r => r.choice).filter(Boolean) as string[];
+
+      if (castChoices.length > 0) {
+        // Explicitly block null: clearing the description on a voted market
+        // removes the key-to-label mapping while historical predictions remain.
+        if (description === null) {
+          res.status(400).json({
+            error: `Cannot clear description on a ${existing.marketFormat} market with existing votes. Rename choice labels instead.`,
+          });
+          return;
+        }
+
+        // description is now narrowed to string — validate key integrity.
+        try {
+          const newDesc: unknown = JSON.parse(description as string);
+          const newKeys = new Set<string>();
+          if (existing.marketFormat === "MULTI_CHOICE") {
+            ((newDesc as { contenders?: Array<{ key?: string }> })?.contenders ?? []).forEach(
+              (c) => c.key && newKeys.add(c.key),
+            );
+          } else {
+            ((newDesc as { options?: Array<{ key?: string }> })?.options ?? []).forEach(
+              (o) => o.key && newKeys.add(o.key),
+            );
+          }
+          const missingKeys = castChoices.filter(k => !newKeys.has(k));
+          if (missingKeys.length > 0) {
+            res.status(400).json({
+              error: `Cannot remove choice keys that have existing votes: ${missingKeys.join(", ")}. Rename the label instead.`,
+            });
+            return;
+          }
+        } catch {
+          // Malformed JSON on a choice-keyed format with existing votes is rejected:
+          // we cannot validate key integrity against non-parseable content.
+          res.status(400).json({
+            error: "Description must be valid JSON for MULTI_CHOICE and THE_CALL markets",
+          });
+          return;
+        }
+      }
+    }
+  }
+
+  // Build update object — only include fields explicitly provided
+  const update: Partial<typeof marketsTable.$inferInsert> = {};
+  if (title !== undefined) update.title = title;
+  if (question !== undefined) update.question = question;
+  if (description !== undefined) update.description = description ?? null;
+  if (subcategory !== undefined) update.subcategory = subcategory;
+  if (imageUrl !== undefined) update.imageUrl = imageUrl ?? null;
+  if (geo !== undefined) update.geo = geo ?? null;
+  if (closesAt !== undefined) update.closesAt = closesAt ? new Date(closesAt) : null;
+  if (resolutionSource !== undefined) update.resolutionSource = resolutionSource ?? null;
+  if (sourcePrimary !== undefined) update.sourcePrimary = sourcePrimary ?? null;
+  if (sourceBackup !== undefined) update.sourceBackup = sourceBackup ?? null;
+  if (baselineSnapshot !== undefined) update.baselineSnapshot = baselineSnapshot ?? null;
+  if (formula !== undefined) update.formula = formula ?? null;
+  if (voidRule !== undefined) update.voidRule = voidRule ?? null;
+
+  if (Object.keys(update).length === 0) {
+    res.status(400).json({ error: "No fields to update" });
+    return;
+  }
+
+  // Atomically update only if the market is still OPEN — prevents a
+  // TOCTOU race where the market is resolved/closed between the status
+  // check above and this write.
+  const [updated] = await db
+    .update(marketsTable)
+    .set(update)
+    .where(and(eq(marketsTable.id, params.data.id), eq(marketsTable.status, "OPEN")))
+    .returning();
+
+  if (!updated) {
+    // The market was resolved or closed between the read and the write.
+    res.status(400).json({ error: "Market is no longer OPEN and cannot be edited" });
+    return;
+  }
+
+  res.json(CreateMarketResponse.parse(enrichMarket(updated)));
+});
+
+router.patch("/admin/markets/:id/resolve", requireAdmin, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = ResolveMarketParams.safeParse({ id: Number(raw) });
   if (!params.success) {
@@ -277,16 +416,38 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
 });
 
 // ─── Admin auth guard ────────────────────────────────────────────────────────
-// All /admin/* routes require an authenticated session.  The authMiddleware
-// (app.ts) has already resolved req.user from the session by this point.
+// All /admin/* routes require an authenticated admin session.
+// The authMiddleware (app.ts) has already resolved req.user from the session
+// by this point; isAdmin must be true on the platform user record.
 
-function requireAuth(req: any, res: any, next: any): void {
+async function requireAdmin(req: any, res: any, next: any): Promise<void> {
   if (!req.isAuthenticated?.()) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
-  next();
+  try {
+    // Re-check isAdmin from the authoritative DB record on every admin request.
+    // This ensures that a demoted administrator loses access immediately rather
+    // than retaining it for the remainder of their session lifetime.
+    const platformId = parseInt(req.user?.id, 10);
+    if (isNaN(platformId)) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+    const [freshUser] = await db
+      .select({ isAdmin: usersTable.isAdmin })
+      .from(usersTable)
+      .where(eq(usersTable.id, platformId));
+    if (!freshUser?.isAdmin) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
 }
+
 
 // ─── Template CRUD ──────────────────────────────────────────────────────────
 
@@ -323,7 +484,7 @@ function serializeTemplate(t: typeof marketTemplatesTable.$inferSelect) {
   };
 }
 
-router.get("/admin/templates", requireAuth, async (_req, res): Promise<void> => {
+router.get("/admin/templates", requireAdmin, async (_req, res): Promise<void> => {
   const templates = await db
     .select()
     .from(marketTemplatesTable)
@@ -331,7 +492,7 @@ router.get("/admin/templates", requireAuth, async (_req, res): Promise<void> => 
   res.json({ templates: templates.map(serializeTemplate) });
 });
 
-router.post("/admin/templates", requireAuth, async (req, res): Promise<void> => {
+router.post("/admin/templates", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateTemplateBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -346,7 +507,7 @@ router.post("/admin/templates", requireAuth, async (req, res): Promise<void> => 
   res.status(201).json(serializeTemplate(template));
 });
 
-router.post("/admin/templates/:id/create-market", requireAuth, async (req, res): Promise<void> => {
+router.post("/admin/templates/:id/create-market", requireAdmin, async (req, res): Promise<void> => {
   const templateId = Number(req.params.id);
   if (isNaN(templateId)) {
     res.status(400).json({ error: "Invalid template id" });

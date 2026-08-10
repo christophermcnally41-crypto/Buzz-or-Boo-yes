@@ -38,6 +38,7 @@ import type {
   MarketFromTemplateInput,
   MarketInput,
   MarketList,
+  MarketPatch,
   MarketResolution,
   MarketTally,
   MarketTemplate,
@@ -2160,6 +2161,61 @@ export const useCreateMarket = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getCreateMarketMutationOptions(options));
+    }
+
+export const getPatchMarketUrl = (id: number,) => {
+  return `/api/admin/markets/${id}`
+}
+
+/**
+ * @summary Admin — edit an existing market's mutable fields
+ */
+export const patchMarket = async (id: number,
+    marketPatch: MarketPatch, options?: Parameters<typeof customFetch>[1]): Promise<Market> => {
+
+  return customFetch<Market>(getPatchMarketUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(marketPatch)
+  }
+);}
+
+export const getPatchMarketMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchMarket>>, TError,{id: number;data: BodyType<MarketPatch>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchMarket>>, TError,{id: number;data: BodyType<MarketPatch>}, TContext> => {
+
+const mutationKey = ['patchMarket'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchMarket>>, {id: number;data: BodyType<MarketPatch>}> = (props) => {
+          const {id,data} = props ?? {};
+          return  patchMarket(id,data,requestOptions)
+        }
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchMarketMutationResult = NonNullable<Awaited<ReturnType<typeof patchMarket>>>
+    export type PatchMarketMutationBody = BodyType<MarketPatch>
+    export type PatchMarketMutationError = ErrorType<Error>
+
+    /**
+ * @summary Admin — edit an existing market's mutable fields
+ */
+export const usePatchMarket = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchMarket>>, TError,{id: number;data: BodyType<MarketPatch>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof patchMarket>>,
+        TError,
+        {id: number;data: BodyType<MarketPatch>},
+        TContext
+      > => {
+      return useMutation(getPatchMarketMutationOptions(options));
     }
 
 export const getResolveMarketUrl = (id: number,) => {

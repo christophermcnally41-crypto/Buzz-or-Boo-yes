@@ -87,6 +87,7 @@ const mockUser = {
   firstName: 'Alice',
   lastName: 'Example',
   profileImageUrl: null,
+  isAdmin: false,
 };
 
 const expiredSession: authLib.SessionData = {

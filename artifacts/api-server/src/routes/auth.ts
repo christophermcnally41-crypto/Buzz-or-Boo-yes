@@ -150,6 +150,7 @@ async function upsertUser(claims: Record<string, unknown>) {
       firstName: updated.firstName,
       lastName: updated.lastName,
       profileImageUrl: updated.avatarUrl,
+      isAdmin: updated.isAdmin,
     };
   }
 
@@ -172,6 +173,7 @@ async function upsertUser(claims: Record<string, unknown>) {
         firstName: created.firstName,
         lastName: created.lastName,
         profileImageUrl: created.avatarUrl,
+        isAdmin: created.isAdmin,
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
@@ -284,6 +286,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       firstName: authUser.firstName,
       lastName: authUser.lastName,
       profileImageUrl: authUser.profileImageUrl,
+      isAdmin: authUser.isAdmin,
     },
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
@@ -380,6 +383,7 @@ router.post(
           firstName: authUser.firstName,
           lastName: authUser.lastName,
           profileImageUrl: authUser.profileImageUrl,
+          isAdmin: authUser.isAdmin,
         },
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,

@@ -3,6 +3,7 @@ import {
   useAdminListMarkets, 
   useCreateMarket, 
   useResolveMarket,
+  usePatchMarket,
   useListMarketTemplates,
   useCreateMarketFromTemplate,
   getAdminListMarketsQueryKey,
@@ -113,6 +114,299 @@ function extractPlaceholders(templateQuestion: string): string[] {
 // Fill placeholder slots into a template question
 function fillPlaceholders(templateQuestion: string, values: Record<string, string>): string {
   return templateQuestion.replace(/\[([^\]]+)\]/g, (match, key) => values[match] ?? match);
+}
+
+// ── Inline Edit Form ─────────────────────────────────────────────────────────
+
+interface EditMarketFormProps {
+  market: {
+    id: number;
+    title: string;
+    question: string;
+    description?: string | null;
+    subcategory: string;
+    imageUrl?: string | null;
+    geo?: string | null;
+    closesAt?: string | null;
+    resolutionSource?: string | null;
+    sourcePrimary?: string | null;
+    sourceBackup?: string | null;
+    baselineSnapshot?: string | null;
+    formula?: string | null;
+    voidRule?: string | null;
+    marketFormat?: string;
+  };
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const patchMarket = usePatchMarket();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isMultiChoice = market.marketFormat === "MULTI_CHOICE";
+  const isTheCall = market.marketFormat === "THE_CALL";
+
+  // Core fields
+  const [title, setTitle] = useState(market.title);
+  const [question, setQuestion] = useState(market.question);
+  const [subcategory, setSubcategory] = useState(market.subcategory);
+  const [imageUrl, setImageUrl] = useState(market.imageUrl ?? "");
+  const [geo, setGeo] = useState(market.geo ?? "");
+  const [closesAt, setClosesAt] = useState(
+    market.closesAt ? new Date(market.closesAt).toISOString().slice(0, 10) : ""
+  );
+  const [resolutionSource, setResolutionSource] = useState(market.resolutionSource ?? "");
+  const [sourcePrimary, setSourcePrimary] = useState(market.sourcePrimary ?? "");
+  const [sourceBackup, setSourceBackup] = useState(market.sourceBackup ?? "");
+  const [baselineSnapshot, setBaselineSnapshot] = useState(market.baselineSnapshot ?? "");
+  const [formula, setFormula] = useState(market.formula ?? "");
+  const [voidRule, setVoidRule] = useState(market.voidRule ?? "");
+
+  // MULTI_CHOICE contender state — pre-populated from description
+  const initialContenders: Contender[] = isMultiChoice
+    ? (() => {
+        const parsed = parseContenders(market.description);
+        return parsed.length >= 2 ? parsed.map(c => ({ key: c.key, name: c.name, venue: c.venue ?? "" })) :
+          [{ key: "A", name: "", venue: "" }, { key: "B", name: "", venue: "" }, { key: "C", name: "", venue: "" }];
+      })()
+    : [];
+
+  const [editContenders, setEditContenders] = useState<Contender[]>(initialContenders);
+
+  // THE_CALL option state — pre-populated from description
+  type CallOption = { key: string; label: string };
+  const initialOptions: CallOption[] = isTheCall
+    ? (() => {
+        try {
+          const p = JSON.parse(market.description ?? "{}");
+          if (Array.isArray(p.options)) return p.options as CallOption[];
+        } catch {}
+        return [{ key: "A", label: "" }, { key: "B", label: "" }];
+      })()
+    : [];
+
+  const [editOptions, setEditOptions] = useState<CallOption[]>(initialOptions);
+
+  const addEditContender = () => {
+    if (editContenders.length >= 5) return;
+    const usedKeys = new Set(editContenders.map(c => c.key));
+    const nextKey = CONTENDER_KEYS.find(k => !usedKeys.has(k)) ?? CONTENDER_KEYS[editContenders.length];
+    setEditContenders([...editContenders, { key: nextKey, name: "", venue: "" }]);
+  };
+  const removeEditContender = (i: number) => {
+    if (editContenders.length <= 2) return;
+    // Preserve stable keys — do NOT reindex remaining contenders; votes are
+    // stored by key so any remapping would silently corrupt existing predictions.
+    setEditContenders(editContenders.filter((_, idx) => idx !== i));
+  };
+  const updateEditContender = (i: number, field: "name" | "venue", value: string) => {
+    setEditContenders(editContenders.map((c, idx) => idx === i ? { ...c, [field]: value } : c));
+  };
+
+  const addEditOption = () => {
+    if (editOptions.length >= 5) return;
+    const usedKeys = new Set(editOptions.map(o => o.key));
+    const nextKey = CONTENDER_KEYS.find(k => !usedKeys.has(k)) ?? CONTENDER_KEYS[editOptions.length];
+    setEditOptions([...editOptions, { key: nextKey, label: "" }]);
+  };
+  const removeEditOption = (i: number) => {
+    if (editOptions.length <= 2) return;
+    // Preserve stable keys — do NOT reindex remaining options.
+    setEditOptions(editOptions.filter((_, idx) => idx !== i));
+  };
+  const updateEditOption = (i: number, value: string) => {
+    setEditOptions(editOptions.map((o, idx) => idx === i ? { ...o, label: value } : o));
+  };
+
+  const handleSave = () => {
+    if (!title.trim() || title.trim().length < 5) {
+      toast({ title: "Title must be at least 5 characters", variant: "destructive" });
+      return;
+    }
+    if (!question.trim() || question.trim().length < 10) {
+      toast({ title: "Question must be at least 10 characters", variant: "destructive" });
+      return;
+    }
+
+    // Build description JSON for structured formats
+    let description: string | undefined;
+    if (isMultiChoice) {
+      const valid = editContenders.filter(c => c.name.trim());
+      if (valid.length < 2) {
+        toast({ title: "Add at least 2 contenders", variant: "destructive" });
+        return;
+      }
+      // Preserve other description fields (metric, period, recurring) from original
+      let existing: Record<string, unknown> = {};
+      try { existing = JSON.parse(market.description ?? "{}"); } catch {}
+      description = JSON.stringify({
+        ...existing,
+        contenders: valid.map(c => ({
+          key: c.key,
+          name: c.name.trim(),
+          ...(c.venue?.trim() ? { venue: c.venue.trim() } : {}),
+        })),
+      });
+    } else if (isTheCall) {
+      const valid = editOptions.filter(o => o.label.trim());
+      if (valid.length < 2) {
+        toast({ title: "Add at least 2 options", variant: "destructive" });
+        return;
+      }
+      let existing: Record<string, unknown> = {};
+      try { existing = JSON.parse(market.description ?? "{}"); } catch {}
+      description = JSON.stringify({ ...existing, options: valid });
+    }
+
+    setIsSaving(true);
+    patchMarket.mutate({
+      id: market.id,
+      data: {
+        title: title.trim(),
+        question: question.trim(),
+        subcategory: subcategory.trim() || undefined,
+        imageUrl: imageUrl.trim() || undefined,
+        geo: geo.trim() || undefined,
+        closesAt: closesAt ? new Date(closesAt).toISOString() : undefined,
+        resolutionSource: resolutionSource.trim() || undefined,
+        sourcePrimary: sourcePrimary.trim() || undefined,
+        sourceBackup: sourceBackup.trim() || undefined,
+        baselineSnapshot: baselineSnapshot.trim() || undefined,
+        formula: formula.trim() || undefined,
+        voidRule: voidRule.trim() || undefined,
+        ...(description !== undefined ? { description } : {}),
+      },
+    }, {
+      onSuccess: () => {
+        toast({ title: "Market updated ✓" });
+        queryClient.invalidateQueries({ queryKey: getAdminListMarketsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListMarketsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetTrendingMarketsQueryKey() });
+        setIsSaving(false);
+        onSuccess();
+      },
+      onError: () => {
+        toast({ title: "Failed to save changes", variant: "destructive" });
+        setIsSaving(false);
+      },
+    });
+  };
+
+  return (
+    <div className="border-t border-border pt-4 mt-2 space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold text-primary uppercase tracking-wider">✏️ Edit Market</p>
+        <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+      </div>
+
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Title</Label>
+          <Input value={title} onChange={e => setTitle(e.target.value)} className="h-8 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Question</Label>
+          <Textarea value={question} onChange={e => setQuestion(e.target.value)} className="text-sm min-h-[60px]" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label className="text-xs">Subcategory</Label>
+            <Input value={subcategory} onChange={e => setSubcategory(e.target.value)} className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Close Date</Label>
+            <Input type="date" value={closesAt} onChange={e => setClosesAt(e.target.value)} className="h-8 text-sm" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Image URL</Label>
+          <Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..." className="h-8 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Geography</Label>
+          <Input value={geo} onChange={e => setGeo(e.target.value)} placeholder="e.g. Boston · South End" className="h-8 text-sm" />
+        </div>
+
+        {/* MULTI_CHOICE contender builder */}
+        {isMultiChoice && (
+          <div className="space-y-2 bg-primary/5 rounded-lg p-3 border border-primary/20">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-primary font-bold">⚡ Contenders</Label>
+              {editContenders.length < 5 && (
+                <Button type="button" variant="ghost" size="sm" onClick={addEditContender} className="h-6 text-xs gap-1">
+                  <Plus className="w-3 h-3" /> Add
+                </Button>
+              )}
+            </div>
+            {editContenders.map((c, i) => (
+              <div key={c.key} className="flex gap-2 items-start">
+                <span className="text-xs font-bold text-primary w-5 pt-2 shrink-0">{c.key}</span>
+                <div className="flex-1 space-y-1">
+                  <Input value={c.name} onChange={e => updateEditContender(i, "name", e.target.value)} placeholder="Contender name" className="h-7 text-xs" />
+                  <Input value={c.venue} onChange={e => updateEditContender(i, "venue", e.target.value)} placeholder="Venue / handle (optional)" className="h-6 text-[11px] text-muted-foreground" />
+                </div>
+                {editContenders.length > 2 && (
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeEditContender(i)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* THE_CALL option builder */}
+        {isTheCall && (
+          <div className="space-y-2 bg-cyan-50 rounded-lg p-3 border border-cyan-200">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-cyan-700 font-bold">🎯 Options</Label>
+              {editOptions.length < 5 && (
+                <Button type="button" variant="ghost" size="sm" onClick={addEditOption} className="h-6 text-xs gap-1">
+                  <Plus className="w-3 h-3" /> Add
+                </Button>
+              )}
+            </div>
+            {editOptions.map((o, i) => (
+              <div key={o.key} className="flex gap-2 items-center">
+                <span className="text-xs font-bold text-cyan-700 w-5 shrink-0">{o.key}</span>
+                <Input value={o.label} onChange={e => updateEditOption(i, e.target.value)} placeholder="Option label" className="h-7 text-xs" />
+                {editOptions.length > 2 && (
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeEditOption(i)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Resolution metadata (collapsed section) */}
+        <details className="group">
+          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground select-none list-none flex items-center gap-1">
+            <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
+            Resolution rules
+          </summary>
+          <div className="mt-2 space-y-2">
+            <Input value={resolutionSource} onChange={e => setResolutionSource(e.target.value)} placeholder="Resolution source" className="h-8 text-xs" />
+            <div className="grid grid-cols-2 gap-2">
+              <Input value={sourcePrimary} onChange={e => setSourcePrimary(e.target.value)} placeholder="Primary source" className="h-8 text-xs" />
+              <Input value={sourceBackup} onChange={e => setSourceBackup(e.target.value)} placeholder="Backup source" className="h-8 text-xs" />
+            </div>
+            <Input value={baselineSnapshot} onChange={e => setBaselineSnapshot(e.target.value)} placeholder="Baseline snapshot" className="h-8 text-xs" />
+            <Input value={formula} onChange={e => setFormula(e.target.value)} placeholder="Formula / scoring rule" className="h-8 text-xs" />
+            <Input value={voidRule} onChange={e => setVoidRule(e.target.value)} placeholder="Void criteria" className="h-8 text-xs" />
+          </div>
+        </details>
+      </div>
+
+      <Button size="sm" className="w-full" onClick={handleSave} disabled={isSaving}>
+        {isSaving ? "Saving..." : "Save Changes"}
+      </Button>
+    </div>
+  );
 }
 
 // ── Template Picker Sub-flow ─────────────────────────────────────────────────
@@ -515,6 +809,7 @@ export default function Admin() {
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<string>("STANDARD");
   const [selectedClockType, setSelectedClockType] = useState<string>("EVERGREEN");
   const [contenders, setContenders] = useState<Contender[]>([
@@ -1020,6 +1315,8 @@ export default function Admin() {
                 })() : [];
                 const isResolving = resolvingId === market.id;
 
+                const isEditing = editingId === market.id;
+
                 return (
                   <Card key={market.id} className="overflow-hidden">
                     <div className="p-5 flex flex-col gap-4">
@@ -1048,6 +1345,13 @@ export default function Admin() {
                               </Badge>
                             )}
                             <span className="text-muted-foreground">ID: {market.id}</span>
+                            <button
+                              className="ml-auto flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                              onClick={() => setEditingId(isEditing ? null : market.id)}
+                            >
+                              <Pencil className="w-3 h-3" />
+                              {isEditing ? "Close" : "Edit"}
+                            </button>
                           </div>
                           <Link href={`/markets/${market.id}`}>
                             <h4 className="font-editorial font-bold text-lg hover:text-primary transition-colors">
@@ -1134,6 +1438,14 @@ export default function Admin() {
                             ))}
                           </div>
                         </div>
+                      )}
+
+                      {isEditing && (
+                        <EditMarketForm
+                          market={market}
+                          onClose={() => setEditingId(null)}
+                          onSuccess={() => setEditingId(null)}
+                        />
                       )}
                     </div>
                   </Card>

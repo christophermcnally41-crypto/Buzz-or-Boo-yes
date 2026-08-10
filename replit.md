@@ -50,6 +50,17 @@ A visual forecasting platform where people predict what happens next in Style, H
 
 _Populate as you build — explicit user instructions worth remembering across sessions._
 
+## Admin access
+
+All `/admin/*` API routes require `is_admin = true` on the platform user record. New deployments set every user to `is_admin = false` by default.
+
+**To grant admin access after deploying:**
+1. Find your Replit user ID — it is printed in the API server logs as `[auth] upserted user replitId=<id>` on first login.
+2. Set the environment variable `INITIAL_ADMIN_IDS` to a comma-separated list of those IDs (e.g. `12345678,87654321`) in Replit Secrets / Environment Variables.
+3. Re-run `scripts/post-merge.sh` (or redeploy) — the bootstrap step promotes those users idempotently.
+
+Alternatively, run directly: `psql $DATABASE_URL -c "UPDATE users SET is_admin=true WHERE replit_id='<your-id>'"`
+
 ## Gotchas
 
 - After any OpenAPI spec change, run codegen before touching routes or frontend

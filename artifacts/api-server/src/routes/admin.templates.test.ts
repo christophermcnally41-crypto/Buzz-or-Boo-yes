@@ -10,22 +10,40 @@
  *   Default duration is applied when closesAt is omitted
  */
 
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import request from 'supertest';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import { eq } from 'drizzle-orm';
-import { db, pool, marketsTable, marketTemplatesTable } from '@workspace/db';
+import { db, pool, marketsTable, marketTemplatesTable, usersTable } from '@workspace/db';
 import adminRouter from './admin.js';
 
 // ─── App factories ──────────────────────────────────────────────────────────
 
-/** Authenticated admin app — injects a fake authenticated user. */
+// requireAdmin now does a live DB lookup; adminUserId must exist in DB with is_admin=true.
+let adminUserId: number;
+
+beforeAll(async () => {
+  const res = await pool.query<{ id: number }>(
+    `INSERT INTO users (username, token_balance, is_admin) VALUES ($1, 0, true) RETURNING id`,
+    [`_test_templates_admin_${Date.now()}`],
+  );
+  adminUserId = res.rows[0].id;
+});
+
+afterAll(async () => {
+  if (adminUserId) {
+    await db.delete(usersTable).where(eq(usersTable.id, adminUserId));
+  }
+  await pool.end();
+});
+
+/** Authenticated admin app — uses a real admin DB user so requireAdmin's lookup succeeds. */
 function buildAuthedApp() {
   const app = express();
   app.use(express.json());
   app.use((_req: Request, _res: Response, next: NextFunction) => {
     _req.isAuthenticated = (() => true) as Request['isAuthenticated'];
-    _req.user = { id: 'test-admin' } as Express.User;
+    (_req as any).user = { id: String(adminUserId) };
     next();
   });
   app.use(adminRouter);
@@ -63,10 +81,6 @@ afterEach(async () => {
     }
     createdTemplateIds.length = 0;
   }
-});
-
-afterAll(async () => {
-  await pool.end();
 });
 
 // ─── Helper ─────────────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@
  * Also covers STANDARD market resolution as a baseline comparison.
  */
 
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import request from 'supertest';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import { eq, inArray } from 'drizzle-orm';
@@ -25,11 +25,30 @@ import adminRouter from './admin.js';
 // App factory — injects a fake authenticated admin user.
 // ---------------------------------------------------------------------------
 
+// requireAdmin now does a live DB lookup; adminUserId must exist in DB with is_admin=true.
+let adminUserId: number;
+
+beforeAll(async () => {
+  const res = await pool.query<{ id: number }>(
+    `INSERT INTO users (username, token_balance, is_admin) VALUES ($1, 0, true) RETURNING id`,
+    [`_test_resolve_admin_${Date.now()}`],
+  );
+  adminUserId = res.rows[0].id;
+});
+
+afterAll(async () => {
+  if (adminUserId) {
+    await pool.query(`DELETE FROM users WHERE id = $1`, [adminUserId]);
+  }
+  await pool.end();
+});
+
 function buildApp() {
   const app = express();
   app.use(express.json());
-  // Auth bypass: every request is treated as authenticated.
   app.use((_req: Request, _res: Response, next: NextFunction) => {
+    (_req as any).isAuthenticated = () => true;
+    (_req as any).user = { id: String(adminUserId) };
     next();
   });
   app.use(adminRouter);
@@ -102,10 +121,6 @@ afterEach(async () => {
   if (testUserId) {
     await db.delete(usersTable).where(eq(usersTable.id, testUserId));
   }
-});
-
-afterAll(async () => {
-  await pool.end();
 });
 
 // ---------------------------------------------------------------------------
