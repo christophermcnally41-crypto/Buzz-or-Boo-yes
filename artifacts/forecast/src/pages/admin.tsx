@@ -25,6 +25,16 @@ import { Link } from "wouter";
 
 const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE", "BEAUTY", "ACCESSORIES", "MOVIES"] as const;
 const ALL_FORMATS = ["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE", "BUZZ_OR_BOO", "THE_CALL"] as const;
+const ALL_CLOCK_TYPES = ["EVERGREEN", "SEASONAL", "NOW", "EVENT_DRIVEN", "ROLLING_FORECAST", "RECURRING_PULSE"] as const;
+
+const CLOCK_TYPE_LABELS: Record<string, { label: string; hint: string }> = {
+  EVERGREEN:        { label: "🌿 Evergreen",        hint: "Never expires — always relevant" },
+  SEASONAL:         { label: "🌸 Seasonal",          hint: "Active for a specific season or window" },
+  NOW:              { label: "⚡ Now",               hint: "Aggressive expiry — hyper-current moment" },
+  EVENT_DRIVEN:     { label: "📅 Event-Driven",      hint: "Closes when the event resolves" },
+  ROLLING_FORECAST: { label: "🔄 Rolling Forecast",  hint: "Window advances on a schedule" },
+  RECURRING_PULSE:  { label: "🔁 Recurring Pulse",   hint: "Auto-respawns on a cadence" },
+};
 
 const formSchema = z.object({
   title: z.string().min(5),
@@ -42,6 +52,11 @@ const formSchema = z.object({
   voidRule: z.string().optional(),
   geo: z.string().optional(),
   closesAt: z.string().optional(),
+  clockType: z.enum(ALL_CLOCK_TYPES).default("EVERGREEN"),
+  publishAt: z.string().optional(),
+  peakUntil: z.string().optional(),
+  expireAt: z.string().optional(),
+  refreshRule: z.string().optional(),
 });
 
 interface Contender {
@@ -73,6 +88,7 @@ export default function Admin() {
   const [isCreating, setIsCreating] = useState(false);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<string>("STANDARD");
+  const [selectedClockType, setSelectedClockType] = useState<string>("EVERGREEN");
   const [contenders, setContenders] = useState<Contender[]>([
     { key: "A", name: "", venue: "" },
     { key: "B", name: "", venue: "" },
@@ -110,6 +126,7 @@ export default function Admin() {
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     let description = data.description || undefined;
+    const clockType = selectedClockType as any;
 
     if (selectedFormat === "MULTI_CHOICE") {
       const validContenders = contenders.filter(c => c.name.trim());
@@ -157,6 +174,11 @@ export default function Admin() {
         voidRule: data.voidRule || undefined,
         geo: data.geo || undefined,
         closesAt: data.closesAt ? new Date(data.closesAt).toISOString() : undefined,
+        clockType,
+        publishAt: data.publishAt ? new Date(data.publishAt).toISOString() : undefined,
+        peakUntil: data.peakUntil ? new Date(data.peakUntil).toISOString() : undefined,
+        expireAt: data.expireAt ? new Date(data.expireAt).toISOString() : undefined,
+        refreshRule: data.refreshRule || undefined,
       }
     }, {
       onSuccess: () => {
@@ -372,6 +394,65 @@ export default function Admin() {
                     <Label>Close Date</Label>
                     <Input type="date" {...form.register("closesAt")} />
                   </div>
+                </div>
+
+                {/* Clock Lifecycle Section */}
+                <div className="space-y-3 bg-primary/5 rounded-xl p-4 border border-primary/10">
+                  <p className="text-xs font-bold text-primary/80 uppercase tracking-wider">⏱ Clock Lifecycle (Market Bible §40)</p>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Clock Type</Label>
+                    <Select
+                      onValueChange={(val) => { setSelectedClockType(val); form.setValue("clockType", val as any); }}
+                      defaultValue="EVERGREEN"
+                    >
+                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {ALL_CLOCK_TYPES.map(ct => (
+                          <SelectItem key={ct} value={ct}>
+                            <span>{CLOCK_TYPE_LABELS[ct].label}</span>
+                            <span className="text-muted-foreground text-xs ml-2">{CLOCK_TYPE_LABELS[ct].hint}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedClockType !== "EVERGREEN" && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Publish At</Label>
+                        <Input type="datetime-local" {...form.register("publishAt")} className="h-8 text-xs" />
+                        <p className="text-[10px] text-muted-foreground">Leave blank to publish immediately</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Expire At</Label>
+                        <Input type="datetime-local" {...form.register("expireAt")} className="h-8 text-xs" />
+                        <p className="text-[10px] text-muted-foreground">Worker archives at this time</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Peak Until</Label>
+                        <Input type="datetime-local" {...form.register("peakUntil")} className="h-8 text-xs" />
+                        <p className="text-[10px] text-muted-foreground">End of 100% freshness window</p>
+                      </div>
+                      {selectedClockType === "RECURRING_PULSE" && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Refresh Rule</Label>
+                          <Select
+                            onValueChange={(val) => form.setValue("refreshRule", val)}
+                            defaultValue="MONTHLY"
+                          >
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Cadence" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MONTHLY">Monthly</SelectItem>
+                              <SelectItem value="WEEKLY">Weekly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[10px] text-muted-foreground">Auto-respawn cadence</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-3 bg-muted/40 rounded-xl p-4 border border-border">

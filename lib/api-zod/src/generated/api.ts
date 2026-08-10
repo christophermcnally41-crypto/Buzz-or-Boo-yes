@@ -95,7 +95,7 @@ export const listMarketsQueryOffsetDefault = 0;
 
 export const ListMarketsQueryParams = zod.object({
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']).optional(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']).optional(),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']).optional(),
   "format": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "limit": zod.coerce.number().default(listMarketsQueryLimitDefault),
   "offset": zod.coerce.number().default(listMarketsQueryOffsetDefault)
@@ -111,7 +111,7 @@ export const ListMarketsResponse = zod.object({
   "subcategory": zod.string(),
   "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
   "yesCount": zod.number(),
   "noCount": zod.number(),
   "totalPredictions": zod.number(),
@@ -127,6 +127,13 @@ export const ListMarketsResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
+  "clockType": zod.string().optional(),
+  "publishAt": zod.string().nullish(),
+  "peakUntil": zod.string().nullish(),
+  "expireAt": zod.string().nullish(),
+  "refreshRule": zod.string().nullish(),
+  "freshnessScore": zod.number().nullish(),
+  "seriesId": zod.number().nullish(),
   "createdAt": zod.string()
 })),
   "total": zod.number()
@@ -153,7 +160,7 @@ export const GetTrendingMarketsResponse = zod.object({
   "subcategory": zod.string(),
   "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
   "yesCount": zod.number(),
   "noCount": zod.number(),
   "totalPredictions": zod.number(),
@@ -169,6 +176,13 @@ export const GetTrendingMarketsResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
+  "clockType": zod.string().optional(),
+  "publishAt": zod.string().nullish(),
+  "peakUntil": zod.string().nullish(),
+  "expireAt": zod.string().nullish(),
+  "refreshRule": zod.string().nullish(),
+  "freshnessScore": zod.number().nullish(),
+  "seriesId": zod.number().nullish(),
   "createdAt": zod.string()
 })),
   "total": zod.number()
@@ -204,7 +218,7 @@ export const GetMarketResponse = zod.object({
   "subcategory": zod.string(),
   "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
   "yesCount": zod.number(),
   "noCount": zod.number(),
   "totalPredictions": zod.number(),
@@ -220,6 +234,13 @@ export const GetMarketResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
+  "clockType": zod.string().optional(),
+  "publishAt": zod.string().nullish(),
+  "peakUntil": zod.string().nullish(),
+  "expireAt": zod.string().nullish(),
+  "refreshRule": zod.string().nullish(),
+  "freshnessScore": zod.number().nullish(),
+  "seriesId": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -405,7 +426,7 @@ export const GetUserPinsResponse = zod.object({
   "subcategory": zod.string(),
   "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
   "yesCount": zod.number(),
   "noCount": zod.number(),
   "totalPredictions": zod.number(),
@@ -421,6 +442,13 @@ export const GetUserPinsResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
+  "clockType": zod.string().optional(),
+  "publishAt": zod.string().nullish(),
+  "peakUntil": zod.string().nullish(),
+  "expireAt": zod.string().nullish(),
+  "refreshRule": zod.string().nullish(),
+  "freshnessScore": zod.number().nullish(),
+  "seriesId": zod.number().nullish(),
   "createdAt": zod.string()
 }))
 })
@@ -446,7 +474,7 @@ export const GetUserPredictionsResponseItem = zod.object({
   "subcategory": zod.string(),
   "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
   "yesCount": zod.number(),
   "noCount": zod.number(),
   "totalPredictions": zod.number(),
@@ -462,6 +490,13 @@ export const GetUserPredictionsResponseItem = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
+  "clockType": zod.string().optional(),
+  "publishAt": zod.string().nullish(),
+  "peakUntil": zod.string().nullish(),
+  "expireAt": zod.string().nullish(),
+  "refreshRule": zod.string().nullish(),
+  "freshnessScore": zod.number().nullish(),
+  "seriesId": zod.number().nullish(),
   "createdAt": zod.string()
 }).optional(),
   "choice": zod.string().describe('YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets'),
@@ -566,7 +601,7 @@ export const AdminListMarketsResponse = zod.object({
   "subcategory": zod.string(),
   "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
   "yesCount": zod.number(),
   "noCount": zod.number(),
   "totalPredictions": zod.number(),
@@ -582,6 +617,13 @@ export const AdminListMarketsResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
+  "clockType": zod.string().optional(),
+  "publishAt": zod.string().nullish(),
+  "peakUntil": zod.string().nullish(),
+  "expireAt": zod.string().nullish(),
+  "refreshRule": zod.string().nullish(),
+  "freshnessScore": zod.number().nullish(),
+  "seriesId": zod.number().nullish(),
   "createdAt": zod.string()
 })),
   "total": zod.number()
@@ -606,7 +648,13 @@ export const CreateMarketBody = zod.object({
   "formula": zod.string().optional(),
   "voidRule": zod.string().optional(),
   "geo": zod.string().optional(),
-  "closesAt": zod.string().optional()
+  "closesAt": zod.string().optional(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional(),
+  "publishAt": zod.string().optional(),
+  "peakUntil": zod.string().optional(),
+  "expireAt": zod.string().optional(),
+  "refreshRule": zod.string().optional(),
+  "seriesId": zod.number().optional()
 })
 
 export const CreateMarketResponse = zod.object({
@@ -618,7 +666,7 @@ export const CreateMarketResponse = zod.object({
   "subcategory": zod.string(),
   "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
   "yesCount": zod.number(),
   "noCount": zod.number(),
   "totalPredictions": zod.number(),
@@ -634,6 +682,13 @@ export const CreateMarketResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
+  "clockType": zod.string().optional(),
+  "publishAt": zod.string().nullish(),
+  "peakUntil": zod.string().nullish(),
+  "expireAt": zod.string().nullish(),
+  "refreshRule": zod.string().nullish(),
+  "freshnessScore": zod.number().nullish(),
+  "seriesId": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -658,7 +713,7 @@ export const ResolveMarketResponse = zod.object({
   "subcategory": zod.string(),
   "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
   "imageUrl": zod.string().nullish(),
-  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED']),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
   "yesCount": zod.number(),
   "noCount": zod.number(),
   "totalPredictions": zod.number(),
@@ -674,6 +729,13 @@ export const ResolveMarketResponse = zod.object({
   "closesAt": zod.string().nullish(),
   "resolvedAt": zod.string().nullish(),
   "resolvedOutcome": zod.string().nullish(),
+  "clockType": zod.string().optional(),
+  "publishAt": zod.string().nullish(),
+  "peakUntil": zod.string().nullish(),
+  "expireAt": zod.string().nullish(),
+  "refreshRule": zod.string().nullish(),
+  "freshnessScore": zod.number().nullish(),
+  "seriesId": zod.number().nullish(),
   "createdAt": zod.string()
 })
 

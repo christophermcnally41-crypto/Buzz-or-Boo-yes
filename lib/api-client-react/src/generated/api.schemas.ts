@@ -48,6 +48,7 @@ export const MarketStatus = {
   OPEN: 'OPEN',
   CLOSED: 'CLOSED',
   RESOLVED: 'RESOLVED',
+  ARCHIVED: 'ARCHIVED',
 } as const;
 
 export interface Market {
@@ -88,6 +89,19 @@ export interface Market {
   /** @nullable */
   resolvedOutcome?: string | null;
   createdAt: string;
+  clockType?: 'EVERGREEN' | 'SEASONAL' | 'NOW' | 'EVENT_DRIVEN' | 'ROLLING_FORECAST' | 'RECURRING_PULSE';
+  /** @nullable */
+  publishAt?: string | null;
+  /** @nullable */
+  peakUntil?: string | null;
+  /** @nullable */
+  expireAt?: string | null;
+  /** @nullable */
+  refreshRule?: string | null;
+  /** @nullable */
+  freshnessScore?: number | null;
+  /** @nullable */
+  seriesId?: number | null;
 }
 
 export interface PinnedMarketsEnvelope {
@@ -250,6 +264,12 @@ export interface MarketInput {
   voidRule?: string;
   geo?: string;
   closesAt?: string;
+  clockType?: 'EVERGREEN' | 'SEASONAL' | 'NOW' | 'EVENT_DRIVEN' | 'ROLLING_FORECAST' | 'RECURRING_PULSE';
+  publishAt?: string;
+  peakUntil?: string;
+  expireAt?: string;
+  refreshRule?: string;
+  seriesId?: number;
 }
 
 export interface AuthUser {

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, or, isNull, gt, lt } from "drizzle-orm";
 import { db, marketsTable } from "@workspace/db";
 import {
   GetMarketParams,
@@ -16,18 +16,28 @@ import {
 
 const router: IRouter = Router();
 
-// Compute yesPercent/noPercent from counts
+// Compute yesPercent/noPercent from counts and serialize timestamps
 function enrichMarket(m: typeof marketsTable.$inferSelect) {
   const total = m.yesCount + m.noCount;
   return {
     ...m,
     closesAt: m.closesAt ? m.closesAt.toISOString() : null,
     resolvedAt: m.resolvedAt ? m.resolvedAt.toISOString() : null,
+    publishAt: m.publishAt ? m.publishAt.toISOString() : null,
+    peakUntil: m.peakUntil ? m.peakUntil.toISOString() : null,
+    expireAt: m.expireAt ? m.expireAt.toISOString() : null,
     createdAt: m.createdAt.toISOString(),
     yesPercent: total > 0 ? Math.round((m.yesCount / total) * 100) : 50,
     noPercent: total > 0 ? Math.round((m.noCount / total) * 100) : 50,
   };
 }
+
+// Exclude markets scheduled for a future publish_at (not yet visible to the public)
+const notScheduled = or(isNull(marketsTable.publishAt), gt(sql`now()`, marketsTable.publishAt));
+
+// Exclude markets that have passed their hard expiry, even if the worker hasn't archived them yet.
+// Uses sql`now()` so the database evaluates the timestamp at query time.
+const notExpired = or(isNull(marketsTable.expireAt), gt(marketsTable.expireAt, sql`now()`));
 
 router.get("/markets/trending", async (req, res): Promise<void> => {
   const query = GetTrendingMarketsQueryParams.safeParse(req.query);
@@ -36,14 +46,14 @@ router.get("/markets/trending", async (req, res): Promise<void> => {
   const markets = await db
     .select()
     .from(marketsTable)
-    .where(eq(marketsTable.status, "OPEN"))
+    .where(and(eq(marketsTable.status, "OPEN"), notScheduled, notExpired))
     .orderBy(desc(marketsTable.totalPredictions))
     .limit(limit);
 
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(marketsTable)
-    .where(eq(marketsTable.status, "OPEN"));
+    .where(and(eq(marketsTable.status, "OPEN"), notScheduled, notExpired));
 
   res.json(GetTrendingMarketsResponse.parse({ markets: markets.map(enrichMarket), total: count }));
 });
@@ -70,12 +80,12 @@ router.get("/markets", async (req, res): Promise<void> => {
   const query = ListMarketsQueryParams.safeParse(req.query);
   const { category, status, format, limit = 20, offset = 0 } = query.success ? query.data : {} as any;
 
-  const conditions = [];
+  const conditions = [notScheduled, notExpired];
   if (category) conditions.push(eq(marketsTable.category, category));
   if (status) conditions.push(eq(marketsTable.status, status));
   if (format) conditions.push(eq(marketsTable.marketFormat, format));
 
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  const whereClause = and(...conditions);
 
   const markets = await db
     .select()
@@ -107,6 +117,18 @@ router.get("/markets/:id", async (req, res): Promise<void> => {
     .where(eq(marketsTable.id, params.data.id));
 
   if (!market) {
+    res.status(404).json({ error: "Market not found" });
+    return;
+  }
+
+  // Hide scheduled markets that haven't reached their publish_at yet
+  if (market.publishAt && market.publishAt > new Date()) {
+    res.status(404).json({ error: "Market not found" });
+    return;
+  }
+
+  // Treat hard-expired markets as gone — independent of the background worker
+  if (market.expireAt && market.expireAt <= new Date() && market.status === "OPEN") {
     res.status(404).json({ error: "Market not found" });
     return;
   }

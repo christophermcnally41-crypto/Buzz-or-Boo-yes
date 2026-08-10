@@ -757,7 +757,7 @@ components:
           type: ["string", "null"]
         status:
           type: string
-          enum: [OPEN, CLOSED, RESOLVED]
+          enum: [OPEN, CLOSED, RESOLVED, ARCHIVED]
         yesCount:
           type: number
         noCount:
@@ -790,6 +790,28 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
+        clockType:
+          type: string
+          enum: [EVERGREEN, SEASONAL, NOW, EVENT_DRIVEN, ROLLING_FORECAST, RECURRING_PULSE]
+          description: "Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour"
+        publishAt:
+          type: ["string", "null"]
+          description: "ISO timestamp when this market becomes publicly visible; null = immediately visible"
+        peakUntil:
+          type: ["string", "null"]
+          description: "ISO timestamp marking the end of the peak-freshness window"
+        expireAt:
+          type: ["string", "null"]
+          description: "ISO timestamp for hard expiry; null = never expires (EVERGREEN)"
+        refreshRule:
+          type: ["string", "null"]
+          description: "Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)"
+        freshnessScore:
+          type: ["number", "null"]
+          description: "0–100 freshness score recomputed by the clock worker; 100 = fully fresh"
+        seriesId:
+          type: ["number", "null"]
+          description: "ID of the root market in a recurring series"
 
     MarketList:
       type: object
@@ -1030,6 +1052,19 @@ components:
           type: string
         closesAt:
           type: string
+        clockType:
+          type: string
+          enum: [EVERGREEN, SEASONAL, NOW, EVENT_DRIVEN, ROLLING_FORECAST, RECURRING_PULSE]
+        publishAt:
+          type: string
+        peakUntil:
+          type: string
+        expireAt:
+          type: string
+        refreshRule:
+          type: string
+        seriesId:
+          type: number
 
     AuthUser:
       type: object

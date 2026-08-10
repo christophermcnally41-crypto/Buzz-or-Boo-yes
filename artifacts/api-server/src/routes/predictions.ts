@@ -54,6 +54,18 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
     return;
   }
 
+  // Reject bets on markets that are not yet publicly visible (scheduled)
+  if (market.publishAt && market.publishAt > new Date()) {
+    res.status(404).json({ error: "Market not found" });
+    return;
+  }
+
+  // Reject bets on hard-expired markets immediately, independent of worker archival
+  if (market.expireAt && market.expireAt <= new Date()) {
+    res.status(400).json({ error: "Market has expired and is no longer accepting predictions" });
+    return;
+  }
+
   // Validate choice against market format
   if (market.marketFormat === "MULTI_CHOICE") {
     // Parse contenders from description and require choice to be a valid key

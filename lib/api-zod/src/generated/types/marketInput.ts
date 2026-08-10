@@ -24,4 +24,10 @@ export interface MarketInput {
   voidRule?: string;
   geo?: string;
   closesAt?: string;
+  clockType?: 'EVERGREEN' | 'SEASONAL' | 'NOW' | 'EVENT_DRIVEN' | 'ROLLING_FORECAST' | 'RECURRING_PULSE';
+  publishAt?: string;
+  peakUntil?: string;
+  expireAt?: string;
+  refreshRule?: string;
+  seriesId?: number;
 }

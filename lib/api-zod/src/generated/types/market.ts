@@ -47,4 +47,18 @@ export interface Market {
   /** @nullable */
   resolvedOutcome?: string | null;
   createdAt: string;
+  /** Clock type controlling freshness/expiry (Market Bible v0.5 §40) */
+  clockType?: string;
+  /** @nullable ISO timestamp when the market becomes visible */
+  publishAt?: string | null;
+  /** @nullable End of peak-freshness window */
+  peakUntil?: string | null;
+  /** @nullable Hard expiry timestamp; null = never expires */
+  expireAt?: string | null;
+  /** @nullable Recurrence cadence for RECURRING_PULSE (e.g. MONTHLY) */
+  refreshRule?: string | null;
+  /** @nullable 0–100 freshness score recomputed by clock worker */
+  freshnessScore?: number | null;
+  /** @nullable Root market ID for recurring series */
+  seriesId?: number | null;
 }

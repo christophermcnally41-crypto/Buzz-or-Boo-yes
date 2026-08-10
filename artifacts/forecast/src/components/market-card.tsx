@@ -12,6 +12,33 @@ import { MultiChoiceCard } from "./multi-choice-card";
 import { BuzzOrBooCard } from "./buzz-or-boo-card";
 import { TheCallCard } from "./the-call-card";
 
+/** Returns a human-readable freshness label for non-EVERGREEN markets. */
+function getFreshnessLabel(market: Market): string | null {
+  const clockType = (market as any).clockType as string | undefined;
+  const expireAt = (market as any).expireAt as string | null | undefined;
+  if (!clockType || clockType === "EVERGREEN" || !expireAt) return null;
+
+  const now = Date.now();
+  const expiry = new Date(expireAt).getTime();
+  const msLeft = expiry - now;
+  if (msLeft <= 0) return null;
+
+  const hoursLeft = msLeft / (1000 * 60 * 60);
+  if (hoursLeft < 1) return "Expires in < 1 hr";
+  if (hoursLeft < 24) return `Expires in ${Math.ceil(hoursLeft)}h`;
+  const daysLeft = Math.ceil(hoursLeft / 24);
+  if (daysLeft === 1) return "Expires tomorrow";
+  return `Expires in ${daysLeft} days`;
+}
+
+const CLOCK_BADGE_STYLES: Record<string, string> = {
+  NOW:              "bg-red-500/10 text-red-600 border-red-200",
+  SEASONAL:         "bg-amber-500/10 text-amber-700 border-amber-200",
+  EVENT_DRIVEN:     "bg-blue-500/10 text-blue-700 border-blue-200",
+  ROLLING_FORECAST: "bg-purple-500/10 text-purple-700 border-purple-200",
+  RECURRING_PULSE:  "bg-emerald-500/10 text-emerald-700 border-emerald-200",
+};
+
 export function MarketCard({ market, featured = false }: { market: Market, featured?: boolean }) {
   // Route to specialised card formats
   if (market.marketFormat === "HOT_OR_NOT") return <HotOrNotCard market={market} />;
@@ -24,6 +51,9 @@ export function MarketCard({ market, featured = false }: { market: Market, featu
   const yesPercent = market.yesPercent || 50;
   const noPercent = market.noPercent || 50;
   const colors = getMarketColors(market.id);
+  const clockType = (market as any).clockType as string | undefined;
+  const freshnessLabel = getFreshnessLabel(market);
+  const clockBadgeStyle = clockType ? CLOCK_BADGE_STYLES[clockType] : undefined;
   
   return (
     <Link href={`/markets/${market.id}`}>
@@ -57,9 +87,21 @@ export function MarketCard({ market, featured = false }: { market: Market, featu
                 RESOLVED {market.resolvedOutcome === 'YES' ? 'BUZZ' : 'BOO'}
               </Badge>
             ) : (
-              <Badge variant="outline" className="bg-background/80 backdrop-blur-sm font-mono-numbers text-[10px] text-muted-foreground border-border/50">
-                {formatNumber(market.totalPredictions)} CALLS
-              </Badge>
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                {freshnessLabel && clockBadgeStyle && (
+                  <Badge variant="outline" className={cn("font-mono-numbers text-[10px] border", clockBadgeStyle)}>
+                    {freshnessLabel}
+                  </Badge>
+                )}
+                {clockType === "RECURRING_PULSE" && (
+                  <Badge variant="outline" className="text-[10px] border border-emerald-200 text-emerald-700 bg-emerald-500/10">
+                    🔁 Recurring
+                  </Badge>
+                )}
+                <Badge variant="outline" className="bg-background/80 backdrop-blur-sm font-mono-numbers text-[10px] text-muted-foreground border-border/50">
+                  {formatNumber(market.totalPredictions)} CALLS
+                </Badge>
+              </div>
             )}
           </div>
 

@@ -18,6 +18,9 @@ function enrichMarket(m: typeof marketsTable.$inferSelect) {
     ...m,
     closesAt: m.closesAt ? m.closesAt.toISOString() : null,
     resolvedAt: m.resolvedAt ? m.resolvedAt.toISOString() : null,
+    publishAt: m.publishAt ? m.publishAt.toISOString() : null,
+    peakUntil: m.peakUntil ? m.peakUntil.toISOString() : null,
+    expireAt: m.expireAt ? m.expireAt.toISOString() : null,
     createdAt: m.createdAt.toISOString(),
     yesPercent: total > 0 ? Math.round((m.yesCount / total) * 100) : 50,
     noPercent: total > 0 ? Math.round((m.noCount / total) * 100) : 50,
@@ -44,7 +47,7 @@ router.post("/admin/markets", async (req, res): Promise<void> => {
     return;
   }
 
-  const { title, question, description, category, subcategory, imageUrl, resolutionSource, sourcePrimary, sourceBackup, baselineSnapshot, formula, voidRule, geo, closesAt, marketFormat } = parsed.data;
+  const { title, question, description, category, subcategory, imageUrl, resolutionSource, sourcePrimary, sourceBackup, baselineSnapshot, formula, voidRule, geo, closesAt, marketFormat, clockType, publishAt, peakUntil, expireAt, refreshRule, seriesId } = parsed.data;
 
   const [market] = await db
     .insert(marketsTable)
@@ -65,6 +68,12 @@ router.post("/admin/markets", async (req, res): Promise<void> => {
       geo: geo ?? null,
       closesAt: closesAt ? new Date(closesAt) : null,
       status: "OPEN",
+      clockType: clockType ?? "EVERGREEN",
+      publishAt: publishAt ? new Date(publishAt) : null,
+      peakUntil: peakUntil ? new Date(peakUntil) : null,
+      expireAt: expireAt ? new Date(expireAt) : null,
+      refreshRule: refreshRule ?? null,
+      seriesId: seriesId ?? null,
     })
     .returning();
 
