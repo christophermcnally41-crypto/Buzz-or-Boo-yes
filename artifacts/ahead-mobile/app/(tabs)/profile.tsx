@@ -35,6 +35,61 @@ function StatCard({ value, label, color }: StatCardProps) {
   );
 }
 
+/**
+ * Resolve a raw prediction choice key to a human-readable label.
+ *
+ * - BUZZ_OR_BOO: YES → "⚡ BUZZ", anything else → "👎 BOO"
+ * - MULTI_CHOICE: parse description.contenders[{ key, name }], show contender name
+ * - THE_CALL: parse description.options[{ key, label }], show option label
+ * - Everything else: return the raw choice key
+ *
+ * Both MULTI_CHOICE and THE_CALL fall back to the raw key if the description
+ * can't be parsed or the key isn't found.
+ */
+function resolveChoiceLabel(
+  choice: string | null | undefined,
+  market: { marketFormat?: string | null; description?: string | null } | null | undefined,
+): string {
+  const raw = choice ?? '';
+  const format = market?.marketFormat ?? '';
+
+  if (format === 'BUZZ_OR_BOO') {
+    return raw === 'YES' ? '⚡ BUZZ' : '👎 BOO';
+  }
+
+  if (format === 'MULTI_CHOICE') {
+    try {
+      const parsed = JSON.parse(market?.description ?? '{}') as {
+        contenders?: { key: string; name: string }[];
+      };
+      if (Array.isArray(parsed.contenders)) {
+        const contender = parsed.contenders.find((c) => c.key === raw);
+        if (contender) return contender.name;
+      }
+    } catch {
+      // fallthrough to raw key
+    }
+    return raw;
+  }
+
+  if (format === 'THE_CALL') {
+    try {
+      const parsed = JSON.parse(market?.description ?? '{}') as {
+        options?: { key: string; label: string }[];
+      };
+      if (Array.isArray(parsed.options)) {
+        const opt = parsed.options.find((o) => o.key === raw);
+        if (opt) return `🎯 ${opt.label}`;
+      }
+    } catch {
+      // fallthrough to raw key
+    }
+    return `🎯 ${raw}`;
+  }
+
+  return raw;
+}
+
 function SectionRow({ icon, label, value, colors }: { icon: string; label: string; value: string; colors: any }) {
   return (
     <View style={[styles.sectionRow, { borderBottomColor: colors.border }]}>
@@ -170,7 +225,7 @@ export default function ProfileScreen() {
                         {pred.market?.question}
                       </Text>
                       <Text style={[styles.predChoice, { color: colors.mutedForeground }]}>
-                        {pred.choice} · {pred.amount.toLocaleString()} FP
+                        {resolveChoiceLabel(pred.choice, pred.market)} · {pred.amount.toLocaleString()} FP
                       </Text>
                     </View>
                     <View>
