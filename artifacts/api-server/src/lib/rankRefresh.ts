@@ -6,11 +6,12 @@
  *
  * Eligibility: totalResolved > 0 (same predicate used by GET /leaderboard).
  *
- * Ordering contract: COALESCE(buzz_score, 0) DESC, id ASC.
- *   - Primary key: buzz_score descending (same as the leaderboard route).
- *   - Tiebreaker: id ascending — deterministic, never changes, mirrors the
- *     stable sub-order the database uses when the leaderboard page is small
- *     enough to fetch all rows in one shot.
+ * Ordering contract: normalized_buzz_score DESC, id ASC.
+ *   - Primary key: buzz_score descending, with fraction-drift normalization:
+ *     a value strictly between 0 and 1 is treated as a 0–1 fraction and scaled
+ *     to 0–100 before ordering.  This keeps stored ranks consistent with the
+ *     live leaderboard endpoints which apply the same normalization.
+ *   - Tiebreaker: id ascending — deterministic, never changes.
  *
  * Rank function: ROW_NUMBER() — assigns a distinct sequential integer to every
  * user, exactly like the leaderboard route's `entries.map((u, i) => ({ rank: i + 1 }))`.
@@ -20,6 +21,16 @@
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { logger } from "./logger.js";
+
+/** Shared SQL normalization for buzz_score — mirrors normalizedScoreSql() in
+ *  leaderboard.ts so that all three rank surfaces (stored rank, list order,
+ *  /leaderboard/me) agree when buzz_score is stored as a decimal fraction. */
+const NORMALIZED_BUZZ_SCORE_SQL = sql.raw(`
+  CASE
+    WHEN buzz_score > 0 AND buzz_score < 1 THEN ROUND(buzz_score * 100)
+    ELSE LEAST(100, GREATEST(0, COALESCE(buzz_score, 0)))
+  END
+`);
 
 export async function refreshLeaderboardRanks(): Promise<void> {
   try {
@@ -32,7 +43,7 @@ export async function refreshLeaderboardRanks(): Promise<void> {
         SELECT
           id,
           ROW_NUMBER() OVER (
-            ORDER BY COALESCE(buzz_score, 0) DESC, id ASC
+            ORDER BY ${NORMALIZED_BUZZ_SCORE_SQL} DESC, id ASC
           ) AS new_rank
         FROM users
         WHERE total_resolved > 0

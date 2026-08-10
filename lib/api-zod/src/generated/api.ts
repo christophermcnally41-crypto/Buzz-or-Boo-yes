@@ -540,6 +540,14 @@ export const GetLeaderboardQueryParams = zod.object({
   "limit": zod.coerce.number().default(getLeaderboardQueryLimitDefault)
 })
 
+export const getLeaderboardResponseAccuracyMin = 0;
+export const getLeaderboardResponseAccuracyMax = 1;
+
+export const getLeaderboardResponseBuzzScoreMin = 0;
+export const getLeaderboardResponseBuzzScoreMax = 100;
+
+
+
 export const GetLeaderboardResponseItem = zod.object({
   "rank": zod.number(),
   "user": zod.object({
@@ -563,8 +571,8 @@ export const GetLeaderboardResponseItem = zod.object({
   "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
 }),
-  "accuracy": zod.number(),
-  "buzzScore": zod.number().optional().describe('0–100 BuzzScore used as the primary ranking and display metric'),
+  "accuracy": zod.number().min(getLeaderboardResponseAccuracyMin).max(getLeaderboardResponseAccuracyMax).describe('Prediction accuracy as a 0–1 fraction (e.g. 0.75 = 75% correct)'),
+  "buzzScore": zod.number().min(getLeaderboardResponseBuzzScoreMin).max(getLeaderboardResponseBuzzScoreMax).optional().describe('0–100 BuzzScore used as the primary ranking and display metric'),
   "totalPredictions": zod.number(),
   "totalCorrect": zod.number(),
   "tokensEarned": zod.number().optional()
@@ -578,6 +586,14 @@ export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem)
 export const GetMyLeaderboardEntryQueryParams = zod.object({
   "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES', 'OVERALL']).optional()
 })
+
+export const getMyLeaderboardEntryResponseAccuracyMin = 0;
+export const getMyLeaderboardEntryResponseAccuracyMax = 1;
+
+export const getMyLeaderboardEntryResponseBuzzScoreMin = 0;
+export const getMyLeaderboardEntryResponseBuzzScoreMax = 100;
+
+
 
 export const GetMyLeaderboardEntryResponse = zod.object({
   "rank": zod.number(),
@@ -602,8 +618,8 @@ export const GetMyLeaderboardEntryResponse = zod.object({
   "lastTopupAt": zod.string().nullish().describe('ISO timestamp of the last daily top-up, or null if never topped up'),
   "createdAt": zod.string()
 }),
-  "accuracy": zod.number(),
-  "buzzScore": zod.number().optional().describe('0–100 BuzzScore used as the primary ranking and display metric'),
+  "accuracy": zod.number().min(getMyLeaderboardEntryResponseAccuracyMin).max(getMyLeaderboardEntryResponseAccuracyMax).describe('Prediction accuracy as a 0–1 fraction (e.g. 0.75 = 75% correct)'),
+  "buzzScore": zod.number().min(getMyLeaderboardEntryResponseBuzzScoreMin).max(getMyLeaderboardEntryResponseBuzzScoreMax).optional().describe('0–100 BuzzScore used as the primary ranking and display metric'),
   "totalPredictions": zod.number(),
   "totalCorrect": zod.number(),
   "tokensEarned": zod.number().optional()

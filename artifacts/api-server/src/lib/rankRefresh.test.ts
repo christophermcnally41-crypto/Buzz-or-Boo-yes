@@ -214,4 +214,48 @@ describe("stored rank vs GET /leaderboard consistency", () => {
     expect(meResLower.status).toBe(200);
     expect(meResLower.body.rank).toBeLessThan(meRes.body.rank);
   });
+
+  it("stored rank, list order, and /leaderboard/me all agree for a user with buzzScore=82 outranking buzzScore=75", async () => {
+    // Note: buzz_score is an integer DB column, so a true 0.82 decimal cannot be
+    // inserted directly — that schema-drift scenario is covered by mock-based
+    // contract tests in leaderboard.contract.test.ts. This test verifies that
+    // the normalized SQL ordering (CASE WHEN … END) produces consistent stored
+    // ranks, list positions, and /leaderboard/me responses for normal integer
+    // values — specifically that 82 ranks above 75 across all three surfaces.
+    const aId = await insertUser("norm_A", 82, 5); // should rank 1 among our pair
+    const bId = await insertUser("norm_B", 75, 5);
+
+    await refreshLeaderboardRanks();
+
+    // 1. Stored rank: A must be above B
+    const [storedA] = await db.select({ rank: usersTable.rank }).from(usersTable).where(eq(usersTable.id, aId));
+    const [storedB] = await db.select({ rank: usersTable.rank }).from(usersTable).where(eq(usersTable.id, bId));
+    expect(storedA.rank).not.toBeNull();
+    expect(storedB.rank).not.toBeNull();
+    expect(storedA.rank!).toBeLessThan(storedB.rank!);
+
+    // 2. GET /leaderboard list order: A appears before B
+    const listApp = buildLeaderboardApp();
+    const listRes = await request(listApp).get("/leaderboard?limit=100");
+    expect(listRes.status).toBe(200);
+    const entries: Array<{ rank: number; buzzScore: number; user: { id: number } }> = listRes.body;
+    const entryA = entries.find((e) => e.user.id === aId)!;
+    const entryB = entries.find((e) => e.user.id === bId)!;
+
+    expect(entryA).toBeDefined();
+    expect(entryB).toBeDefined();
+    expect(entryA.buzzScore).toBe(82);
+    expect(entryA.rank).toBeLessThan(entryB.rank);
+
+    // 3. GET /leaderboard/me: A's live rank matches stored rank
+    const meApp = buildLeaderboardApp(aId);
+    const meRes = await request(meApp).get("/leaderboard/me");
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.buzzScore).toBe(82);
+    expect(meRes.body.rank).toBe(storedA.rank);
+
+    // 4. Stored rank matches list position for both users
+    expect(storedA.rank).toBe(entryA.rank);
+    expect(storedB.rank).toBe(entryB.rank);
+  });
 });

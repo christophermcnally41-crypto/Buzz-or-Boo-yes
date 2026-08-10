@@ -234,8 +234,17 @@ export interface UserPrediction {
 export interface LeaderboardEntry {
   rank: number;
   user: User;
+  /**
+     * Prediction accuracy as a 0–1 fraction (e.g. 0.75 = 75% correct)
+     * @minimum 0
+     * @maximum 1
+     */
   accuracy: number;
-  /** 0–100 BuzzScore used as the primary ranking and display metric */
+  /**
+     * 0–100 BuzzScore used as the primary ranking and display metric
+     * @minimum 0
+     * @maximum 100
+     */
   buzzScore?: number;
   totalPredictions: number;
   totalCorrect: number;

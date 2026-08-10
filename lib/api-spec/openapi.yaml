@@ -999,8 +999,13 @@ components:
           $ref: "#/components/schemas/User"
         accuracy:
           type: number
+          minimum: 0
+          maximum: 1
+          description: Prediction accuracy as a 0–1 fraction (e.g. 0.75 = 75% correct)
         buzzScore:
           type: number
+          minimum: 0
+          maximum: 100
           description: 0–100 BuzzScore used as the primary ranking and display metric
         totalPredictions:
           type: number

@@ -96,7 +96,8 @@ function buildApp() {
   app.use(express.json());
   // Attach a no-op req.log so the error handler in auth.ts doesn't throw.
   app.use((_req, _res, next) => {
-    (_req as express.Request & { log: { error: () => void } }).log = { error: () => {} };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (_req as any).log = { error: () => {}, warn: () => {}, info: () => {}, debug: () => {}, trace: () => {}, fatal: () => {} };
     next();
   });
   app.use(authRouter);
