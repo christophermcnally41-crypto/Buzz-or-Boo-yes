@@ -9,6 +9,7 @@ import {
   ResolveMarketBody,
   ResolveMarketResponse,
 } from "@workspace/api-zod";
+import { refreshLeaderboardRanks } from "../lib/rankRefresh.js";
 
 const router: IRouter = Router();
 
@@ -263,6 +264,13 @@ router.patch("/admin/markets/:id/resolve", async (req, res): Promise<void> => {
     }
     throw err; // Let Express error handler deal with unexpected errors
   }
+
+  // Refresh all users' stored rank after stats have been updated.
+  // Fire-and-forget: rank staleness for a few ms is acceptable; the response
+  // does not need to wait for it.
+  refreshLeaderboardRanks().catch(() => {
+    // already logged inside refreshLeaderboardRanks
+  });
 
   res.json(ResolveMarketResponse.parse(enrichMarket(resolved)));
 });

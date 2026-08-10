@@ -44,11 +44,20 @@ function getBuzzScore(u: typeof usersTable.$inferSelect, category: string | unde
   return Math.round((getAccuracyValue(u, category)) * 100);
 }
 
+/**
+ * Shared ordering contract for all rank computations:
+ *   PRIMARY:   COALESCE(score_col, 0) DESC
+ *   TIEBREAKER: id ASC  (lower id wins ties — stable, never changes)
+ *
+ * rankRefresh.ts uses the same order via ROW_NUMBER() so stored `rank` values
+ * always agree with what these endpoints compute on-the-fly.
+ */
+
 /** GET /leaderboard/me — authenticated user's own rank, independent of the list limit.
  *
  * Uses the same eligibility predicate as GET /leaderboard (totalResolved > 0).
- * Rank = count of eligible users whose sort column strictly exceeds the
- * current user's, using COALESCE(col, 0) so null and zero are treated equally.
+ * Rank = count of eligible users who sort BEFORE the current user under the
+ * shared contract: score strictly higher, OR same score with a lower id.
  */
 router.get("/leaderboard/me", async (req, res): Promise<void> => {
   if (!req.user) {
@@ -83,13 +92,19 @@ router.get("/leaderboard/me", async (req, res): Promise<void> => {
   const myBuzzScore = getBuzzScore(me, category);
   const myAccuracy = getAccuracyValue(me, category);
 
-  // Count eligible users whose COALESCE(col, 0) strictly exceeds the current user's
+  const myScore = !category || category === "OVERALL" ? myBuzzScore : myAccuracy;
+
+  // Count eligible users who sort BEFORE this user under the shared contract:
+  //   score strictly higher  OR  (same score AND lower id — tiebreaker)
   const [{ higherCount }] = await db
     .select({ higherCount: sql<number>`count(*)::int` })
     .from(usersTable)
     .where(and(
       gt(usersTable.totalResolved, 0),
-      sql`COALESCE(${col}, 0) > ${!category || category === "OVERALL" ? myBuzzScore : myAccuracy}`
+      sql`(
+        COALESCE(${col}, 0) > ${myScore}
+        OR (COALESCE(${col}, 0) = ${myScore} AND ${usersTable.id} < ${platformUserId})
+      )`
     ));
 
   const rank = (higherCount ?? 0) + 1;
@@ -117,7 +132,7 @@ router.get("/leaderboard", async (req, res): Promise<void> => {
     .select()
     .from(usersTable)
     .where(gt(usersTable.totalResolved, 0))
-    .orderBy(sql`COALESCE(${col}, 0) DESC`)
+    .orderBy(sql`COALESCE(${col}, 0) DESC, ${usersTable.id} ASC`)
     .limit(limit ?? 20);
 
   const entries = users.map((u, i) => ({
