@@ -95,7 +95,7 @@ router.post("/markets/:id/predict", async (req, res): Promise<void> => {
 
   const betAmount = amount ?? 100;
   if (user.tokenBalance < betAmount) {
-    res.status(400).json({ error: "Insufficient token balance" });
+    res.status(400).json({ error: "Insufficient balance" });
     return;
   }
 
