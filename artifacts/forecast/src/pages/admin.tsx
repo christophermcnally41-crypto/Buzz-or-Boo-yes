@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   useAdminListMarkets, 
   useCreateMarket, 
@@ -231,6 +231,43 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
 
   const [editOptions, setEditOptions] = useState<CallOption[]>(initialOptions);
 
+  // Preserved extra fields from the existing description (metric/period/recurring for MULTI_CHOICE; context for THE_CALL)
+  const existingDescriptionExtras = useMemo(() => {
+    try {
+      return JSON.parse(market.description ?? "{}") as Record<string, unknown>;
+    } catch {
+      return {} as Record<string, unknown>;
+    }
+  }, [market.description]);
+
+  // Live preview of the exact JSON that will be sent on Save
+  const editPreviewJson = useMemo(() => {
+    if (isMultiChoice) {
+      const valid = editContenders.filter(c => c.name.trim());
+      if (valid.length === 0) return null;
+      const { contenders: _c, ...rest } = existingDescriptionExtras as any;
+      return JSON.stringify(
+        {
+          ...rest,
+          contenders: valid.map(c => ({
+            key: c.key,
+            name: c.name.trim(),
+            ...(c.venue?.trim() ? { venue: c.venue.trim() } : {}),
+          })),
+        },
+        null,
+        2,
+      );
+    }
+    if (isTheCall) {
+      const valid = editOptions.filter(o => o.label.trim());
+      if (valid.length === 0) return null;
+      const { options: _o, ...rest } = existingDescriptionExtras as any;
+      return JSON.stringify({ ...rest, options: valid }, null, 2);
+    }
+    return null;
+  }, [isMultiChoice, isTheCall, editContenders, editOptions, existingDescriptionExtras]);
+
   const addEditContender = () => {
     if (editContenders.length >= 5) return;
     const usedKeys = new Set(editContenders.map(c => c.key));
@@ -422,6 +459,19 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Live JSON preview — only for structured formats */}
+        {editPreviewJson && (
+          <details className="group">
+            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground select-none list-none flex items-center gap-1">
+              <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
+              Preview JSON
+            </summary>
+            <pre className="mt-2 p-2 bg-muted/60 rounded text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all border border-border/40">
+              {editPreviewJson}
+            </pre>
+          </details>
         )}
 
         {/* Resolution metadata (collapsed section) */}
