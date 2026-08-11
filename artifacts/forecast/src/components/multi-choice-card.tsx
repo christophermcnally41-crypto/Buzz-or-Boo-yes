@@ -6,6 +6,7 @@ import { formatNumber } from "@/lib/utils";
 import { getCategoryLabel } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { useMemo } from "react";
+import { getTallyRefetchInterval } from "@/lib/tally-poll";
 
 interface Contender {
   key: string;
@@ -44,12 +45,11 @@ export function MultiChoiceCard({ market }: { market: Market }) {
   const contenders = data?.contenders ?? [];
 
   // Fetch server-aggregated vote tallies — much lighter than fetching all predictions
-  // Poll every 30 s while the market is active so passive viewers see live bar updates
-  const isActive = market.status === "OPEN";
+  // Poll every 30 s while the market is OPEN; stops automatically when it resolves/closes.
   const { data: tallyData } = useGetMarketTally(market.id, {
     query: {
       queryKey: getGetMarketTallyQueryKey(market.id),
-      refetchInterval: isActive ? 30_000 : false,
+      refetchInterval: getTallyRefetchInterval(market.status),
     }
   });
 

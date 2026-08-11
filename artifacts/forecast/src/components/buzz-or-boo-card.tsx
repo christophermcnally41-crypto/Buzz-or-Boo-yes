@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { formatNumber } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
 import { useMemo } from "react";
+import { getTallyRefetchInterval } from "@/lib/tally-poll";
 
 const BUZZ_COLOR = "#CFEA3B";
 const BOO_COLOR = "#E8503E";
@@ -15,13 +16,12 @@ export function BuzzOrBooCard({ market }: { market: Market }) {
   const booColor = BOO_COLOR;
 
   const isResolved = market.status === "RESOLVED";
-  const isActive = market.status === "OPEN";
 
-  // Poll for live tallies every 30 s while the market is open
+  // Poll for live tallies every 30 s while the market is OPEN; stops automatically when it resolves/closes.
   const { data: tallyData } = useGetMarketTally(market.id, {
     query: {
       queryKey: getGetMarketTallyQueryKey(market.id),
-      refetchInterval: isActive ? 30_000 : false,
+      refetchInterval: getTallyRefetchInterval(market.status),
     },
   });
 
