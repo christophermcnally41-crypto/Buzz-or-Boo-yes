@@ -16,6 +16,7 @@ import { Trophy, Activity, CheckCircle2, XCircle, Pin, Zap } from "lucide-react"
 import { Link } from "wouter";
 import { getCategoryLabel } from "@/lib/categories";
 import { MarketCard } from "@/components/market-card";
+import { TheCallPredictionRow } from "@/components/the-call-prediction-row";
 
 const TOPUP_THRESHOLD = 500;
 
@@ -204,79 +205,117 @@ export default function Profile() {
                     {[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />)}
                   </div>
                 ) : predictions && predictions.length > 0 ? (
-                  <div className="space-y-4">
-                    {predictions.map(pred => {
-                      const isResolved = pred.market?.status === "RESOLVED";
-                      const won = isResolved && pred.isCorrect;
-                      const isMultiChoice = pred.market?.marketFormat === "MULTI_CHOICE";
-
-                      let choiceLabel: string = pred.choice as string;
-                      if (isMultiChoice && pred.market?.description) {
-                        try {
-                          const data = JSON.parse(pred.market.description);
-                          const contender = data.contenders?.find((c: { key: string; name: string }) => c.key === pred.choice);
-                          if (contender) choiceLabel = contender.name;
-                        } catch {}
-                      } else if (pred.choice === "YES") {
-                        choiceLabel = "Buzzed It";
-                      } else if (pred.choice === "NO") {
-                        choiceLabel = "Boo'd It";
-                      }
-
-                      return (
-                        <Card key={pred.id} className="overflow-hidden hover:border-primary/30 transition-colors">
-                          <Link href={`/markets/${pred.marketId}`}>
-                            <div className="p-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2 text-xs font-medium">
-                                  <span className="text-muted-foreground">{getCategoryLabel(pred.market?.category || "")}</span>
-                                  <span className="w-1 h-1 rounded-full bg-border" />
-                                  <span className="text-muted-foreground">{new Date(pred.createdAt).toLocaleDateString()}</span>
-                                </div>
-                                <h4 className="font-editorial font-semibold text-lg line-clamp-2 leading-tight">
-                                  {pred.market?.question}
-                                </h4>
-                              </div>
-                              
-                              <div className="flex items-center gap-6 md:min-w-[200px] justify-between md:justify-end shrink-0 w-full md:w-auto">
-                                <div className="flex flex-col items-start md:items-end">
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">My Call</span>
-                                  <Badge
-                                    variant={
-                                      isMultiChoice
-                                        ? (isResolved ? 'secondary' : 'secondary')
-                                        : (pred.choice === 'YES' ? 'default' : pred.choice === 'NO' ? 'destructive' : 'secondary')
-                                    }
-                                    className={cn(
-                                      "font-mono-numbers",
-                                      isMultiChoice && isResolved && won && "bg-green-600 text-white hover:bg-green-700 border-transparent",
-                                      isMultiChoice && isResolved && !won && "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-transparent",
-                                    )}
-                                  >
-                                    {choiceLabel} · {formatNumber(pred.amount)} FP
-                                  </Badge>
-                                </div>
-                                
-                                <div className="flex flex-col items-end min-w-[80px]">
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Result</span>
-                                  {isResolved ? (
-                                    <div className={cn("flex items-center gap-1 font-bold text-sm", won ? "text-green-600" : "text-destructive")}>
-                                      {won ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                      {won ? `Called It! +${formatNumber(pred.tokensEarned || 0)}` : `-${formatNumber(pred.amount)}`}
-                                    </div>
-                                  ) : (
-                                    <Badge variant="outline" className="bg-secondary text-secondary-foreground border-transparent">
-                                      In Play
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
+                  (() => {
+                    const theCallPreds = predictions.filter(p => p.market?.marketFormat === "THE_CALL");
+                    const otherPreds = predictions.filter(p => p.market?.marketFormat !== "THE_CALL");
+                    return (
+                      <div className="space-y-10">
+                        {/* The Call section */}
+                        {theCallPreds.length > 0 && (
+                          <div>
+                            <h3 className="font-editorial text-lg font-bold flex items-center gap-2 mb-4">
+                              <span aria-hidden>🎯</span> The Call
+                              <span className="text-xs font-mono-numbers text-muted-foreground font-normal ml-1">
+                                {theCallPreds.length}
+                              </span>
+                            </h3>
+                            <div className="space-y-4">
+                              {theCallPreds.map(pred => (
+                                <TheCallPredictionRow key={pred.id} prediction={pred} />
+                              ))}
                             </div>
-                          </Link>
-                        </Card>
-                      );
-                    })}
-                  </div>
+                          </div>
+                        )}
+
+                        {/* Forecast / Buzz or Boo / MULTI_CHOICE section */}
+                        {otherPreds.length > 0 && (
+                          <div>
+                            {theCallPreds.length > 0 && (
+                              <h3 className="font-editorial text-lg font-bold flex items-center gap-2 mb-4">
+                                Forecast &amp; Buzz or Boo
+                                <span className="text-xs font-mono-numbers text-muted-foreground font-normal ml-1">
+                                  {otherPreds.length}
+                                </span>
+                              </h3>
+                            )}
+                            <div className="space-y-4">
+                              {otherPreds.map(pred => {
+                                const isResolved = pred.market?.status === "RESOLVED";
+                                const won = isResolved && pred.isCorrect;
+                                const isMultiChoice = pred.market?.marketFormat === "MULTI_CHOICE";
+
+                                let choiceLabel: string = pred.choice as string;
+                                if (isMultiChoice && pred.market?.description) {
+                                  try {
+                                    const data = JSON.parse(pred.market.description);
+                                    const contender = data.contenders?.find((c: { key: string; name: string }) => c.key === pred.choice);
+                                    if (contender) choiceLabel = contender.name;
+                                  } catch {}
+                                } else if (pred.choice === "YES") {
+                                  choiceLabel = "Buzzed It";
+                                } else if (pred.choice === "NO") {
+                                  choiceLabel = "Boo'd It";
+                                }
+
+                                return (
+                                  <Card key={pred.id} className="overflow-hidden hover:border-primary/30 transition-colors">
+                                    <Link href={`/markets/${pred.marketId}`}>
+                                      <div className="p-5 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-2 text-xs font-medium">
+                                            <span className="text-muted-foreground">{getCategoryLabel(pred.market?.category || "")}</span>
+                                            <span className="w-1 h-1 rounded-full bg-border" />
+                                            <span className="text-muted-foreground">{new Date(pred.createdAt).toLocaleDateString()}</span>
+                                          </div>
+                                          <h4 className="font-editorial font-semibold text-lg line-clamp-2 leading-tight">
+                                            {pred.market?.question}
+                                          </h4>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-6 md:min-w-[200px] justify-between md:justify-end shrink-0 w-full md:w-auto">
+                                          <div className="flex flex-col items-start md:items-end">
+                                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">My Call</span>
+                                            <Badge
+                                              variant={
+                                                isMultiChoice
+                                                  ? (isResolved ? 'secondary' : 'secondary')
+                                                  : (pred.choice === 'YES' ? 'default' : pred.choice === 'NO' ? 'destructive' : 'secondary')
+                                              }
+                                              className={cn(
+                                                "font-mono-numbers",
+                                                isMultiChoice && isResolved && won && "bg-green-600 text-white hover:bg-green-700 border-transparent",
+                                                isMultiChoice && isResolved && !won && "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-transparent",
+                                              )}
+                                            >
+                                              {choiceLabel} · {formatNumber(pred.amount)} FP
+                                            </Badge>
+                                          </div>
+                                          
+                                          <div className="flex flex-col items-end min-w-[80px]">
+                                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Result</span>
+                                            {isResolved ? (
+                                              <div className={cn("flex items-center gap-1 font-bold text-sm", won ? "text-green-600" : "text-destructive")}>
+                                                {won ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                                                {won ? `Called It! +${formatNumber(pred.tokensEarned || 0)}` : `-${formatNumber(pred.amount)}`}
+                                              </div>
+                                            ) : (
+                                              <Badge variant="outline" className="bg-secondary text-secondary-foreground border-transparent">
+                                                In Play
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </Link>
+                                  </Card>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div className="text-center py-20 bg-muted/30 rounded-3xl border border-dashed border-border">
                     <p className="text-muted-foreground font-medium">No predictions made yet.</p>
