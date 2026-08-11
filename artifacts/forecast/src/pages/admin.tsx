@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getCategoryLabel } from "@/lib/categories";
-import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2, Layers, Pencil, ChevronLeft } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2, Layers, Pencil, ChevronLeft, Copy, Check } from "lucide-react";
 import { Link } from "wouter";
 
 const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE", "BEAUTY", "ACCESSORIES", "MOVIES"] as const;
@@ -186,6 +186,7 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
   const queryClient = useQueryClient();
   const patchMarket = usePatchMarket();
   const [isSaving, setIsSaving] = useState(false);
+  const [copiedEdit, setCopiedEdit] = useState(false);
 
   const isMultiChoice = market.marketFormat === "MULTI_CHOICE";
   const isTheCall = market.marketFormat === "THE_CALL";
@@ -468,9 +469,25 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
               <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
               Preview JSON
             </summary>
-            <pre className="mt-2 p-2 bg-muted/60 rounded text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all border border-border/40">
-              {editPreviewJson}
-            </pre>
+            <div className="relative mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(editPreviewJson).then(() => {
+                    setCopiedEdit(true);
+                    setTimeout(() => setCopiedEdit(false), 2000);
+                  });
+                }}
+                className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                title="Copy JSON"
+              >
+                {copiedEdit ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                {copiedEdit ? "Copied!" : "Copy"}
+              </button>
+              <pre className="p-2 bg-muted/60 rounded text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all border border-border/40">
+                {editPreviewJson}
+              </pre>
+            </div>
           </details>
         )}
 
@@ -521,6 +538,7 @@ function TemplateMarketForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copiedTemplate, setCopiedTemplate] = useState(false);
 
   const createFromTemplate = useCreateMarketFromTemplate();
 
@@ -783,9 +801,25 @@ function TemplateMarketForm({
                 </summary>
                 <div className="mt-2">
                   {preview ? (
-                    <pre className="text-[11px] bg-muted/60 border border-border rounded-lg p-3 overflow-x-auto whitespace-pre-wrap text-foreground/80 font-mono leading-relaxed">
-                      {preview}
-                    </pre>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(preview).then(() => {
+                            setCopiedTemplate(true);
+                            setTimeout(() => setCopiedTemplate(false), 2000);
+                          });
+                        }}
+                        className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                        title="Copy JSON"
+                      >
+                        {copiedTemplate ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                        {copiedTemplate ? "Copied!" : "Copy"}
+                      </button>
+                      <pre className="text-[11px] bg-muted/60 border border-border rounded-lg p-3 overflow-x-auto whitespace-pre-wrap text-foreground/80 font-mono leading-relaxed">
+                        {preview}
+                      </pre>
+                    </div>
                   ) : (
                     <p className="text-[11px] text-muted-foreground italic p-3 bg-muted/40 rounded-lg border border-border">
                       Fill in at least one contender to see the preview.
