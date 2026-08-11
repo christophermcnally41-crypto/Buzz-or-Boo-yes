@@ -18,7 +18,12 @@ import {
   useGetMarketPredictions,
   useGetMarketTally,
   useGetMarketMyPrediction,
+  getGetMarketQueryKey,
+  getGetMarketPredictionsQueryKey,
+  getGetMarketTallyQueryKey,
+  getGetMarketMyPredictionQueryKey,
 } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -44,6 +49,7 @@ export default function MarketDetailScreen() {
   const [voting, setVoting] = useState(false);
 
   const { isAuthenticated, login } = useAuth();
+  const queryClient = useQueryClient();
 
   const marketId = Number(id);
   const pair = getMarketColors(marketId);
@@ -90,6 +96,11 @@ export default function MarketDetailScreen() {
             setVoted(choice);
             setVoting(false);
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            // Refresh sentiment split and prediction lists so bars animate to the new split
+            queryClient.invalidateQueries({ queryKey: getGetMarketQueryKey(marketId) });
+            queryClient.invalidateQueries({ queryKey: getGetMarketPredictionsQueryKey(marketId) });
+            queryClient.invalidateQueries({ queryKey: getGetMarketTallyQueryKey(marketId) });
+            queryClient.invalidateQueries({ queryKey: getGetMarketMyPredictionQueryKey(marketId) });
           },
           onError: (err: any) => {
             setVoting(false);
@@ -100,7 +111,7 @@ export default function MarketDetailScreen() {
         },
       );
     },
-    [marketId, mutation, voted, voting, isAuthenticated, login],
+    [marketId, mutation, voted, voting, isAuthenticated, login, queryClient],
   );
 
   const topPadding = Platform.OS === 'web' ? 67 : insets.top;
