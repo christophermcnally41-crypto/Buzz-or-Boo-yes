@@ -44,8 +44,13 @@ export function MultiChoiceCard({ market }: { market: Market }) {
   const contenders = data?.contenders ?? [];
 
   // Fetch server-aggregated vote tallies — much lighter than fetching all predictions
+  // Poll every 30 s while the market is active so passive viewers see live bar updates
+  const isActive = market.status === "OPEN";
   const { data: tallyData } = useGetMarketTally(market.id, {
-    query: { queryKey: getGetMarketTallyQueryKey(market.id) }
+    query: {
+      queryKey: getGetMarketTallyQueryKey(market.id),
+      refetchInterval: isActive ? 30_000 : false,
+    }
   });
 
   const { contenderCounts, totalVotes, hasRealData } = useMemo(() => {
