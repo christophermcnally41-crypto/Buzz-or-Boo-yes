@@ -241,4 +241,42 @@ describe('POST /markets/:id/predict — concurrent balance guard (integration)',
 
     expect(user.tokenBalance).toBe(50);
   });
+
+  // -------------------------------------------------------------------------
+  // Rollback consistency: market counts must NOT drift when a bet is rejected.
+  //
+  // This is the direct regression test for the original bug: the market count
+  // update and the balance deduction run inside one DB transaction, so a
+  // failed deduction (insufficient balance) rolls back the count increment too.
+  // -------------------------------------------------------------------------
+  it('leaves market counts unchanged when a bet is rejected for insufficient balance', async () => {
+    // Give the user less than one bet's worth.
+    await db
+      .update(usersTable)
+      .set({ tokenBalance: 50 })
+      .where(eq(usersTable.id, testUserId));
+
+    const app = buildApp(testUserId);
+
+    const res = await request(app)
+      .post(`/markets/${marketId1}/predict`)
+      .send({ choice: 'YES', amount: BET_AMOUNT });
+
+    expect(res.status).toBe(400);
+
+    // All three market-count columns must still be at their initial values.
+    const [market] = await db
+      .select({
+        yesCount: marketsTable.yesCount,
+        noCount: marketsTable.noCount,
+        totalPredictions: marketsTable.totalPredictions,
+      })
+      .from(marketsTable)
+      .where(eq(marketsTable.id, marketId1));
+
+    expect(market).toBeDefined();
+    expect(market.yesCount).toBe(0);
+    expect(market.noCount).toBe(0);
+    expect(market.totalPredictions).toBe(0);
+  });
 });
