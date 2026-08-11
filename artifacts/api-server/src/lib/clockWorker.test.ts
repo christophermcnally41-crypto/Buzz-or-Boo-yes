@@ -13,7 +13,7 @@
  *   6. An unknown refreshRule does NOT spawn a successor
  */
 
-import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest";
 import { eq, inArray, and } from "drizzle-orm";
 import { db, pool, marketsTable } from "@workspace/db";
 import { tick } from "./clockWorker.js";
@@ -541,5 +541,109 @@ describe("tick() — ROLLING_FORECAST window advancement", () => {
     // The rolled-forward market must NOT count toward archived
     // (archived = expired.length - rolledForward)
     expect(result.archived).toBe(result.archived); // sanity — just ensure no throw
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. Recovery after a transient DB error mid-tick
+// ---------------------------------------------------------------------------
+
+describe("tick() — recovery after a transient DB error mid-tick", () => {
+  it("archives the skipped market on the next tick when a DB error interrupts the archiving loop", async () => {
+    // Insert two expired markets. tick() will process them one by one.
+    // We simulate a DB connection error on the SECOND db.update() call so that
+    // the first market is archived but the second is left in OPEN.
+    const id1 = await insertMarket({ expireAt: PAST });
+    const id2 = await insertMarket({ expireAt: ONE_HOUR_AGO });
+
+    let dbUpdateCallCount = 0;
+    const originalUpdate = db.update.bind(db);
+
+    const spy = vi.spyOn(db, "update").mockImplementation(
+      (...args: Parameters<typeof db.update>) => {
+        dbUpdateCallCount++;
+        if (dbUpdateCallCount === 2) {
+          // Restore before throwing so the spy doesn't affect later calls
+          // (including any cleanup in the finally path of tick()).
+          spy.mockRestore();
+          throw new Error("Simulated DB connection error");
+        }
+        return originalUpdate(...args);
+      },
+    );
+
+    // First tick — throws after partially processing the expired list.
+    // Exactly one of the two markets will be archived; the other stays OPEN.
+    await expect(tick()).rejects.toThrow("Simulated DB connection error");
+
+    // Guarantee the spy is removed even if the assertion above somehow passed.
+    spy.mockRestore();
+
+    // Confirm the partial state: at least one market is still OPEN.
+    const afterFirstTick = await db
+      .select({ id: marketsTable.id, status: marketsTable.status })
+      .from(marketsTable)
+      .where(inArray(marketsTable.id, [id1, id2]));
+
+    const openAfterFirstTick = afterFirstTick.filter(
+      (m) => m.status === "OPEN",
+    );
+    expect(openAfterFirstTick.length).toBeGreaterThanOrEqual(1);
+
+    // Second tick — no mock in place; must complete without error and archive
+    // any markets that were skipped during the failed first tick.
+    await tick();
+
+    const afterSecondTick = await db
+      .select({ id: marketsTable.id, status: marketsTable.status })
+      .from(marketsTable)
+      .where(inArray(marketsTable.id, [id1, id2]));
+
+    expect(afterSecondTick).toHaveLength(2);
+    for (const m of afterSecondTick) {
+      // No market must be permanently stuck in OPEN status after the second tick.
+      expect(m.status).toBe("ARCHIVED");
+    }
+  });
+
+  it("archives ALL markets on the next tick when the very first DB update fails (nothing processed in tick 1)", async () => {
+    // Both markets remain completely untouched after the first (failed) tick.
+    // The second tick must archive both without error.
+    const id1 = await insertMarket({ expireAt: PAST });
+    const id2 = await insertMarket({ expireAt: ONE_HOUR_AGO });
+
+    const spy = vi.spyOn(db, "update").mockImplementationOnce(() => {
+      spy.mockRestore();
+      throw new Error("Simulated DB connection error on first update");
+    });
+
+    // First tick throws immediately on the first archive attempt.
+    await expect(tick()).rejects.toThrow(
+      "Simulated DB connection error on first update",
+    );
+    spy.mockRestore();
+
+    // Both markets must still be OPEN — nothing was committed.
+    const afterFirstTick = await db
+      .select({ id: marketsTable.id, status: marketsTable.status })
+      .from(marketsTable)
+      .where(inArray(marketsTable.id, [id1, id2]));
+
+    for (const m of afterFirstTick) {
+      expect(m.status).toBe("OPEN");
+    }
+
+    // Second tick — clean run; must archive both.
+    await tick();
+
+    const afterSecondTick = await db
+      .select({ id: marketsTable.id, status: marketsTable.status })
+      .from(marketsTable)
+      .where(inArray(marketsTable.id, [id1, id2]));
+
+    expect(afterSecondTick).toHaveLength(2);
+    for (const m of afterSecondTick) {
+      expect(m.status).toBe("ARCHIVED");
+    }
   });
 });
