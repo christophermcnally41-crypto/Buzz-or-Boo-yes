@@ -33,6 +33,7 @@ import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, 
 import { Link } from "wouter";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { computeCountdownState } from "@/lib/market-countdown";
+import { getTallyRefetchInterval } from "@/lib/tally-poll";
 
 const BUZZ_COLOR = "#CFEA3B";
 
@@ -240,17 +241,14 @@ export default function MarketDetail() {
     query: { enabled: !!marketId, queryKey: getGetMarketPredictionsQueryKey(marketId) }
   });
 
-  // Aggregate tally for THE_CALL markets — uses server-side GROUP BY, accurate at any scale
+  // Aggregate tally for THE_CALL and MULTI_CHOICE markets — uses server-side GROUP BY, accurate at any scale
   const { data: tallyData } = useGetMarketTally(marketId, {
     query: {
-      enabled: !!marketId && market?.marketFormat === "THE_CALL",
+      enabled: !!marketId && (market?.marketFormat === "THE_CALL" || market?.marketFormat === "MULTI_CHOICE"),
       queryKey: getGetMarketTallyQueryKey(marketId),
-      refetchInterval:
-        market?.marketFormat === "THE_CALL" &&
-        market?.status !== "CLOSED" &&
-        market?.status !== "RESOLVED"
-          ? 15000
-          : false,
+      refetchInterval: market?.marketFormat === "THE_CALL"
+        ? (market?.status !== "CLOSED" && market?.status !== "RESOLVED" ? 15000 : false)
+        : getTallyRefetchInterval(market?.status ?? ""),
     }
   });
 
@@ -311,18 +309,19 @@ export default function MarketDetail() {
   const multiChoiceData = isMultiChoice ? parseMultiChoiceData(market?.description) : null;
   const theCallData = isTheCall ? parseTheCallData(market?.description) : null;
 
-  // Compute per-contender vote counts from predictions
-  const contenderCounts = useMemo(() => {
-    if (!multiChoiceData || !predictions) return {};
+  // Compute per-contender vote counts from server-side tally (same source as feed card)
+  const { contenderCounts, totalContenderVotes } = useMemo(() => {
     const counts: Record<string, number> = {};
+    if (!multiChoiceData) return { contenderCounts: counts, totalContenderVotes: 0 };
     for (const c of multiChoiceData.contenders) counts[c.key] = 0;
-    for (const p of predictions) {
-      if (p.choice in counts) counts[p.choice]++;
+    if (tallyData?.tallies) {
+      for (const [key, count] of Object.entries(tallyData.tallies)) {
+        if (key in counts) counts[key] = count;
+      }
     }
-    return counts;
-  }, [multiChoiceData, predictions]);
-
-  const totalContenderVotes = Object.values(contenderCounts).reduce((a, b) => a + b, 0);
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    return { contenderCounts: counts, totalContenderVotes: total };
+  }, [multiChoiceData, tallyData]);
 
   // Compute per-option vote counts for THE_CALL from the server-side aggregate tally
   const theCallCounts: Record<string, number> = useMemo(() => {
