@@ -426,7 +426,7 @@ describe('PATCH /admin/markets/:id — MULTI_CHOICE contender update', () => {
 
     const res = await request(app)
       .patch(`/admin/markets/${multiChoiceMarketId}`)
-      .send({ title: 'Updated title for multi-choice' });
+      .send({ title: `Updated title for multi-choice ${RUN_ID}` });
 
     expect(res.status).toBe(200);
     expect(res.body.marketFormat).toBe('MULTI_CHOICE');

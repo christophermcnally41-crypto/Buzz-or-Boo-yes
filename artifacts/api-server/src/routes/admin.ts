@@ -354,39 +354,41 @@ router.patch("/admin/markets/:id/resolve", requireAdmin, async (req, res): Promi
         try {
           const desc = market.description ? JSON.parse(market.description) : null;
           if (desc?.recurring === true && Array.isArray(desc.contenders)) {
-            // Check (inside the same tx) whether a successor already exists
-            const [alreadyOpen] = await tx
-              .select({ id: marketsTable.id })
-              .from(marketsTable)
-              .where(and(eq(marketsTable.title, market.title), eq(marketsTable.status, "OPEN")));
+            // Derive successor period from the resolved edition's closesAt
+            const resolvedCloses = market.closesAt ?? resolvedMarket.resolvedAt ?? new Date();
+            const nextStart = new Date(Date.UTC(
+              resolvedCloses.getUTCFullYear(),
+              resolvedCloses.getUTCMonth() + 1,
+              1,
+            ));
+            const nextMonthName = nextStart.toLocaleString("en-US", { month: "long", timeZone: "UTC" });
+            const nextPeriod = `${nextMonthName} ${nextStart.getUTCFullYear()}`;
+            const nextCloses = new Date(Date.UTC(
+              nextStart.getUTCFullYear(), nextStart.getUTCMonth() + 1, 0, 23, 59, 59,
+            ));
+            const nextDescription = JSON.stringify({ ...desc, period: nextPeriod });
 
-            if (!alreadyOpen) {
-              // Derive successor period from the resolved edition's closesAt
-              const resolvedCloses = market.closesAt ?? resolvedMarket.resolvedAt ?? new Date();
-              const nextStart = new Date(Date.UTC(
-                resolvedCloses.getUTCFullYear(),
-                resolvedCloses.getUTCMonth() + 1,
-                1,
-              ));
-              const nextMonthName = nextStart.toLocaleString("en-US", { month: "long", timeZone: "UTC" });
-              const nextPeriod = `${nextMonthName} ${nextStart.getUTCFullYear()}`;
-              const nextCloses = new Date(Date.UTC(
-                nextStart.getUTCFullYear(), nextStart.getUTCMonth() + 1, 0, 23, 59, 59,
-              ));
-
-              await tx.insert(marketsTable).values({
-                title: market.title,
-                question: market.question,
-                description: JSON.stringify({ ...desc, period: nextPeriod }),
-                category: market.category,
-                subcategory: market.subcategory,
-                marketFormat: "MULTI_CHOICE",
-                imageUrl: market.imageUrl ?? null,
-                resolutionSource: market.resolutionSource ?? null,
-                status: "OPEN",
-                closesAt: nextCloses,
-              });
-            }
+            // ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING uses the
+            // partial unique index markets_open_title_unique to trigger PostgreSQL's
+            // speculative insertion: a concurrent transaction inserting the same
+            // OPEN title will block until this transaction commits, then detect the
+            // conflict and silently skip — no duplicate, no error.
+            //
+            // Plain ON CONFLICT DO NOTHING (no target) does NOT use speculative
+            // insertion; both concurrent transactions can insert before either
+            // commits, and only the second commit would see the violation — causing
+            // an unexpected transaction rollback instead of a silent skip.
+            await tx.execute(sql`
+              INSERT INTO markets
+                (title, question, description, category, subcategory,
+                 market_format, image_url, resolution_source, status, closes_at)
+              VALUES
+                (${market.title}, ${market.question}, ${nextDescription},
+                 ${market.category}, ${market.subcategory}, ${'MULTI_CHOICE'},
+                 ${market.imageUrl ?? null}, ${market.resolutionSource ?? null},
+                 ${'OPEN'}, ${nextCloses})
+              ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING
+            `);
           }
         } catch (cycleErr) {
           console.error("[auto-cycle] Failed to spawn next edition:", cycleErr);

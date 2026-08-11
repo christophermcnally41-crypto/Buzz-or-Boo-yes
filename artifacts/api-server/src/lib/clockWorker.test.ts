@@ -346,39 +346,25 @@ describe("tick() — RECURRING_PULSE successor spawning", () => {
       .returning({ id: marketsTable.id });
     createdMarketIds.push(parent.id);
 
-    // Insert a successor that already exists
-    const [existingSuccessor] = await db
-      .insert(marketsTable)
-      .values({
-        title,
-        question: "Duplicate guard?",
-        category: "CULTURE",
-        subcategory: "test",
-        status: "OPEN",
-        marketFormat: "STANDARD",
-        clockType: "RECURRING_PULSE",
-        refreshRule: "MONTHLY",
-        expireAt: FUTURE,
-        seriesId: parent.id,
-      })
-      .returning({ id: marketsTable.id });
-    createdMarketIds.push(existingSuccessor.id);
+    // Run two concurrent tick() calls — the classic race: both ticks select the
+    // expired parent, both archive it, and both attempt to spawn a successor.
+    // The ON CONFLICT (title) WHERE status='OPEN' DO NOTHING guard backed by the
+    // partial unique index markets_open_title_unique ensures only one successor
+    // is ever inserted.
+    await Promise.all([tick(), tick()]);
 
-    await tick();
-
-    // Only the pre-existing successor should be OPEN
     const openSuccessors = await db
       .select({ id: marketsTable.id })
       .from(marketsTable)
       .where(and(eq(marketsTable.title, title), eq(marketsTable.status, "OPEN")));
 
-    // Any new rows from tick() must be cleaned up
+    // Track any spawned successors for cleanup
     for (const s of openSuccessors) {
       if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
     }
 
+    // Exactly one OPEN successor must exist — the concurrent guard prevents duplicates
     expect(openSuccessors).toHaveLength(1);
-    expect(openSuccessors[0].id).toBe(existingSuccessor.id);
   });
 
   it("does NOT spawn a successor for an unknown refreshRule", async () => {

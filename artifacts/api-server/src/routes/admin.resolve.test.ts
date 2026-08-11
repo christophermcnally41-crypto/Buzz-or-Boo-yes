@@ -6,6 +6,9 @@
  * as correct/incorrect.
  *
  * Also covers STANDARD market resolution as a baseline comparison.
+ *
+ * Includes concurrency tests for the recurring MULTI_CHOICE auto-cycle guard:
+ * two simultaneous resolve calls must not spawn duplicate successor editions.
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
@@ -202,3 +205,143 @@ describe('PATCH /admin/markets/:id/resolve — BUZZ_OR_BOO markets', () => {
 // NOTE: STANDARD market resolution also runs a DB update that references the
 // `buzz_score` column, which has not yet been added to the database via migration.
 // That path will return 500 until the migration is applied — tested separately.
+
+// ---------------------------------------------------------------------------
+// Auto-cycle idempotency — concurrent resolve must not create duplicate editions
+// ---------------------------------------------------------------------------
+
+describe('PATCH /admin/markets/:id/resolve — recurring MULTI_CHOICE auto-cycle', () => {
+  it('partial unique index markets_open_title_unique exists and is valid', async () => {
+    // This assertion ensures the index was created by the deployment bootstrap
+    // (post-merge.sh SQL block + drizzle-kit push-force) and is not in an
+    // INVALID state.  If this test fails on a fresh environment, re-run
+    // scripts/post-merge.sh to apply the idempotent index creation.
+    const { rows } = await pool.query<{ indexname: string; indisvalid: boolean }>(
+      `SELECT i.relname AS indexname, ix.indisvalid
+       FROM pg_index ix
+       JOIN pg_class i ON i.oid = ix.indexrelid
+       JOIN pg_class t ON t.oid = ix.indrelid
+       WHERE t.relname = 'markets' AND i.relname = 'markets_open_title_unique'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].indisvalid).toBe(true);
+  });
+
+  let recurringMarketId: number;
+  const CYCLE_RUN_ID = `cycle_${Date.now()}`;
+  const RECURRING_TITLE = `_test_recurring_${CYCLE_RUN_ID}`;
+
+  beforeEach(async () => {
+    const res = await pool.query<{ id: number }>(
+      `INSERT INTO markets
+         (title, question, category, subcategory, status, market_format,
+          description, closes_at)
+       VALUES ($1, 'Who will win this month?', 'CULTURE', 'test', 'OPEN', 'MULTI_CHOICE',
+               $2, NOW() - interval '1 second')
+       RETURNING id`,
+      [
+        RECURRING_TITLE,
+        JSON.stringify({
+          recurring: true,
+          period: 'July 2026',
+          contenders: [
+            { key: 'A', label: 'Option A' },
+            { key: 'B', label: 'Option B' },
+          ],
+        }),
+      ],
+    );
+    recurringMarketId = res.rows[0].id;
+  });
+
+  afterEach(async () => {
+    // Clean up the original and any spawned successors sharing the same title
+    await pool.query(`DELETE FROM markets WHERE title = $1`, [RECURRING_TITLE]);
+  });
+
+  it('unique index prevents concurrent successor inserts from producing duplicates', async () => {
+    // This test races two independent DB connections at the INSERT level, bypassing
+    // the HTTP route entirely.  It proves the partial unique index
+    // markets_open_title_unique ON markets(title) WHERE status='OPEN'
+    // is the authoritative guard — not the application-layer check.
+    //
+    // Speculative insertion (triggered by the explicit ON CONFLICT (title)
+    // WHERE status='OPEN' conflict target) causes the second concurrent INSERT
+    // to block until the first transaction commits, then detect the conflict
+    // and silently skip.
+    //
+    // Ordering: client1 inserts → client2 fires insert (blocks in PG via
+    // speculative insertion) → client1 commits (unblocks client2) → client2
+    // detects conflict, does nothing → client2 commits.
+
+    const client1 = await pool.connect();
+    const client2 = await pool.connect();
+    const CONCURRENT_TITLE = `_test_concurrent_${Date.now()}`;
+
+    const INSERT_SQL = `
+      INSERT INTO markets (title, question, category, subcategory, status, market_format)
+      VALUES ($1, 'Concurrent Q?', 'CULTURE', 'test', 'OPEN', 'MULTI_CHOICE')
+      ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING
+      RETURNING id
+    `;
+
+    try {
+      await client1.query('BEGIN');
+      await client2.query('BEGIN');
+
+      // client1 inserts and acquires the speculative index lock on this title
+      await client1.query(INSERT_SQL, [CONCURRENT_TITLE]);
+
+      // client2 fires its insert WITHOUT awaiting — PostgreSQL will block client2
+      // waiting for client1's speculative insertion to resolve
+      const r2Promise = client2.query<{ id: number }>(INSERT_SQL, [CONCURRENT_TITLE]);
+
+      // Commit client1 — this unblocks client2, which then detects the conflict
+      await client1.query('COMMIT');
+
+      // Now await client2's result: it should have done nothing (0 rows)
+      const r2 = await r2Promise;
+      await client2.query('COMMIT');
+
+      expect(r2.rows).toHaveLength(0); // conflict → DO NOTHING → no RETURNING row
+
+      // The database must contain exactly one OPEN row for this title
+      const { rows } = await pool.query<{ cnt: number }>(
+        `SELECT COUNT(*)::int AS cnt FROM markets WHERE title = $1 AND status = 'OPEN'`,
+        [CONCURRENT_TITLE],
+      );
+      expect(rows[0].cnt).toBe(1);
+    } finally {
+      await client1.query('ROLLBACK').catch(() => {});
+      await client2.query('ROLLBACK').catch(() => {});
+      client1.release();
+      client2.release();
+      await pool.query(`DELETE FROM markets WHERE title = $1`, [CONCURRENT_TITLE]);
+    }
+  });
+
+  it('spawns a successor on a single resolve with the next period label', async () => {
+    const app = buildApp();
+
+    const res = await request(app)
+      .patch(`/admin/markets/${recurringMarketId}/resolve`)
+      .send({ outcome: 'A' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ status: 'RESOLVED', resolvedOutcome: 'A' });
+
+    // A new OPEN edition must exist for the successor period
+    const { rows } = await pool.query<{ id: number; description: string }>(
+      `SELECT id, description FROM markets WHERE title = $1 AND status = 'OPEN'`,
+      [RECURRING_TITLE],
+    );
+    expect(rows).toHaveLength(1);
+
+    const newDesc = JSON.parse(rows[0].description);
+    // Period must have advanced beyond 'July 2026'
+    expect(newDesc.period).toBeTruthy();
+    expect(newDesc.period).not.toBe('July 2026');
+    // recurring flag must be preserved
+    expect(newDesc.recurring).toBe(true);
+  });
+});

@@ -1,4 +1,5 @@
-import { pgTable, text, serial, timestamp, integer, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -35,7 +36,17 @@ export const marketsTable = pgTable("markets", {
   freshnessScore: real("freshness_score"),                      // 0–100, recomputed by the clock worker
   seriesId: integer("series_id"),                               // links recurring editions back to the first market in the series
   templateId: integer("template_id"),                           // FK to market_templates — which franchise mold was used
-});
+}, (table) => ({
+  // Partial unique index: at most one OPEN market may share a given title at any time.
+  // Recurring series deliberately reuse the same title across editions (one per month),
+  // so the WHERE clause limits uniqueness enforcement to OPEN rows only.
+  // The auto-cycle INSERT uses ON CONFLICT (title) WHERE status='OPEN' DO NOTHING
+  // to trigger PostgreSQL's speculative insertion — the only isolation-level-safe
+  // way to prevent duplicate successors under concurrent resolve requests.
+  openTitleUnique: uniqueIndex("markets_open_title_unique")
+    .on(table.title)
+    .where(sql`${table.status} = 'OPEN'`),
+}));
 
 export const insertMarketSchema = createInsertSchema(marketsTable).omit({ id: true, createdAt: true });
 export type InsertMarket = z.infer<typeof insertMarketSchema>;

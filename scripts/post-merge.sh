@@ -13,9 +13,21 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS buzz_score INTEGER;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_topup_at TIMESTAMPTZ;
 ALTER TABLE polls ADD COLUMN IF NOT EXISTS is_rising BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Partial unique index: at most one OPEN market per title at any time.
+-- Backs the ON CONFLICT (title) WHERE status='OPEN' DO NOTHING guard in the
+-- recurring auto-cycle insert, which uses speculative insertion to prevent
+-- concurrent resolve requests from spawning duplicate successor editions.
+-- CREATE INDEX IF NOT EXISTS is idempotent; safe to run on every deployment.
+-- Note: CREATE INDEX CONCURRENTLY cannot run inside a transaction block;
+-- this plain (non-concurrent) form is used here because the post-merge context
+-- is not performance-critical and has no ongoing production traffic at this point.
+CREATE UNIQUE INDEX IF NOT EXISTS markets_open_title_unique
+  ON markets (title)
+  WHERE status = 'OPEN';
 SQL
 
-echo "Idempotent column migrations applied."
+echo "Idempotent column and index migrations applied."
 
 # ── Bootstrap initial admin users ────────────────────────────────────────────
 # All admin routes require is_admin=true on the platform user record.  On a

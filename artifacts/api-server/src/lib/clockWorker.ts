@@ -151,47 +151,47 @@ export async function tick(): Promise<TickResult> {
         const nextDates = nextRecurrenceDates(market, now);
         if (!nextDates) continue;
 
-        // Check no successor already exists
-        const [existing] = await db
+        // Guard: skip if a CLOSED successor exists (manually closed — do not reopen).
+        // The OPEN case is handled atomically by the ON CONFLICT clause below.
+        const [closedSuccessor] = await db
           .select({ id: marketsTable.id })
           .from(marketsTable)
           .where(
             and(
               eq(marketsTable.title, market.title),
-              or(eq(marketsTable.status, "OPEN"), eq(marketsTable.status, "CLOSED")),
+              eq(marketsTable.status, "CLOSED"),
             ),
           );
 
-        if (existing) {
-          logger.info({ marketId: market.id }, "[clockWorker] successor already exists, skipping spawn");
+        if (closedSuccessor) {
+          logger.info({ marketId: market.id }, "[clockWorker] closed successor exists, skipping spawn");
           continue;
         }
 
         const rootSeriesId = market.seriesId ?? market.id;
 
-        await db.insert(marketsTable).values({
-          title: market.title,
-          question: market.question,
-          description: market.description,
-          category: market.category,
-          subcategory: market.subcategory,
-          marketFormat: market.marketFormat,
-          imageUrl: market.imageUrl,
-          resolutionSource: market.resolutionSource,
-          sourcePrimary: market.sourcePrimary,
-          sourceBackup: market.sourceBackup,
-          formula: market.formula,
-          voidRule: market.voidRule,
-          geo: market.geo,
-          status: "OPEN",
-          clockType: "RECURRING_PULSE",
-          publishAt: nextDates.publishAt,
-          peakUntil: nextDates.peakUntil,
-          expireAt: nextDates.expireAt,
-          refreshRule: market.refreshRule,
-          closesAt: nextDates.expireAt,
-          seriesId: rootSeriesId,
-        });
+        // ON CONFLICT (title) WHERE status='OPEN' DO NOTHING targets the partial
+        // unique index markets_open_title_unique and triggers PostgreSQL's speculative
+        // insertion.  Concurrent tick() calls that both try to spawn a successor for
+        // the same title will block on each other at the index level — only one
+        // INSERT succeeds, the other silently skips — no duplicate, no error.
+        await db.execute(sql`
+          INSERT INTO markets
+            (title, question, description, category, subcategory,
+             market_format, image_url, resolution_source, source_primary,
+             source_backup, formula, void_rule, geo,
+             status, clock_type, publish_at, peak_until,
+             expire_at, refresh_rule, closes_at, series_id)
+          VALUES
+            (${market.title}, ${market.question}, ${market.description},
+             ${market.category}, ${market.subcategory},
+             ${market.marketFormat}, ${market.imageUrl}, ${market.resolutionSource},
+             ${market.sourcePrimary}, ${market.sourceBackup},
+             ${market.formula}, ${market.voidRule}, ${market.geo},
+             ${'OPEN'}, ${'RECURRING_PULSE'}, ${nextDates.publishAt}, ${nextDates.peakUntil},
+             ${nextDates.expireAt}, ${market.refreshRule}, ${nextDates.expireAt}, ${rootSeriesId})
+          ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING
+        `);
 
         logger.info(
           { parentId: market.id, seriesId: rootSeriesId },
