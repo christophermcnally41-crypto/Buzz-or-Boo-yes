@@ -217,7 +217,16 @@ export default function MarketDetail() {
 
   // Aggregate tally for THE_CALL markets — uses server-side GROUP BY, accurate at any scale
   const { data: tallyData } = useGetMarketTally(marketId, {
-    query: { enabled: !!marketId && market?.marketFormat === "THE_CALL", queryKey: getGetMarketTallyQueryKey(marketId) }
+    query: {
+      enabled: !!marketId && market?.marketFormat === "THE_CALL",
+      queryKey: getGetMarketTallyQueryKey(marketId),
+      refetchInterval:
+        market?.marketFormat === "THE_CALL" &&
+        market?.status !== "CLOSED" &&
+        market?.status !== "RESOLVED"
+          ? 15000
+          : false,
+    }
   });
 
   const { data: meData } = useGetMe({
