@@ -114,21 +114,9 @@ router.get("/markets/:id", async (req, res): Promise<void> => {
   const [market] = await db
     .select()
     .from(marketsTable)
-    .where(eq(marketsTable.id, params.data.id));
+    .where(and(eq(marketsTable.id, params.data.id), notScheduled, notExpired));
 
   if (!market) {
-    res.status(404).json({ error: "Market not found" });
-    return;
-  }
-
-  // Hide scheduled markets that haven't reached their publish_at yet
-  if (market.publishAt && market.publishAt > new Date()) {
-    res.status(404).json({ error: "Market not found" });
-    return;
-  }
-
-  // Treat hard-expired markets as gone — independent of the background worker
-  if (market.expireAt && market.expireAt <= new Date() && market.status === "OPEN") {
     res.status(404).json({ error: "Market not found" });
     return;
   }

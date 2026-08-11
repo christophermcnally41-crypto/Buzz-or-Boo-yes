@@ -232,3 +232,55 @@ describe("GET /markets/trending — future publishAt filtering", () => {
     expect(ids).toContain(liveId);
   });
 });
+
+// ---------------------------------------------------------------------------
+// GET /markets/:id — expiry and publishAt filtering
+// ---------------------------------------------------------------------------
+
+describe("GET /markets/:id — expiry filtering", () => {
+  it("returns 404 for a market whose expireAt is in the past (worker hasn't archived it yet)", async () => {
+    const app = buildApp();
+    const expiredId = await insertMarket({ expireAt: PAST, status: "OPEN" });
+
+    const res = await request(app).get(`/markets/${expiredId}`);
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 200 for a market whose expireAt is in the future", async () => {
+    const app = buildApp();
+    const activeId = await insertMarket({ expireAt: FUTURE });
+
+    const res = await request(app).get(`/markets/${activeId}`);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(activeId);
+  });
+
+  it("returns 200 for an EVERGREEN market (no expireAt)", async () => {
+    const app = buildApp();
+    const evergreenId = await insertMarket({ expireAt: null });
+
+    const res = await request(app).get(`/markets/${evergreenId}`);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(evergreenId);
+  });
+
+  it("returns 404 for a market whose publishAt is in the future (not yet live)", async () => {
+    const app = buildApp();
+    const scheduledId = await insertMarket({ publishAt: FUTURE, expireAt: FAR_FUTURE });
+
+    const res = await request(app).get(`/markets/${scheduledId}`);
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 200 for a market whose publishAt is in the past (already live)", async () => {
+    const app = buildApp();
+    const liveId = await insertMarket({
+      publishAt: new Date(Date.now() - 60 * 1000),
+      expireAt: FUTURE,
+    });
+
+    const res = await request(app).get(`/markets/${liveId}`);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(liveId);
+  });
+});
