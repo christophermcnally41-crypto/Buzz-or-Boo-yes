@@ -4,6 +4,7 @@ import { Badge } from "./ui/badge";
 import { Link } from "wouter";
 import { formatNumber } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
+import { CountdownBadge } from "./countdown-badge";
 
 interface HeadToHeadData {
   entityA: string;
@@ -54,9 +55,12 @@ export function HeadToHeadCard({ market }: { market: Market }) {
             <Badge variant="secondary" className="bg-background/80 text-xs gap-1.5 font-medium shrink-0">
               🔥 Local Pulse
             </Badge>
-            <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
-              {formatNumber(market.totalPredictions)} PREDICTIONS
-            </Badge>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <CountdownBadge market={market as any} />
+              <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
+                {formatNumber(market.totalPredictions)} PREDICTIONS
+              </Badge>
+            </div>
           </div>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">⚔️ Head to Head</span>

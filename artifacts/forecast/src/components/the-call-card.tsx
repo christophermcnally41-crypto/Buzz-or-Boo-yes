@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { formatNumber } from "@/lib/utils";
 import { getCategoryLabel } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
+import { CountdownBadge } from "./countdown-badge";
 
 interface TheCallOption {
   key: string;
@@ -65,9 +66,12 @@ export function TheCallCard({ market }: { market: Market }) {
             <Badge variant="secondary" className="bg-background/80 text-xs gap-1.5 font-medium shrink-0">
               <CategoryIcon category={market.category} className="w-3.5 h-3.5" /> {getCategoryLabel(market.category)}
             </Badge>
-            <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
-              {formatNumber(market.totalPredictions)} PICKS
-            </Badge>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <CountdownBadge market={market as any} />
+              <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
+                {formatNumber(market.totalPredictions)} PICKS
+              </Badge>
+            </div>
           </div>
 
           {/* Engine label */}

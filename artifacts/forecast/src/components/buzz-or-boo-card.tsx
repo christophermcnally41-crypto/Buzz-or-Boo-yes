@@ -6,6 +6,7 @@ import { formatNumber } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
 import { useMemo } from "react";
 import { getTallyRefetchInterval } from "@/lib/tally-poll";
+import { CountdownBadge } from "./countdown-badge";
 
 const BUZZ_COLOR = "#CFEA3B";
 const BOO_COLOR = "#E8503E";
@@ -57,9 +58,12 @@ export function BuzzOrBooCard({ market }: { market: Market }) {
             >
               {dominantBuzz ? "⚡ BUZZING" : "👎 BOO'D"}
             </Badge>
-            <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50 shrink-0">
-              {formatNumber(market.totalPredictions)} VERDICTS
-            </Badge>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <CountdownBadge market={market as any} />
+              <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50 shrink-0">
+                {formatNumber(market.totalPredictions)} VERDICTS
+              </Badge>
+            </div>
           </div>
 
           {/* Format label */}

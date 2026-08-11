@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { cn, formatNumber } from "@/lib/utils";
 import { CategoryIcon } from "@/components/category-icon";
 import { getMarketColors } from "@/lib/market-colors";
+import { CountdownBadge } from "./countdown-badge";
 
 interface HotOrNotData {
   entity: string;
@@ -42,9 +43,12 @@ export function HotOrNotCard({ market }: { market: Market }) {
             <Badge variant="secondary" className="bg-background/80 text-xs gap-1.5 font-medium shrink-0">
               🔥 Local Pulse
             </Badge>
-            <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
-              {formatNumber(market.totalPredictions)} PREDICTIONS
-            </Badge>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <CountdownBadge market={market as any} />
+              <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
+                {formatNumber(market.totalPredictions)} PREDICTIONS
+              </Badge>
+            </div>
           </div>
 
           {/* Format label */}

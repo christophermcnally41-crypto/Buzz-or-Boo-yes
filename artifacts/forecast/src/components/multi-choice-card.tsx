@@ -7,6 +7,7 @@ import { getCategoryLabel } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { useMemo } from "react";
 import { getTallyRefetchInterval } from "@/lib/tally-poll";
+import { CountdownBadge } from "./countdown-badge";
 
 interface Contender {
   key: string;
@@ -75,9 +76,12 @@ export function MultiChoiceCard({ market }: { market: Market }) {
             <Badge variant="secondary" className="bg-background/80 text-xs gap-1.5 font-medium shrink-0">
               <CategoryIcon category={market.category} className="w-3.5 h-3.5" /> {getCategoryLabel(market.category)}
             </Badge>
-            <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
-              {formatNumber(market.totalPredictions)} CALLS
-            </Badge>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <CountdownBadge market={market as any} />
+              <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/50">
+                {formatNumber(market.totalPredictions)} CALLS
+              </Badge>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 mb-2">
