@@ -16,6 +16,7 @@ import {
   getGetUserPredictionsQueryKey,
   getGetMarketPinStatusQueryKey,
   getGetUserPinsQueryKey,
+  getListMarketsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useQueryClient } from "@tanstack/react-query";
@@ -285,6 +286,7 @@ export default function MarketDetail() {
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         if (authUser) queryClient.invalidateQueries({ queryKey: getGetUserPredictionsQueryKey(parseInt(authUser.id, 10)) });
         queryClient.invalidateQueries({ queryKey: getGetPlatformStatsQueryKey() });
+        if (isBuzzOrBoo) queryClient.invalidateQueries({ queryKey: getListMarketsQueryKey() });
         setIsPredicting(null);
       },
       onError: (err: any) => {

@@ -1,4 +1,4 @@
-import { useGetTrendingMarkets, useGetPlatformStats, useGetMarketCategories, useListMarkets } from "@workspace/api-client-react";
+import { useGetTrendingMarkets, useGetPlatformStats, useGetMarketCategories, useListMarkets, getListMarketsQueryKey } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
 import { BuzzOrBooCard } from "@/components/buzz-or-boo-card";
 import { BostonSays } from "@/components/boston-says";
@@ -14,7 +14,8 @@ export default function Home() {
   const { data: stats } = useGetPlatformStats();
   const { data: categories } = useGetMarketCategories();
   const { data: hotOrNotData, isLoading: loadingHotOrNot } = useListMarkets({ format: "HOT_OR_NOT", status: "OPEN", limit: 6 });
-  const { data: buzzOrBooData, isLoading: loadingBuzzOrBoo } = useListMarkets({ format: "BUZZ_OR_BOO", status: "OPEN", limit: 5 });
+  const buzzOrBooParams = { format: "BUZZ_OR_BOO" as const, status: "OPEN" as const, limit: 5 };
+  const { data: buzzOrBooData, isLoading: loadingBuzzOrBoo } = useListMarkets(buzzOrBooParams, { query: { queryKey: getListMarketsQueryKey(buzzOrBooParams), refetchInterval: 15000 } });
 
   return (
     <div className="pb-24">

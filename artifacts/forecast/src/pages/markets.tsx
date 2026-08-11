@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearch, useLocation } from "wouter";
-import { useListMarkets } from "@workspace/api-client-react";
+import { useListMarkets, getListMarketsQueryKey } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
 import { BuzzOrBooCard } from "@/components/buzz-or-boo-card";
 import { getCategoryLabel, CATEGORIES } from "@/lib/categories";
@@ -25,11 +25,14 @@ export default function Markets() {
   const isBuzzOrBoo = urlFormat === "BUZZ_OR_BOO";
   const hasFormatFilter = isHotOrNot || isBuzzOrBoo;
 
-  const { data, isLoading } = useListMarkets({
+  const listMarketsParams = {
     category: category !== "ALL" ? (category as any) : undefined,
     format: urlFormat as any,
-    status: "OPEN",
+    status: "OPEN" as const,
     limit: 60,
+  };
+  const { data, isLoading } = useListMarkets(listMarketsParams, {
+    query: { queryKey: getListMarketsQueryKey(listMarketsParams), refetchInterval: isBuzzOrBoo ? 15000 : false },
   });
 
   function handleFormatChange(val: string) {
