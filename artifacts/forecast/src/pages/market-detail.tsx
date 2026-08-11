@@ -31,9 +31,57 @@ import { formatNumber, cn } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
 import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck, ChevronDown, ChevronUp, Database, FlaskConical, MapPin, Shield } from "lucide-react";
 import { Link } from "wouter";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 
 const BUZZ_COLOR = "#CFEA3B";
+
+// ---------------------------------------------------------------------------
+// Countdown helpers
+// ---------------------------------------------------------------------------
+
+function formatCountdown(msLeft: number): string {
+  const totalSeconds = Math.floor(msLeft / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (days >= 7) return `Closes in ${days}d`;
+  if (days >= 1) return `Closes in ${days}d ${hours}h`;
+  if (hours >= 1) return `Closes in ${hours}h ${minutes}m`;
+  if (minutes >= 1) return `Closes in ${minutes}m ${seconds}s`;
+  return `Closes in ${seconds}s`;
+}
+
+function useMarketCountdown(market: any): { label: string | null; urgent: boolean } {
+  const clockType = market?.clockType as string | undefined;
+  const expireAt = market?.expireAt as string | null | undefined;
+
+  const compute = useCallback(() => {
+    if (!clockType || clockType === "EVERGREEN") return { label: null, urgent: false };
+    if (clockType === "RECURRING_PULSE") return { label: "Recurring monthly", urgent: false };
+    if (!expireAt) return { label: null, urgent: false };
+
+    const msLeft = new Date(expireAt).getTime() - Date.now();
+    if (msLeft <= 0) return { label: "Closing soon", urgent: true };
+
+    return { label: formatCountdown(msLeft), urgent: msLeft < 60 * 60 * 1000 };
+  }, [clockType, expireAt]);
+
+  const [state, setState] = useState(compute);
+
+  useEffect(() => {
+    if (!clockType || clockType === "EVERGREEN" || clockType === "RECURRING_PULSE" || !expireAt) {
+      setState(compute());
+      return;
+    }
+    setState(compute());
+    const id = setInterval(() => setState(compute()), 1000);
+    return () => clearInterval(id);
+  }, [clockType, expireAt, compute]);
+
+  return state;
+}
 const BOO_COLOR = "#E8503E";
 
 interface ResolutionRulesDrawerProps {
@@ -217,6 +265,8 @@ export default function MarketDetail() {
   useEffect(() => {
     if (amount[0] > sliderMax) setAmount([sliderMax]);
   }, [sliderMax]);
+
+  const countdown = useMarketCountdown(market);
 
   const isResolved = market?.status === "RESOLVED";
   const isClosed = market?.status === "CLOSED" || isResolved;
@@ -570,6 +620,16 @@ export default function MarketDetail() {
                       </span>
                     ) : isClosed ? (
                       <span className="text-orange-500 font-medium">Closed for predictions</span>
+                    ) : countdown.label ? (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className={cn(
+                          "font-medium font-mono-numbers",
+                          countdown.urgent ? "text-red-500" : "text-foreground"
+                        )}>
+                          {countdown.label}
+                        </span>
+                      </>
                     ) : (
                       <>
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -589,9 +649,21 @@ export default function MarketDetail() {
           <div className="lg:col-span-4 space-y-6">
             <Card className="sticky top-24 border-primary/20 shadow-lg">
               <CardContent className="p-6">
-                <h3 className="font-editorial text-2xl font-bold mb-6">
-                  {isBuzzOrBoo ? "Cast Your Verdict" : isTheCall ? "What's Your Pick?" : "Make a Forecast"}
-                </h3>
+                <div className="flex items-center justify-between gap-3 mb-6">
+                  <h3 className="font-editorial text-2xl font-bold">
+                    {isBuzzOrBoo ? "Cast Your Verdict" : isTheCall ? "What's Your Pick?" : "Make a Forecast"}
+                  </h3>
+                  {!isClosed && countdown.label && (
+                    <span className={cn(
+                      "text-xs font-mono-numbers font-bold px-2.5 py-1 rounded-full shrink-0",
+                      countdown.urgent
+                        ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                        : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
+                    )}>
+                      {countdown.label}
+                    </span>
+                  )}
+                </div>
 
                 {/* Not authenticated */}
                 {!isAuthenticated && !isClosed && (

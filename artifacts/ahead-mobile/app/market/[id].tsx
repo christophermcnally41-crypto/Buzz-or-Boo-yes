@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -55,6 +55,42 @@ export default function MarketDetailScreen() {
   const pair = getMarketColors(marketId);
 
   const { data: market, isLoading, error } = useGetMarket(marketId);
+
+  // ---- Countdown timer ----
+  const clockType = useMemo(() => (market as any)?.clockType as string | undefined, [market]);
+  const expireAt = useMemo(() => (market as any)?.expireAt as string | null | undefined, [market]);
+
+  const computeCountdown = useCallback(() => {
+    if (!clockType || clockType === 'EVERGREEN') return { label: null as string | null, urgent: false };
+    if (clockType === 'RECURRING_PULSE') return { label: 'Recurring monthly', urgent: false };
+    if (!expireAt) return { label: null as string | null, urgent: false };
+    const msLeft = new Date(expireAt).getTime() - Date.now();
+    if (msLeft <= 0) return { label: 'Closing soon', urgent: true };
+    const totalSecs = Math.floor(msLeft / 1000);
+    const days = Math.floor(totalSecs / 86400);
+    const hrs = Math.floor((totalSecs % 86400) / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    let label: string;
+    if (days >= 7) label = `Closes in ${days}d`;
+    else if (days >= 1) label = `Closes in ${days}d ${hrs}h`;
+    else if (hrs >= 1) label = `Closes in ${hrs}h ${mins}m`;
+    else if (mins >= 1) label = `Closes in ${mins}m ${secs}s`;
+    else label = `Closes in ${secs}s`;
+    return { label, urgent: msLeft < 60 * 60 * 1000 };
+  }, [clockType, expireAt]);
+
+  const [countdown, setCountdown] = useState<{ label: string | null; urgent: boolean }>({ label: null, urgent: false });
+
+  useEffect(() => {
+    if (!clockType || clockType === 'EVERGREEN' || clockType === 'RECURRING_PULSE' || !expireAt) {
+      setCountdown(computeCountdown());
+      return;
+    }
+    setCountdown(computeCountdown());
+    const id = setInterval(() => setCountdown(computeCountdown()), 1000);
+    return () => clearInterval(id);
+  }, [clockType, expireAt, computeCountdown]);
   const { data: predictions } = useGetMarketPredictions(marketId);
   const { data: tallyResult } = useGetMarketTally(marketId);
   const { data: myPredictionData } = useGetMarketMyPrediction(marketId);
@@ -284,7 +320,15 @@ export default function MarketDetailScreen() {
           <View style={styles.statsRow}>
             <Feather name="users" size={13} color="rgba(255,255,255,0.7)" />
             <Text style={styles.statText}>{market.totalPredictions} predictions</Text>
-            {market.closesAt && (
+            {countdown.label ? (
+              <>
+                <View style={styles.statDot} />
+                <Feather name="clock" size={13} color={countdown.urgent ? '#FF6B6B' : 'rgba(255,255,255,0.7)'} />
+                <Text style={[styles.statText, countdown.urgent && styles.statTextUrgent]}>
+                  {countdown.label}
+                </Text>
+              </>
+            ) : market.closesAt ? (
               <>
                 <View style={styles.statDot} />
                 <Feather name="clock" size={13} color="rgba(255,255,255,0.7)" />
@@ -292,7 +336,7 @@ export default function MarketDetailScreen() {
                   Closes {new Date(market.closesAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </Text>
               </>
-            )}
+            ) : null}
           </View>
         </LinearGradient>
 
@@ -648,6 +692,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     fontFamily: 'Inter_400Regular',
+  },
+  statTextUrgent: {
+    color: '#FF6B6B',
+    fontFamily: 'Inter_600SemiBold',
   },
   statDot: {
     width: 3,
