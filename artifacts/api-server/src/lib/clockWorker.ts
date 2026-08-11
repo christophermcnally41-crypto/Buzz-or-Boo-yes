@@ -85,8 +85,15 @@ function nextRecurrenceDates(
   return null; // unknown rule — don't recur automatically
 }
 
-export async function tick(): Promise<void> {
+export interface TickResult {
+  archived: number;
+  rolledForward: number;
+  scored: number;
+}
+
+export async function tick(): Promise<TickResult> {
   const now = new Date();
+  let rolledForward = 0;
 
   // ─── 1. Archive expired OPEN markets ────────────────────────────────────────
   const expired = await db
@@ -122,6 +129,7 @@ export async function tick(): Promise<void> {
           })
           .where(eq(marketsTable.id, market.id));
 
+        rolledForward += 1;
         logger.info(
           { marketId: market.id, newExpireAt },
           "[clockWorker] advanced ROLLING_FORECAST window",
@@ -217,20 +225,37 @@ export async function tick(): Promise<void> {
     }
   }
 
-  if (expired.length > 0 || openWithExpiry.length > 0) {
+  const archived = expired.length - rolledForward;
+  if (archived > 0 || rolledForward > 0 || openWithExpiry.length > 0) {
     logger.info(
-      { archived: expired.length, scored: openWithExpiry.length },
+      { archived, rolledForward, scored: openWithExpiry.length },
       "[clockWorker] tick complete",
     );
   }
+
+  return { archived, rolledForward, scored: openWithExpiry.length };
 }
 
 let _interval: ReturnType<typeof setInterval> | null = null;
 
 export function startClockWorker(): void {
   if (_interval) return; // already running
-  // Run once immediately on startup, then on every tick
-  tick().catch((err) => logger.error({ err }, "[clockWorker] initial tick failed"));
+
+  // Run once immediately on startup to catch up any markets that expired
+  // while the server was down, then schedule regular ticks.
+  tick()
+    .then((result) => {
+      if (result.archived > 0 || result.rolledForward > 0) {
+        logger.warn(
+          { caught_up_archived: result.archived, caught_up_rolled: result.rolledForward },
+          "[clockWorker] startup catch-up: processed markets that expired during downtime",
+        );
+      } else {
+        logger.info("[clockWorker] startup catch-up: no missed markets");
+      }
+    })
+    .catch((err) => logger.error({ err }, "[clockWorker] initial tick failed"));
+
   _interval = setInterval(() => {
     tick().catch((err) => logger.error({ err }, "[clockWorker] tick failed"));
   }, TICK_MS);
