@@ -30,3 +30,24 @@ NODE_ENV = "production"
 
 [services.production.health.startup]
 path = "/api/healthz"
+
+[[services]]
+localPort = 8082
+name = "Clock Worker"
+
+[services.development]
+run = "pnpm --filter @workspace/api-server run dev:clock"
+
+[services.production]
+
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/api-server", "run", "build"]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = ["node", "--enable-source-maps", "artifacts/api-server/dist/clockWorkerMain.mjs"]
+
+[services.production.run.env]
+NODE_ENV = "production"

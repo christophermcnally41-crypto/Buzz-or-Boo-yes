@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
+    "dev:clock": "export NODE_ENV=development && pnpm run build && pnpm run start:clock",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
+    "start:clock": "node --enable-source-maps ./dist/clockWorkerMain.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
