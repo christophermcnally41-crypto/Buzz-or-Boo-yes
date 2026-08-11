@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation, useSearch } from "wouter";
-import { Sparkles, Home, BarChart2, User, Shield, Search, LogIn, LogOut, Flame } from "lucide-react";
+import { Sparkles, Home, BarChart2, User, Shield, Search, LogIn, LogOut, Flame, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
@@ -38,8 +38,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", label: "What's Buzzing", icon: Sparkles },
     { href: "/leaderboard", label: "BuzzRank", icon: BarChart2 },
     { href: "/markets?format=HOT_OR_NOT", label: "Hot or Not", icon: Flame },
+    { href: "/markets?format=BUZZ_OR_BOO", label: "Buzz or Boo", icon: Zap },
     ...(userId ? [{ href: `/profile/${userId}`, label: "My Calls", icon: User }] : []),
     { href: "/markets", label: "Markets", icon: Search },
+  ];
+
+  // Mobile nav omits the generic Markets link to stay within 360px — format-specific
+  // shortcuts (Hot or Not, Buzz or Boo) already cover the main discovery paths.
+  const mobileNavItems = [
+    { href: "/", label: "Home", icon: Sparkles },
+    { href: "/markets?format=HOT_OR_NOT", label: "Hot or Not", icon: Flame },
+    { href: "/markets?format=BUZZ_OR_BOO", label: "Buzz or Boo", icon: Zap },
+    { href: "/leaderboard", label: "BuzzRank", icon: BarChart2 },
+    ...(userId ? [{ href: `/profile/${userId}`, label: "My Calls", icon: User }] : []),
   ];
 
   return (
@@ -151,7 +162,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background/90 backdrop-blur-lg pb-safe">
         <div className="flex items-center justify-around p-2">
-          {navItems.map((item) => {
+          {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const [itemPath, itemQuery] = item.href.split("?");
             const isActive = itemQuery
