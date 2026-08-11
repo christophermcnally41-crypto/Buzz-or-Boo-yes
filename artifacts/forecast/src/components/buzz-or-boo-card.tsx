@@ -1,9 +1,10 @@
-import { Market } from "@workspace/api-client-react";
+import { Market, useGetMarketTally, getGetMarketTallyQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Link } from "wouter";
 import { formatNumber } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
+import { useMemo } from "react";
 
 const BUZZ_COLOR = "#CFEA3B";
 const BOO_COLOR = "#E8503E";
@@ -13,9 +14,33 @@ export function BuzzOrBooCard({ market }: { market: Market }) {
   const buzzColor = BUZZ_COLOR;
   const booColor = BOO_COLOR;
 
-  const buzzPercent = market.yesPercent ?? 50;
-  const booPercent = market.noPercent ?? 50;
   const isResolved = market.status === "RESOLVED";
+  const isActive = market.status === "OPEN";
+
+  // Poll for live tallies every 30 s while the market is open
+  const { data: tallyData } = useGetMarketTally(market.id, {
+    query: {
+      queryKey: getGetMarketTallyQueryKey(market.id),
+      refetchInterval: isActive ? 30_000 : false,
+    },
+  });
+
+  // Derive live percentages from tally data; fall back to market props when tally is not yet loaded
+  const { buzzPercent, booPercent } = useMemo(() => {
+    const yes = tallyData?.tallies?.["YES"] ?? 0;
+    const no = tallyData?.tallies?.["NO"] ?? 0;
+    const total = yes + no;
+    if (total > 0) {
+      return {
+        buzzPercent: (yes / total) * 100,
+        booPercent: (no / total) * 100,
+      };
+    }
+    return {
+      buzzPercent: market.yesPercent ?? 50,
+      booPercent: market.noPercent ?? 50,
+    };
+  }, [tallyData, market.yesPercent, market.noPercent]);
 
   // Determine dominant sentiment
   const dominantBuzz = buzzPercent >= booPercent;
