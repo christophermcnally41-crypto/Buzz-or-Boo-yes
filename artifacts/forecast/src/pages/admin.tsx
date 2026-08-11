@@ -116,6 +116,47 @@ function fillPlaceholders(templateQuestion: string, values: Record<string, strin
   return templateQuestion.replace(/\[([^\]]+)\]/g, (match, key) => values[match] ?? match);
 }
 
+// Build a pretty-printed preview of the description JSON that will be stored
+function buildDescriptionPreview(
+  format: string,
+  contenders: Contender[],
+  metric: string,
+  period: string,
+  recurring: boolean,
+): string | null {
+  if (format === "MULTI_CHOICE") {
+    const valid = contenders.filter(c => c.name.trim());
+    if (valid.length === 0) return null;
+    return JSON.stringify(
+      {
+        contenders: valid.map(c => ({
+          key: c.key,
+          name: c.name.trim(),
+          ...(c.venue?.trim() ? { venue: c.venue.trim() } : {}),
+        })),
+        ...(metric ? { metric } : {}),
+        ...(period ? { period } : {}),
+        ...(recurring ? { recurring: true } : {}),
+      },
+      null,
+      2,
+    );
+  }
+  if (format === "THE_CALL") {
+    const valid = contenders.filter(c => c.name.trim());
+    if (valid.length === 0) return null;
+    return JSON.stringify(
+      {
+        options: valid.map(c => ({ key: c.key, label: c.name.trim() })),
+        ...(metric ? { context: metric } : {}),
+      },
+      null,
+      2,
+    );
+  }
+  return null;
+}
+
 // ── Inline Edit Form ─────────────────────────────────────────────────────────
 
 interface EditMarketFormProps {
@@ -681,6 +722,30 @@ function TemplateMarketForm({
             </div>
           )}
 
+          {/* Live JSON preview for structured formats */}
+          {(engine === "MULTI_CHOICE" || engine === "THE_CALL") && (() => {
+            const preview = buildDescriptionPreview(engine, contenders, metric, period, recurring);
+            return (
+              <details className="group">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground select-none list-none flex items-center gap-1 py-1">
+                  <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
+                  Preview JSON
+                </summary>
+                <div className="mt-2">
+                  {preview ? (
+                    <pre className="text-[11px] bg-muted/60 border border-border rounded-lg p-3 overflow-x-auto whitespace-pre-wrap text-foreground/80 font-mono leading-relaxed">
+                      {preview}
+                    </pre>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground italic p-3 bg-muted/40 rounded-lg border border-border">
+                      Fill in at least one contender to see the preview.
+                    </p>
+                  )}
+                </div>
+              </details>
+            );
+          })()}
+
           <div className="space-y-2">
             <Label>Short Title</Label>
             <Input {...form.register("title")} placeholder="Market title" />
@@ -1165,6 +1230,30 @@ export default function Admin() {
                       </label>
                     </div>
                   )}
+
+                  {/* Live JSON preview for structured formats */}
+                  {(selectedFormat === "MULTI_CHOICE" || selectedFormat === "THE_CALL") && (() => {
+                    const preview = buildDescriptionPreview(selectedFormat, contenders, metric, period, recurring);
+                    return (
+                      <details className="group">
+                        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground select-none list-none flex items-center gap-1 py-1">
+                          <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
+                          Preview JSON
+                        </summary>
+                        <div className="mt-2">
+                          {preview ? (
+                            <pre className="text-[11px] bg-muted/60 border border-border rounded-lg p-3 overflow-x-auto whitespace-pre-wrap text-foreground/80 font-mono leading-relaxed">
+                              {preview}
+                            </pre>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground italic p-3 bg-muted/40 rounded-lg border border-border">
+                              Fill in at least one contender to see the preview.
+                            </p>
+                          )}
+                        </div>
+                      </details>
+                    );
+                  })()}
 
                   {selectedFormat !== "MULTI_CHOICE" && selectedFormat !== "THE_CALL" && (
                     <div className="space-y-2">
