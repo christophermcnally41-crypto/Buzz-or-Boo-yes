@@ -90,6 +90,24 @@ function resolveChoiceLabel(
   return raw;
 }
 
+const BUZZ_COLOR = '#CFEA3B';
+const BOO_COLOR = '#E8503E';
+
+/**
+ * Returns the color to use for a prediction choice label.
+ * BUZZ_OR_BOO: BUZZ_COLOR for YES, BOO_COLOR for everything else.
+ * All other formats: null (use default muted color).
+ */
+function resolveChoiceColor(
+  choice: string | null | undefined,
+  market: { marketFormat?: string | null } | null | undefined,
+): string | null {
+  if (market?.marketFormat === 'BUZZ_OR_BOO') {
+    return choice === 'YES' ? BUZZ_COLOR : BOO_COLOR;
+  }
+  return null;
+}
+
 function SectionRow({ icon, label, value, colors }: { icon: string; label: string; value: string; colors: any }) {
   return (
     <View style={[styles.sectionRow, { borderBottomColor: colors.border }]}>
@@ -225,7 +243,10 @@ export default function ProfileScreen() {
                         {pred.market?.question}
                       </Text>
                       <Text style={[styles.predChoice, { color: colors.mutedForeground }]}>
-                        {resolveChoiceLabel(pred.choice, pred.market)} · {pred.amount.toLocaleString()} FP
+                        <Text style={{ color: resolveChoiceColor(pred.choice, pred.market) ?? colors.mutedForeground }}>
+                          {resolveChoiceLabel(pred.choice, pred.market)}
+                        </Text>
+                        {' · '}{pred.amount.toLocaleString()} FP
                       </Text>
                     </View>
                     <View>
