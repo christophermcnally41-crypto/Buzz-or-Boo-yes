@@ -31,56 +31,81 @@ import { formatNumber, cn } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
 import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck, ChevronDown, ChevronUp, Database, FlaskConical, MapPin, Shield } from "lucide-react";
 import { Link } from "wouter";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { computeCountdownState } from "@/lib/market-countdown";
 
 const BUZZ_COLOR = "#CFEA3B";
 
 // ---------------------------------------------------------------------------
-// Countdown helpers
+// Countdown hook
 // ---------------------------------------------------------------------------
 
-function formatCountdown(msLeft: number): string {
-  const totalSeconds = Math.floor(msLeft / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (days >= 7) return `Closes in ${days}d`;
-  if (days >= 1) return `Closes in ${days}d ${hours}h`;
-  if (hours >= 1) return `Closes in ${hours}h ${minutes}m`;
-  if (minutes >= 1) return `Closes in ${minutes}m ${seconds}s`;
-  return `Closes in ${seconds}s`;
-}
-
-function useMarketCountdown(market: any): { label: string | null; urgent: boolean } {
+/**
+ * Drives a per-second countdown display.
+ *
+ * Freeze guarantee: once the expiry timestamp passes, the hook clears the
+ * interval immediately so the label is permanently frozen at "Closing soon"
+ * and never decrements below zero.
+ *
+ * justExpired: set to true the first time the expiry is detected *during*
+ * this session (i.e. the page was open when the market expired). Use it to
+ * show a "refresh to see final result" nudge.
+ */
+function useMarketCountdown(
+  market: any,
+): { label: string | null; urgent: boolean; justExpired: boolean } {
   const clockType = market?.clockType as string | undefined;
   const expireAt = market?.expireAt as string | null | undefined;
 
-  const compute = useCallback(() => {
-    if (!clockType || clockType === "EVERGREEN") return { label: null, urgent: false };
-    if (clockType === "RECURRING_PULSE") return { label: "Recurring monthly", urgent: false };
-    if (!expireAt) return { label: null, urgent: false };
-
-    const msLeft = new Date(expireAt).getTime() - Date.now();
-    if (msLeft <= 0) return { label: "Closing soon", urgent: true };
-
-    return { label: formatCountdown(msLeft), urgent: msLeft < 60 * 60 * 1000 };
-  }, [clockType, expireAt]);
+  const compute = useCallback(
+    () => computeCountdownState(clockType, expireAt, Date.now()),
+    [clockType, expireAt],
+  );
 
   const [state, setState] = useState(compute);
+  const [justExpired, setJustExpired] = useState(false);
+  // Track whether the timer was running (i.e. had a positive msLeft) so we can
+  // detect the transition from "counting down" → "expired" during this session.
+  const wasCountingRef = useRef(false);
 
   useEffect(() => {
+    const initial = compute();
+    setState(initial);
+
     if (!clockType || clockType === "EVERGREEN" || clockType === "RECURRING_PULSE" || !expireAt) {
-      setState(compute());
+      wasCountingRef.current = false;
       return;
     }
-    setState(compute());
-    const id = setInterval(() => setState(compute()), 1000);
+
+    if (initial.label !== "Closing soon") {
+      // Market is still open — start counting
+      wasCountingRef.current = true;
+    }
+
+    if (initial.label === "Closing soon") {
+      // Already expired before this render — no interval needed
+      wasCountingRef.current = false;
+      return;
+    }
+
+    const id = setInterval(() => {
+      const next = compute();
+      setState(next);
+
+      if (next.label === "Closing soon") {
+        // Market just expired during this session
+        if (wasCountingRef.current) {
+          setJustExpired(true);
+        }
+        wasCountingRef.current = false;
+        clearInterval(id);
+      }
+    }, 1000);
+
     return () => clearInterval(id);
   }, [clockType, expireAt, compute]);
 
-  return state;
+  return { ...state, justExpired };
 }
 const BOO_COLOR = "#E8503E";
 
@@ -426,6 +451,22 @@ export default function MarketDetail() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-editorial font-bold leading-[1.1] text-balance mb-6">
               {market.question}
             </h1>
+
+            {/* Refresh nudge — shown when the market expired while the page was open */}
+            {countdown.justExpired && !isClosed && (
+              <div className="flex items-center gap-3 mb-6 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span className="text-sm font-medium">
+                  This market just closed —{" "}
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="underline underline-offset-2 hover:no-underline font-semibold"
+                  >
+                    refresh to see the final result
+                  </button>
+                </span>
+              </div>
+            )}
 
             {market.description && !isMultiChoice && !isBuzzOrBoo && !isTheCall && (
               <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">

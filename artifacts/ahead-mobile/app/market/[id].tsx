@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -67,6 +67,7 @@ export default function MarketDetailScreen() {
     if (clockType === 'RECURRING_PULSE') return { label: 'Recurring monthly', urgent: false };
     if (!expireAt) return { label: null as string | null, urgent: false };
     const msLeft = new Date(expireAt).getTime() - Date.now();
+    // Freeze at "Closing soon" — never decrement below zero.
     if (msLeft <= 0) return { label: 'Closing soon', urgent: true };
     const totalSecs = Math.floor(msLeft / 1000);
     const days = Math.floor(totalSecs / 86400);
@@ -83,14 +84,39 @@ export default function MarketDetailScreen() {
   }, [clockType, expireAt]);
 
   const [countdown, setCountdown] = useState<{ label: string | null; urgent: boolean }>({ label: null, urgent: false });
+  // justExpired: true when the market expired while this screen was open
+  const [justExpired, setJustExpired] = useState(false);
+  const wasCountingRef = useRef(false);
 
   useEffect(() => {
+    const initial = computeCountdown();
+    setCountdown(initial);
+
     if (!clockType || clockType === 'EVERGREEN' || clockType === 'RECURRING_PULSE' || !expireAt) {
-      setCountdown(computeCountdown());
+      wasCountingRef.current = false;
       return;
     }
-    setCountdown(computeCountdown());
-    const id = setInterval(() => setCountdown(computeCountdown()), 1000);
+
+    if (initial.label !== 'Closing soon') {
+      wasCountingRef.current = true;
+    } else {
+      // Already expired before this render — no interval needed
+      wasCountingRef.current = false;
+      return;
+    }
+
+    const id = setInterval(() => {
+      const next = computeCountdown();
+      setCountdown(next);
+      if (next.label === 'Closing soon') {
+        // Market just expired mid-session — stop the interval and flag it
+        if (wasCountingRef.current) {
+          setJustExpired(true);
+        }
+        wasCountingRef.current = false;
+        clearInterval(id);
+      }
+    }, 1000);
     return () => clearInterval(id);
   }, [clockType, expireAt, computeCountdown]);
   const { data: predictions } = useGetMarketPredictions(marketId);
@@ -344,6 +370,17 @@ export default function MarketDetailScreen() {
             ) : null}
           </View>
         </LinearGradient>
+
+        {/* Refresh nudge — shown when the market expired while this screen was open */}
+        {justExpired && market.status === 'OPEN' && (
+          <View style={[styles.expiredNudge, { backgroundColor: colors.card, borderColor: 'rgba(245,158,11,0.4)' }]}>
+            <Feather name="clock" size={14} color="#F59E0B" />
+            <Text style={[styles.expiredNudgeText, { color: colors.foreground }]}>
+              This market just closed —{' '}
+              <Text style={{ color: '#F59E0B', fontWeight: '700' }}>pull down to refresh</Text>
+            </Text>
+          </View>
+        )}
 
         {/* Description — skip raw JSON for THE_CALL (options are shown in the hero) */}
         {market.description && !isTheCall && (
@@ -708,6 +745,22 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     backgroundColor: 'rgba(255,255,255,0.4)',
     marginHorizontal: 2,
+  },
+  expiredNudge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  expiredNudgeText: {
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    flex: 1,
+    lineHeight: 18,
   },
   descCard: {
     borderRadius: 16,
