@@ -21,11 +21,82 @@ import { MarketCardSkeleton } from '@/components/SkeletonLoader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const BUZZ_COLOR = '#CFEA3B';
+const BOO_COLOR = '#E8503E';
+
 function TrendingCard({ market, rank, onPress }: { market: Market; rank: number; onPress: () => void }) {
   const colors = useColors();
   const pair = getMarketColors(market.id);
+  const isBuzzOrBoo = market.marketFormat === 'BUZZ_OR_BOO';
   const yesPercent = market.yesPercent ?? 50;
   const noPercent = market.noPercent ?? 50;
+  const buzzPercent = yesPercent;
+  const booPercent = noPercent;
+
+  if (isBuzzOrBoo) {
+    const dominantBuzz = buzzPercent >= booPercent;
+    const totalVerdicts = market.totalPredictions ?? 0;
+
+    return (
+      <TouchableOpacity activeOpacity={0.88} onPress={onPress}>
+        <LinearGradient
+          colors={['#1A1A1A', '#2A2A2A']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.trendCard}
+        >
+          <View style={styles.trendTop}>
+            <View style={[styles.rankBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+              <Text style={styles.rankText}>#{rank}</Text>
+            </View>
+            <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+              <Text style={styles.catText}>⚡ BUZZ OR BOO</Text>
+            </View>
+            <View
+              style={[
+                styles.catChip,
+                {
+                  backgroundColor: dominantBuzz ? BUZZ_COLOR + '22' : BOO_COLOR + '22',
+                  borderWidth: 1,
+                  borderColor: dominantBuzz ? BUZZ_COLOR + '66' : BOO_COLOR + '66',
+                },
+              ]}
+            >
+              <Text style={[styles.catText, { color: dominantBuzz ? BUZZ_COLOR : BOO_COLOR }]}>
+                {dominantBuzz ? '⚡ BUZZING' : "👎 BOO'D"}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.trendTitle} numberOfLines={3}>
+            {market.title}
+          </Text>
+
+          <View style={styles.buzzBottom}>
+            <View style={styles.buzzStat}>
+              <Text style={[styles.trendStatNum, { color: BUZZ_COLOR }]}>{Math.round(buzzPercent)}%</Text>
+              <Text style={[styles.trendStatLabel, { color: BUZZ_COLOR + 'BB' }]}>⚡ BUZZ</Text>
+            </View>
+            <View style={[styles.miniBar, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+              <View style={[styles.miniBarFill, { flex: Math.max(buzzPercent, 3), backgroundColor: BUZZ_COLOR }]} />
+              <View style={[styles.miniBarFill, { flex: Math.max(booPercent, 3), backgroundColor: BOO_COLOR }]} />
+            </View>
+            <View style={[styles.trendStat, styles.trendStatRight]}>
+              <Text style={[styles.trendStatNum, { color: BOO_COLOR }]}>{Math.round(booPercent)}%</Text>
+              <Text style={[styles.trendStatLabel, { color: BOO_COLOR + 'BB' }]}>👎 BOO</Text>
+            </View>
+          </View>
+
+          <View style={styles.trendFooter}>
+            <Feather name="zap" size={12} color="rgba(255,255,255,0.6)" />
+            <Text style={styles.trendFooterText}>
+              {totalVerdicts} {totalVerdicts === 1 ? 'verdict' : 'verdicts'}
+            </Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity activeOpacity={0.88} onPress={onPress}>
@@ -280,6 +351,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  buzzBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  buzzStat: {
+    alignItems: 'flex-start',
+    minWidth: 44,
   },
   trendStat: {
     alignItems: 'flex-start',
