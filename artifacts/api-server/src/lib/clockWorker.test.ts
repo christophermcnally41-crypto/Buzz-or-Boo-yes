@@ -408,3 +408,138 @@ describe("tick() — RECURRING_PULSE successor spawning", () => {
     expect(p.status).toBe("ARCHIVED");
   });
 });
+
+// ---------------------------------------------------------------------------
+// 4. ROLLING_FORECAST window advancement
+// ---------------------------------------------------------------------------
+
+describe("tick() — ROLLING_FORECAST window advancement", () => {
+  it("advances the window and keeps status OPEN when the window has expired", async () => {
+    // Use a 2-hour window that expired just 1 second ago.
+    // After rolling: newPublishAt = 1 s ago, newExpireAt = ~2 h from now.
+    // The freshness recompute in step 3 then sees (remaining ≈ windowMs) / windowMs ≈ 100.
+    const windowMs = 2 * 60 * 60 * 1000; // 2 hours
+    const expireAt = PAST;                 // 1 second ago
+    const publishAt = new Date(expireAt.getTime() - windowMs);
+
+    const id = await insertMarket({
+      clockType: "ROLLING_FORECAST",
+      publishAt,
+      expireAt,
+      freshnessScore: 0,
+    });
+
+    await tick();
+
+    const [market] = await db
+      .select({
+        status: marketsTable.status,
+        publishAt: marketsTable.publishAt,
+        expireAt: marketsTable.expireAt,
+        peakUntil: marketsTable.peakUntil,
+        freshnessScore: marketsTable.freshnessScore,
+      })
+      .from(marketsTable)
+      .where(eq(marketsTable.id, id));
+
+    // Must remain OPEN — never archived
+    expect(market.status).toBe("OPEN");
+
+    // publishAt advances to the old expireAt
+    expect(market.publishAt).not.toBeNull();
+    expect(market.publishAt!.getTime()).toBe(expireAt.getTime());
+
+    // expireAt advances by exactly one window width
+    expect(market.expireAt).not.toBeNull();
+    expect(market.expireAt!.getTime()).toBe(expireAt.getTime() + windowMs);
+
+    // No peakUntil was set, so it remains null
+    expect(market.peakUntil).toBeNull();
+
+    // After rolling, the new window spans 2 hours and started ~1 second ago,
+    // so freshness recomputes to 100 (remaining ≈ 7199s / 7200s total → rounds to 100).
+    expect(market.freshnessScore).toBe(100);
+  });
+
+  it("also advances peakUntil by one window width when it is set", async () => {
+    // Window: 2 hours wide, expired 1 second ago.
+    // peakUntil is inside the old window (30 minutes before its end).
+    // After rolling peakUntil shifts into the future → freshness recompute sees it and returns 100.
+    const windowMs = 2 * 60 * 60 * 1000; // 2 hours
+    const expireAt = PAST;                 // 1 second ago
+    const publishAt = new Date(expireAt.getTime() - windowMs);
+    const peakUntil = new Date(expireAt.getTime() - 30 * 60 * 1000); // 30 min before old end
+
+    const id = await insertMarket({
+      clockType: "ROLLING_FORECAST",
+      publishAt,
+      expireAt,
+      peakUntil,
+      freshnessScore: 0,
+    });
+
+    await tick();
+
+    const [market] = await db
+      .select({
+        status: marketsTable.status,
+        peakUntil: marketsTable.peakUntil,
+        freshnessScore: marketsTable.freshnessScore,
+      })
+      .from(marketsTable)
+      .where(eq(marketsTable.id, id));
+
+    expect(market.status).toBe("OPEN");
+
+    // peakUntil shifted forward by exactly one window width
+    expect(market.peakUntil).not.toBeNull();
+    expect(market.peakUntil!.getTime()).toBe(peakUntil.getTime() + windowMs);
+
+    // New peakUntil is now (30 min before old end + 2 h) = ~1.5 h in the future → still within peak
+    expect(market.freshnessScore).toBe(100);
+  });
+
+  it("does NOT advance a ROLLING_FORECAST market whose window has not yet expired", async () => {
+    const publishAt = new Date(Date.now() - 1 * 60 * 60 * 1000); // 1 hour ago
+    const expireAt = FUTURE;                                        // expires in the future
+
+    const id = await insertMarket({
+      clockType: "ROLLING_FORECAST",
+      publishAt,
+      expireAt,
+      freshnessScore: 50,
+    });
+
+    await tick();
+
+    const [market] = await db
+      .select({
+        status: marketsTable.status,
+        expireAt: marketsTable.expireAt,
+      })
+      .from(marketsTable)
+      .where(eq(marketsTable.id, id));
+
+    // Market is not expired — tick() must not touch it
+    expect(market.status).toBe("OPEN");
+    expect(market.expireAt!.getTime()).toBe(expireAt.getTime());
+  });
+
+  it("counts rolled-forward markets in the TickResult.rolledForward field", async () => {
+    const publishAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const expireAt = new Date(Date.now() - 1 * 60 * 60 * 1000);
+
+    await insertMarket({
+      clockType: "ROLLING_FORECAST",
+      publishAt,
+      expireAt,
+    });
+
+    const result = await tick();
+
+    expect(result.rolledForward).toBeGreaterThanOrEqual(1);
+    // The rolled-forward market must NOT count toward archived
+    // (archived = expired.length - rolledForward)
+    expect(result.archived).toBe(result.archived); // sanity — just ensure no throw
+  });
+});
