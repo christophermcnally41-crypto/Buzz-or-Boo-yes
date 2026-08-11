@@ -22,6 +22,8 @@ import {
   getGetMarketPredictionsQueryKey,
   getGetMarketTallyQueryKey,
   getGetMarketMyPredictionQueryKey,
+  getGetTrendingMarketsQueryKey,
+  getListMarketsQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -137,6 +139,9 @@ export default function MarketDetailScreen() {
             queryClient.invalidateQueries({ queryKey: getGetMarketPredictionsQueryKey(marketId) });
             queryClient.invalidateQueries({ queryKey: getGetMarketTallyQueryKey(marketId) });
             queryClient.invalidateQueries({ queryKey: getGetMarketMyPredictionQueryKey(marketId) });
+            // Refresh feed bars so the split is up-to-date when the user navigates back
+            queryClient.invalidateQueries({ queryKey: getGetTrendingMarketsQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getListMarketsQueryKey() });
           },
           onError: (err: any) => {
             setVoting(false);
