@@ -111,12 +111,20 @@ export function MultiChoiceCard({ market }: { market: Market }) {
                     <span className="text-[10px] font-mono-numbers text-muted-foreground w-7 text-right">
                       {pct}%
                     </span>
+                    <span className="text-[10px] font-mono-numbers text-muted-foreground/70 w-10 text-right">
+                      {count.toLocaleString()}
+                    </span>
                     {isResolved && market.resolvedOutcome === c.key && (
                       <span className="text-[10px] font-bold text-primary">👑</span>
                     )}
                   </div>
                 );
               })}
+              <div className="flex justify-end pt-1 border-t border-border/30 mt-1">
+                <span className="text-[10px] text-muted-foreground/60 font-mono-numbers">
+                  {totalVotes.toLocaleString()} total {totalVotes === 1 ? "call" : "calls"}
+                </span>
+              </div>
             </div>
           )}
 
