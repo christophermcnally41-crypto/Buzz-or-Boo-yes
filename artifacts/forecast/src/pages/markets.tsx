@@ -3,6 +3,7 @@ import { useSearch, useLocation } from "wouter";
 import { useListMarkets, getListMarketsQueryKey } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
 import { BuzzOrBooCard } from "@/components/buzz-or-boo-card";
+import { TheCallCard } from "@/components/the-call-card";
 import { getCategoryLabel, CATEGORIES } from "@/lib/categories";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,8 @@ export default function Markets() {
 
   const isHotOrNot = urlFormat === "HOT_OR_NOT";
   const isBuzzOrBoo = urlFormat === "BUZZ_OR_BOO";
-  const hasFormatFilter = isHotOrNot || isBuzzOrBoo;
+  const isTheCall = urlFormat === "THE_CALL";
+  const hasFormatFilter = isHotOrNot || isBuzzOrBoo || isTheCall;
 
   const listMarketsParams = {
     category: category !== "ALL" ? (category as any) : undefined,
@@ -32,7 +34,7 @@ export default function Markets() {
     limit: 60,
   };
   const { data, isLoading } = useListMarkets(listMarketsParams, {
-    query: { queryKey: getListMarketsQueryKey(listMarketsParams), refetchInterval: isBuzzOrBoo ? 15000 : false },
+    query: { queryKey: getListMarketsQueryKey(listMarketsParams), refetchInterval: isBuzzOrBoo || isTheCall ? 15000 : false },
   });
 
   function handleFormatChange(val: string) {
@@ -50,7 +52,17 @@ export default function Markets() {
       {/* Header */}
       <div className="bg-muted/30 border-b border-border/50 pt-10 pb-8 md:pt-16 md:pb-12">
         <div className="container mx-auto px-4">
-          {isBuzzOrBoo ? (
+          {isTheCall ? (
+            <>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style={{ backgroundColor: "#8B5CF622", color: "#8B5CF6", border: "1px solid #8B5CF644" }}>
+                🎯 The Call
+              </div>
+              <h1 className="text-4xl md:text-5xl font-editorial font-bold mb-4">Make The Call</h1>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Pick the right answer before the crowd locks it in. Your track record is on the line.
+              </p>
+            </>
+          ) : isBuzzOrBoo ? (
             <>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style={{ backgroundColor: "#CFEA3B22", color: "#CFEA3B", border: "1px solid #CFEA3B44" }}>
                 ⚡ Buzz or Boo
@@ -105,6 +117,7 @@ export default function Markets() {
               { value: "ALL", label: "All Formats" },
               { value: "HOT_OR_NOT", label: "🔥 Hot or Not" },
               { value: "BUZZ_OR_BOO", label: "⚡ Buzz or Boo" },
+              { value: "THE_CALL", label: "🎯 The Call" },
             ].map(({ value, label }) => (
               <button
                 key={value}
@@ -127,7 +140,7 @@ export default function Markets() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold">
-              {isBuzzOrBoo ? "All Buzz or Boo Markets" : isHotOrNot ? "All Hot or Not Markets" : "Open Forecasts"}
+              {isBuzzOrBoo ? "All Buzz or Boo Markets" : isHotOrNot ? "All Hot or Not Markets" : isTheCall ? "All The Call Markets" : "Open Forecasts"}
             </h2>
             <Badge variant="secondary" className="font-mono-numbers">
               {data?.total || 0}
@@ -146,6 +159,8 @@ export default function Markets() {
             {data.markets.map(market =>
               isBuzzOrBoo ? (
                 <BuzzOrBooCard key={market.id} market={market} />
+              ) : isTheCall ? (
+                <TheCallCard key={market.id} market={market} />
               ) : (
                 <MarketCard key={market.id} market={market} />
               )

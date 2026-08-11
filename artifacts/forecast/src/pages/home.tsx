@@ -1,6 +1,7 @@
 import { useGetTrendingMarkets, useGetPlatformStats, useGetMarketCategories, useListMarkets, getListMarketsQueryKey } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
 import { BuzzOrBooCard } from "@/components/buzz-or-boo-card";
+import { TheCallCard } from "@/components/the-call-card";
 import { BostonSays } from "@/components/boston-says";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -16,6 +17,8 @@ export default function Home() {
   const { data: hotOrNotData, isLoading: loadingHotOrNot } = useListMarkets({ format: "HOT_OR_NOT", status: "OPEN", limit: 6 });
   const buzzOrBooParams = { format: "BUZZ_OR_BOO" as const, status: "OPEN" as const, limit: 5 };
   const { data: buzzOrBooData, isLoading: loadingBuzzOrBoo } = useListMarkets(buzzOrBooParams, { query: { queryKey: getListMarketsQueryKey(buzzOrBooParams), refetchInterval: 15000 } });
+  const theCallParams = { format: "THE_CALL" as const, status: "OPEN" as const, limit: 6 };
+  const { data: theCallData, isLoading: loadingTheCall } = useListMarkets(theCallParams, { query: { queryKey: getListMarketsQueryKey(theCallParams), refetchInterval: 15000 } });
 
   return (
     <div className="pb-24">
@@ -220,6 +223,48 @@ export default function Home() {
               <Link href="/markets?format=BUZZ_OR_BOO">
                 <Button variant="outline" className="w-full">
                   See All Buzz or Boo <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* The Call */}
+      {(loadingTheCall || (theCallData?.markets && theCallData.markets.length > 0)) && (
+        <section className="py-16 md:py-24 bg-muted/30 border-y border-border/40">
+          <div className="container mx-auto px-4">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-3" style={{ backgroundColor: "#8B5CF622", color: "#8B5CF6", border: "1px solid #8B5CF644" }}>
+                  🎯 The Call
+                </div>
+                <h2 className="text-3xl md:text-4xl font-editorial font-bold mb-2">Make The Call</h2>
+                <p className="text-muted-foreground font-medium">Pick the right answer before the crowd locks it in. Your track record is on the line.</p>
+              </div>
+              <Link href="/markets?format=THE_CALL">
+                <Button variant="ghost" className="hidden md:flex">
+                  See All <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+
+            {loadingTheCall ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                {[1, 2, 3].map(i => <div key={i} className="h-72 bg-muted rounded-xl" />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[320px]">
+                {theCallData?.markets?.map((market) => (
+                  <TheCallCard key={market.id} market={market} />
+                ))}
+              </div>
+            )}
+
+            <div className="mt-8 text-center md:hidden">
+              <Link href="/markets?format=THE_CALL">
+                <Button variant="outline" className="w-full">
+                  See All The Call Markets <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
             </div>
