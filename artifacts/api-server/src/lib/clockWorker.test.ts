@@ -16,7 +16,8 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest";
 import { eq, inArray, and } from "drizzle-orm";
 import { db, pool, marketsTable } from "@workspace/db";
-import { tick } from "./clockWorker.js";
+import { tick, startClockWorker, stopClockWorker } from "./clockWorker.js";
+import * as loggerModule from "./logger.js";
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -644,6 +645,171 @@ describe("tick() — recovery after a transient DB error mid-tick", () => {
     expect(afterSecondTick).toHaveLength(2);
     for (const m of afterSecondTick) {
       expect(m.status).toBe("ARCHIVED");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 6. Startup catch-up — simulating server restart with expired markets
+// ---------------------------------------------------------------------------
+//
+// startClockWorker() fires tick() immediately on startup (fire-and-forget
+// .then()) to catch up any markets that expired during downtime, then
+// schedules the regular interval.  These tests drive startClockWorker()
+// directly and observe the DB outcome rather than calling tick() in isolation.
+
+describe("startClockWorker() — startup catch-up after server restart", () => {
+  // Guarantee a clean worker state before each test: a previously running
+  // interval would cause startClockWorker() to return early with no-op.
+  beforeEach(() => {
+    stopClockWorker();
+  });
+
+  afterEach(() => {
+    stopClockWorker();
+  });
+
+  it("archives markets that expired during downtime and reflects the count in the catch-up log", async () => {
+    // Seed two markets that were OPEN at "shutdown" but have since passed their
+    // expireAt — identical to the state the server finds on restart.
+    const id1 = await insertMarket({ expireAt: PAST });
+    const id2 = await insertMarket({ expireAt: ONE_HOUR_AGO });
+
+    // Spy on logger.warn so we can inspect the caught_up_archived metadata.
+    const warnSpy = vi.spyOn(loggerModule.logger, "warn");
+
+    startClockWorker();
+
+    try {
+      // Wait for the startup tick to write ARCHIVED status to the DB.
+      // Using DB state as the observable is the most reliable signal — it
+      // doesn't depend on logging internals or timer ordering.
+      await vi.waitFor(
+        async () => {
+          const rows = await db
+            .select({ id: marketsTable.id, status: marketsTable.status })
+            .from(marketsTable)
+            .where(inArray(marketsTable.id, [id1, id2]));
+          const allArchived = rows.every((r) => r.status === "ARCHIVED");
+          expect(allArchived).toBe(true);
+        },
+        { timeout: 10_000, interval: 100 },
+      );
+
+      // Both markets must have been set to ARCHIVED with freshnessScore 0.
+      const markets = await db
+        .select({
+          id: marketsTable.id,
+          status: marketsTable.status,
+          freshnessScore: marketsTable.freshnessScore,
+        })
+        .from(marketsTable)
+        .where(inArray(marketsTable.id, [id1, id2]));
+
+      expect(markets).toHaveLength(2);
+      for (const m of markets) {
+        expect(m.status).toBe("ARCHIVED");
+        expect(m.freshnessScore).toBe(0);
+      }
+
+      // The startup catch-up warn must have fired with caught_up_archived >= 2.
+      const catchUpWarns = warnSpy.mock.calls.filter((args) => {
+        const msg = args[args.length - 1];
+        return (
+          typeof msg === "string" &&
+          msg.includes("startup catch-up") &&
+          msg.includes("expired during downtime")
+        );
+      });
+      expect(catchUpWarns.length).toBeGreaterThanOrEqual(1);
+
+      const meta = catchUpWarns[0][0] as Record<string, unknown>;
+      expect(Number(meta["caught_up_archived"])).toBeGreaterThanOrEqual(2);
+    } finally {
+      stopClockWorker();
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("does not emit the catch-up warning when all markets expire in the future (clean restart)", async () => {
+    // Insert a market that hasn't expired yet — nothing to catch up on startup.
+    await insertMarket({ expireAt: FUTURE });
+
+    const warnSpy = vi.spyOn(loggerModule.logger, "warn");
+    const infoSpy = vi.spyOn(loggerModule.logger, "info");
+
+    startClockWorker();
+
+    try {
+      // Wait for the startup tick to complete — signalled by the info log
+      // "no missed markets" that startClockWorker() emits after the clean tick.
+      await vi.waitFor(
+        () => {
+          const noMissedCalls = infoSpy.mock.calls.filter((args) => {
+            const msg = args[args.length - 1];
+            return typeof msg === "string" && msg.includes("no missed markets");
+          });
+          expect(noMissedCalls.length).toBeGreaterThanOrEqual(1);
+        },
+        { timeout: 10_000, interval: 100 },
+      );
+
+      // No catch-up warn must have been emitted.
+      const catchUpWarns = warnSpy.mock.calls.filter((args) => {
+        const msg = args[args.length - 1];
+        return (
+          typeof msg === "string" && msg.includes("startup catch-up")
+        );
+      });
+      expect(catchUpWarns).toHaveLength(0);
+    } finally {
+      stopClockWorker();
+      warnSpy.mockRestore();
+      infoSpy.mockRestore();
+    }
+  });
+
+  it("emits the startup catch-up warning log with caught_up_archived > 0 when archived > 0", async () => {
+    // One expired market is enough to trigger the warn path.
+    await insertMarket({ expireAt: PAST });
+
+    const warnSpy = vi.spyOn(loggerModule.logger, "warn");
+
+    startClockWorker();
+
+    try {
+      // Wait for the warn to be emitted by the startup tick's .then() handler.
+      await vi.waitFor(
+        () => {
+          const catchUpCalls = warnSpy.mock.calls.filter((args) => {
+            const msg = args[args.length - 1];
+            return (
+              typeof msg === "string" &&
+              msg.includes("startup catch-up") &&
+              msg.includes("expired during downtime")
+            );
+          });
+          expect(catchUpCalls.length).toBeGreaterThanOrEqual(1);
+        },
+        { timeout: 10_000, interval: 50 },
+      );
+
+      // Verify the metadata payload carries caught_up_archived > 0.
+      const catchUpCalls = warnSpy.mock.calls.filter((args) => {
+        const msg = args[args.length - 1];
+        return (
+          typeof msg === "string" &&
+          msg.includes("startup catch-up") &&
+          msg.includes("expired during downtime")
+        );
+      });
+
+      const meta = catchUpCalls[0][0] as Record<string, unknown>;
+      expect(typeof meta).toBe("object");
+      expect(Number(meta["caught_up_archived"])).toBeGreaterThan(0);
+    } finally {
+      stopClockWorker();
+      warnSpy.mockRestore();
     }
   });
 });
