@@ -18,6 +18,7 @@ import { getMarketColors } from '@/lib/market-colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { MarketCardSkeleton } from '@/components/SkeletonLoader';
+import { TheCallCard } from '@/components/TheCallCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -28,6 +29,11 @@ function TrendingCard({ market, rank, onPress }: { market: Market; rank: number;
   const colors = useColors();
   const pair = getMarketColors(market.id);
   const isBuzzOrBoo = market.marketFormat === 'BUZZ_OR_BOO';
+  const isTheCall = market.marketFormat === 'THE_CALL';
+
+  if (isTheCall) {
+    return <TheCallCard market={market} rank={rank} onPress={onPress} />;
+  }
   const yesPercent = market.yesPercent ?? 50;
   const noPercent = market.noPercent ?? 50;
   const buzzPercent = yesPercent;
