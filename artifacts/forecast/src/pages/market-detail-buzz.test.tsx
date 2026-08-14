@@ -197,6 +197,7 @@ describe('MarketDetail — BUZZ_OR_BOO tally liveness', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   // -------------------------------------------------------------------------
