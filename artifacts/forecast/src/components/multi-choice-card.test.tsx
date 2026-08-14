@@ -163,4 +163,71 @@ describe('MultiChoiceCard — tally polling', () => {
     const [, options] = mockUseGetMarketTally.mock.calls[0] as [unknown, { query: { refetchInterval: number | false } }];
     expect(options.query.refetchInterval).toBe(false);
   });
+
+  // ---------------------------------------------------------------------------
+  // Failed-refetch resilience: last-known counts must survive a network error
+  // ---------------------------------------------------------------------------
+
+  it('keeps showing last-known counts when a poll fails (network error)', () => {
+    // Initial successful fetch: A=10, B=5, C=2
+    mockUseGetMarketTally.mockReturnValue(makeTally({ A: 10, B: 5, C: 2 }));
+    const { rerender } = render(<MultiChoiceCard market={BASE_MARKET} />);
+
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+
+    // Simulate a failed refetch: React Query keeps the last successful `data`
+    // alongside the new error — the hook's data field does NOT become undefined.
+    mockUseGetMarketTally.mockReturnValue({
+      data: { tallies: { A: 10, B: 5, C: 2 } },
+      error: new Error('Network request failed'),
+      isError: true,
+    });
+
+    act(() => { vi.advanceTimersByTime(30_000); });
+    rerender(<MultiChoiceCard market={BASE_MARKET} />);
+
+    // Last-known counts must still be visible — the card must NOT blank out.
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('updates counts correctly once polling recovers after a failed request', () => {
+    // Phase 1 — successful initial fetch
+    mockUseGetMarketTally.mockReturnValue(makeTally({ A: 10, B: 5, C: 2 }));
+    const { rerender } = render(<MultiChoiceCard market={BASE_MARKET} />);
+
+    expect(screen.getByText('10')).toBeInTheDocument();
+
+    // Phase 2 — failed refetch (React Query preserves last-known data)
+    mockUseGetMarketTally.mockReturnValue({
+      data: { tallies: { A: 10, B: 5, C: 2 } },
+      error: new Error('503 Service Unavailable'),
+      isError: true,
+    });
+
+    act(() => { vi.advanceTimersByTime(30_000); });
+    rerender(<MultiChoiceCard market={BASE_MARKET} />);
+
+    // Still showing last-known values after the error
+    expect(screen.getByText('10')).toBeInTheDocument();
+
+    // Phase 3 — next poll succeeds with fresh tallies
+    mockUseGetMarketTally.mockReturnValue(makeTally({ A: 18, B: 9, C: 4 }));
+
+    act(() => { vi.advanceTimersByTime(30_000); });
+    rerender(<MultiChoiceCard market={BASE_MARKET} />);
+
+    // Fresh counts appear
+    expect(screen.getByText('18')).toBeInTheDocument();
+    expect(screen.getByText('9')).toBeInTheDocument();
+    expect(screen.getByText('4')).toBeInTheDocument();
+
+    // Stale counts are gone
+    expect(screen.queryByText('10')).not.toBeInTheDocument();
+    expect(screen.queryByText('5')).not.toBeInTheDocument();
+    expect(screen.queryByText('2')).not.toBeInTheDocument();
+  });
 });
