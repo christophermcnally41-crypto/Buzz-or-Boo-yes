@@ -16,6 +16,8 @@
 import http from "node:http";
 import { tick } from "./lib/clockWorker";
 import { logger } from "./lib/logger";
+import { assertRequiredIndexes } from "./lib/assertRequiredIndexes";
+import { pool } from "@workspace/db";
 
 const TICK_MS = 5 * 60 * 1000; // 5 minutes, same as clockWorker.ts
 
@@ -46,6 +48,19 @@ function startHealthServer(port: number): void {
 async function main(): Promise<void> {
   const port = Number(process.env["PORT"] ?? 8082);
   logger.info({ intervalMs: TICK_MS, port }, "[clockWorkerMain] starting standalone clock worker");
+
+  // Verify the partial unique index that guards recurring-market deduplication
+  // is present and correctly structured before executing any ticks.
+  // The clock worker performs the same ON CONFLICT (title) WHERE status='OPEN'
+  // inserts as the API resolve route, so it requires the same invariant.
+  try {
+    await assertRequiredIndexes(pool);
+    logger.info("[clockWorkerMain] startup index checks passed.");
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.fatal({ err }, `[clockWorkerMain] startup index check failed: ${message}`);
+    process.exit(1);
+  }
 
   // Start health server so the artifact supervisor can confirm liveness
   startHealthServer(port);
