@@ -925,7 +925,7 @@ export default function MarketDetail() {
                         {market.resolvedOutcome === 'YES' ? 'BUZZ won' : 'BOO won'}
                       </div>
                       {buzzTallyTotal > 0 && (() => {
-                        const winnerCount = market.resolvedOutcome === 'YES' ? liveBuzzCount : liveBooCount;
+                        const winnerCount = market.resolvedOutcome === 'YES' ? liveYesCount : liveNoCount;
                         return (
                           <div className="text-xs font-mono-numbers text-muted-foreground mt-0.5">
                             {Math.round(liveBuzzPercent)}% BUZZ · {Math.round(liveBooPercent)}% BOO
