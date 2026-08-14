@@ -527,6 +527,13 @@ export default function MarketDetail() {
 
   const userTotalInvested = userPrediction?.amount ?? 0;
 
+  // Set page title — must be before early returns to satisfy rules of hooks
+  useEffect(() => {
+    if (!market) return;
+    document.title = `${market.title} — BuzzOrBoo`;
+    return () => { document.title = "BuzzOrBoo \u2014 Call What's Next."; };
+  }, [market?.id, market?.title]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -593,14 +600,6 @@ export default function MarketDetail() {
   const liveTotalCount = liveYesCount + liveNoCount;
   const liveYesPercent = liveTotalCount > 0 ? (liveYesCount / liveTotalCount) * 100 : yesPercent;
   const liveNoPercent = liveTotalCount > 0 ? (liveNoCount / liveTotalCount) * 100 : noPercent;
-
-  // Set page title
-  useEffect(() => {
-    if (market) {
-      document.title = `${market.title} — BuzzOrBoo`;
-      return () => { document.title = "BuzzOrBoo \u2014 Call What's Next."; };
-    }
-  }, [market?.id, market?.title]);
 
   return (
     <div className="min-h-screen pb-24">
