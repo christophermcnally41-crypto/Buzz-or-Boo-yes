@@ -2,7 +2,6 @@ import { cn } from '@/lib/utils';
 import { Loader2Icon } from 'lucide-react';
 
 function Spinner({ className, ...props }: React.ComponentProps<'svg'>) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Icon = Loader2Icon as any;
   return (
     <Icon

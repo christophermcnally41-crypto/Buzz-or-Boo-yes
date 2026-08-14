@@ -44,7 +44,7 @@ export function MultiChoiceCard({ market, featured = false }: { market: Market; 
   const data = parseMultiChoiceData(market.description);
   const isResolved = market.status === "RESOLVED";
   const isScheduled = market.status === "SCHEDULED";
-  const contenders = data?.contenders ?? [];
+  const contenders = useMemo(() => data?.contenders ?? [], [data]);
 
   // Fetch server-aggregated vote tallies — much lighter than fetching all predictions
   // Poll every 30 s while the market is OPEN; stops automatically when it resolves/closes.

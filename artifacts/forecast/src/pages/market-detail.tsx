@@ -439,9 +439,9 @@ export default function MarketDetail() {
   const [amount, setAmount] = useState([100]);
   const [isPredicting, setIsPredicting] = useState<string | null>(null);
 
-  // Clamp amount if balance changed
+  // Clamp amount if balance changed (functional update avoids adding `amount` to deps)
   useEffect(() => {
-    if (amount[0] > sliderMax) setAmount([sliderMax]);
+    setAmount(prev => (prev[0] > sliderMax ? [sliderMax] : prev));
   }, [sliderMax]);
 
   const countdown = useMarketCountdown(market);
@@ -543,12 +543,15 @@ export default function MarketDetail() {
 
   const userTotalInvested = userPrediction?.amount ?? 0;
 
-  // Set page title — must be before early returns to satisfy rules of hooks
+  // Set page title — must be before early returns to satisfy rules of hooks.
+  // Extract primitives so the dep array contains stable scalars, not the object.
+  const loadedMarketId = market?.id;
+  const loadedMarketTitle = market?.title;
   useEffect(() => {
-    if (!market) return;
-    document.title = `${market.title} — BuzzOrBoo`;
+    if (!loadedMarketId || !loadedMarketTitle) return;
+    document.title = `${loadedMarketTitle} — BuzzOrBoo`;
     return () => { document.title = "BuzzOrBoo \u2014 Call What's Next."; };
-  }, [market?.id, market?.title]);
+  }, [loadedMarketId, loadedMarketTitle]);
 
   if (isLoading) {
     return (

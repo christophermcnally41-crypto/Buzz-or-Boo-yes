@@ -20,7 +20,6 @@ export default function Leaderboard() {
   }, { query: { refetchInterval: 30000 } });
 
   const categoryParam = category !== "OVERALL" ? (category as any) : undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: myEntryData } = useGetMyLeaderboardEntry(
     { category: categoryParam },
     { query: { enabled: !!user } as any }
