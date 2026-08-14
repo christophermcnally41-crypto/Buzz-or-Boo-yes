@@ -342,7 +342,7 @@ export default function MarketDetailScreen() {
               onPress={() => {
                 Share.share({
                   title: market.question || market.title,
-                  message: `Check out this market on AHEAD: ${market.question || market.title}`,
+                  message: `Check out this market on BuzzOrBoo: ${market.question || market.title}`,
                 }).catch(() => {});
               }}
               style={{ padding: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)' }}

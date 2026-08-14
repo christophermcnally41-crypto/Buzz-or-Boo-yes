@@ -205,7 +205,7 @@ export default function DiscoverScreen() {
       {/* Floating header */}
       <View style={[styles.header, { paddingTop: topPadding + 8 }]}>
         <View>
-          <Text style={[styles.brand, { color: colors.primary }]}>AHEAD</Text>
+          <Text style={[styles.brand, { color: colors.primary }]}>BuzzOrBoo</Text>
           <Text style={[styles.date, { color: colors.mutedForeground }]}>
             {(() => {
               const h = new Date().getHours();

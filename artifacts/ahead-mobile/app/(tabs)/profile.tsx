@@ -533,7 +533,7 @@ export default function ProfileScreen() {
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>ABOUT</Text>
         <SectionRow icon="info" label="Version" value="1.0.0" colors={colors} />
-        <SectionRow icon="globe" label="Platform" value="AHEAD" colors={colors} />
+        <SectionRow icon="globe" label="Platform" value="BuzzOrBoo" colors={colors} />
         <SectionRow icon="map-pin" label="Focus" value="Boston, MA" colors={colors} />
       </View>
 
