@@ -272,6 +272,27 @@ export interface PredictionInput {
   amount: number;
 }
 
+/**
+ * Mutable fields that can be updated on an existing market. marketFormat is immutable.
+ */
+export interface MarketPatch {
+  title?: string;
+  question?: string;
+  description?: string | null;
+  subcategory?: string;
+  /** Must be a valid URL when provided as a string; send null to clear. */
+  imageUrl?: string | null;
+  geo?: string;
+  /** Must be a valid ISO 8601 date string when provided; send null to clear. */
+  closesAt?: string | null;
+  resolutionSource?: string;
+  sourcePrimary?: string;
+  sourceBackup?: string;
+  baselineSnapshot?: string;
+  formula?: string;
+  voidRule?: string;
+}
+
 export type MarketInputCategory = typeof MarketInputCategory[keyof typeof MarketInputCategory];
 
 
@@ -311,23 +332,6 @@ export const MarketInputClockType = {
   ROLLING_FORECAST: 'ROLLING_FORECAST',
   RECURRING_PULSE: 'RECURRING_PULSE',
 } as const;
-
-/** Mutable fields that can be updated on an existing market. marketFormat is immutable. */
-export interface MarketPatch {
-  title?: string;
-  question?: string;
-  description?: string;
-  subcategory?: string;
-  imageUrl?: string;
-  geo?: string;
-  closesAt?: string;
-  resolutionSource?: string;
-  sourcePrimary?: string;
-  sourceBackup?: string;
-  baselineSnapshot?: string;
-  formula?: string;
-  voidRule?: string;
-}
 
 export interface MarketInput {
   title: string;

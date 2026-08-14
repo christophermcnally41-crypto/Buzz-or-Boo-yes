@@ -28,6 +28,7 @@ interface UserPredictionLike {
   marketId: number;
   choice: string;
   amount: number;
+  tokensEarned?: number | null;
   createdAt: string;
   isCorrect?: boolean | null;
   market?: {
@@ -37,6 +38,7 @@ interface UserPredictionLike {
     description?: string | null;
     status?: string;
     marketFormat?: string;
+    resolvedOutcome?: string | null;
   } | null;
 }
 
@@ -57,16 +59,18 @@ export function TheCallPredictionRow({ prediction }: TheCallPredictionRowProps) 
 
   // Determine the leading option from tally
   let leadingLabel: string | null = null;
+  let tallyHasAnyVotes = false;
   if (tallyData?.tallies && theCallData) {
     let maxCount = 0;
     let leadingKey: string | null = null;
     for (const [key, count] of Object.entries(tallyData.tallies)) {
+      if (count > 0) tallyHasAnyVotes = true;
       if (count > maxCount) {
         maxCount = count;
         leadingKey = key;
       }
     }
-    if (leadingKey) {
+    if (leadingKey && maxCount > 0) {
       leadingLabel =
         theCallData.options.find((o) => o.key === leadingKey)?.label ?? leadingKey;
     }
@@ -74,6 +78,10 @@ export function TheCallPredictionRow({ prediction }: TheCallPredictionRowProps) 
 
   const isResolved = prediction.market?.status === "RESOLVED";
   const won = isResolved && prediction.isCorrect;
+  const resolvedOutcome = prediction.market?.resolvedOutcome;
+  const winnerLabel = isResolved && resolvedOutcome && theCallData
+    ? (theCallData.options.find(o => o.key === resolvedOutcome)?.label ?? resolvedOutcome)
+    : null;
 
   return (
     <Card className="overflow-hidden hover:border-primary/30 transition-colors">
@@ -97,6 +105,16 @@ export function TheCallPredictionRow({ prediction }: TheCallPredictionRowProps) 
           </div>
 
           <div className="flex items-center gap-6 md:min-w-[220px] justify-between md:justify-end shrink-0 w-full md:w-auto">
+            {/* Staked amount */}
+            <div className="flex flex-col items-start md:items-end">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                Staked
+              </span>
+              <span className="text-sm font-mono-numbers font-bold text-foreground">
+                {prediction.amount.toLocaleString()} FP
+              </span>
+            </div>
+
             {/* My Pick */}
             <div className="flex flex-col items-start md:items-end">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
@@ -130,6 +148,16 @@ export function TheCallPredictionRow({ prediction }: TheCallPredictionRowProps) 
                   >
                     {won ? "Called It! ✓" : "Missed"}
                   </span>
+                  {prediction.tokensEarned != null && (
+                    <span className={`text-xs font-bold mt-0.5 ${won ? "text-green-500" : "text-red-400"}`}>
+                      {won ? `+${prediction.tokensEarned}` : `-${prediction.amount}`} FP
+                    </span>
+                  )}
+                  {winnerLabel && (
+                    <span className="text-[10px] text-muted-foreground mt-0.5">
+                      🏆 {winnerLabel}
+                    </span>
+                  )}
                 </>
               ) : leadingLabel ? (
                 <>
@@ -139,6 +167,18 @@ export function TheCallPredictionRow({ prediction }: TheCallPredictionRowProps) 
                   <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">
                     {leadingLabel}
                   </span>
+                </>
+              ) : tallyData && !tallyHasAnyVotes ? (
+                <>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                    Status
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="bg-secondary text-secondary-foreground border-transparent text-xs"
+                  >
+                    No picks yet
+                  </Badge>
                 </>
               ) : (
                 <>

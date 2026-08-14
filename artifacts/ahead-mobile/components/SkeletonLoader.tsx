@@ -58,6 +58,33 @@ export function MarketCardSkeleton() {
   );
 }
 
+export function MarketDetailSkeleton({ colors }: { colors: { card: string; border: string; muted: string } }) {
+  return (
+    <View style={{ width: '92%', alignSelf: 'center', gap: 16 }}>
+      {/* Hero card */}
+      <View style={{ borderRadius: 24, backgroundColor: colors.card, padding: 24, borderWidth: 1, borderColor: colors.border }}>
+        <SkeletonBlock width={80} height={16} borderRadius={8} style={{ marginBottom: 14 }} />
+        <SkeletonBlock height={28} style={{ marginBottom: 8 }} />
+        <SkeletonBlock height={22} width="75%" style={{ marginBottom: 20 }} />
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}><SkeletonBlock height={48} borderRadius={16} /></View>
+          <View style={{ flex: 1 }}><SkeletonBlock height={48} borderRadius={16} /></View>
+        </View>
+      </View>
+      {/* Stats card */}
+      <View style={{ borderRadius: 20, backgroundColor: colors.card, padding: 20, borderWidth: 1, borderColor: colors.border }}>
+        <SkeletonBlock height={12} width="40%" style={{ marginBottom: 10 }} />
+        <SkeletonBlock height={8} borderRadius={4} />
+      </View>
+      {/* Action card */}
+      <View style={{ borderRadius: 20, backgroundColor: colors.card, padding: 20, borderWidth: 1, borderColor: colors.border, gap: 10 }}>
+        <SkeletonBlock height={48} borderRadius={14} />
+        <SkeletonBlock height={48} borderRadius={14} />
+      </View>
+    </View>
+  );
+}
+
 export function LeaderboardRowSkeleton() {
   return (
     <View style={styles.leaderRow}>

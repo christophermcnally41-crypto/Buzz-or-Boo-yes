@@ -11,6 +11,7 @@ import MarketDetail from '@/pages/market-detail';
 import Leaderboard from '@/pages/leaderboard';
 import Profile from '@/pages/profile';
 import Admin from '@/pages/admin';
+import Auth from '@/pages/auth';
 import NotFound from '@/pages/not-found';
 
 import {
@@ -33,6 +34,7 @@ function Router() {
           <Route path="/leaderboard" component={Leaderboard} />
           <Route path="/profile/:id" component={Profile} />
           <Route path="/admin" component={Admin} />
+          <Route path="/auth" component={Auth} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

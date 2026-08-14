@@ -100,6 +100,25 @@ router.patch("/admin/markets/:id", requireAdmin, async (req, res): Promise<void>
     return;
   }
 
+  // Semantic validation that the generated Zod schema cannot express:
+  // closesAt must be a valid ISO date when provided as a non-null string.
+  if (typeof parsed.data.closesAt === "string") {
+    const d = new Date(parsed.data.closesAt);
+    if (isNaN(d.getTime())) {
+      res.status(400).json({ error: "closesAt must be a valid ISO 8601 date string" });
+      return;
+    }
+  }
+  // imageUrl must be a valid URL when provided as a non-null string.
+  if (typeof parsed.data.imageUrl === "string") {
+    try {
+      new URL(parsed.data.imageUrl);
+    } catch {
+      res.status(400).json({ error: "imageUrl must be a valid URL" });
+      return;
+    }
+  }
+
   const [existing] = await db
     .select()
     .from(marketsTable)
@@ -507,6 +526,53 @@ router.post("/admin/templates", requireAdmin, async (req, res): Promise<void> =>
     .returning();
 
   res.status(201).json(serializeTemplate(template));
+});
+
+router.patch("/admin/templates/:id", requireAdmin, async (req, res): Promise<void> => {
+  const templateId = Number(req.params.id);
+  if (isNaN(templateId)) {
+    res.status(400).json({ error: "Invalid template id" });
+    return;
+  }
+
+  const parsed = CreateTemplateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [updated] = await db
+    .update(marketTemplatesTable)
+    .set(parsed.data)
+    .where(eq(marketTemplatesTable.id, templateId))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Template not found" });
+    return;
+  }
+
+  res.json(serializeTemplate(updated));
+});
+
+router.delete("/admin/templates/:id", requireAdmin, async (req, res): Promise<void> => {
+  const templateId = Number(req.params.id);
+  if (isNaN(templateId)) {
+    res.status(400).json({ error: "Invalid template id" });
+    return;
+  }
+
+  const [deleted] = await db
+    .delete(marketTemplatesTable)
+    .where(eq(marketTemplatesTable.id, templateId))
+    .returning({ id: marketTemplatesTable.id });
+
+  if (!deleted) {
+    res.status(404).json({ error: "Template not found" });
+    return;
+  }
+
+  res.status(204).end();
 });
 
 router.post("/admin/templates/:id/create-market", requireAdmin, async (req, res): Promise<void> => {

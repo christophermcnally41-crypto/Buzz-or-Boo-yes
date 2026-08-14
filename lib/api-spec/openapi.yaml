@@ -531,6 +531,62 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /admin/templates/{id}:
+    patch:
+      operationId: updateMarketTemplate
+      tags: [admin]
+      summary: Admin — update a franchise template
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketTemplateInput"
+      responses:
+        "200":
+          description: Updated template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketTemplate"
+        "404":
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: deleteMarketTemplate
+      tags: [admin]
+      summary: Admin — delete a franchise template
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted successfully
+        "404":
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/templates/{id}/create-market:
     post:
       operationId: createMarketFromTemplate
@@ -1172,14 +1228,19 @@ components:
           type: string
         description:
           type: string
+          nullable: true
         subcategory:
           type: string
         imageUrl:
           type: string
+          nullable: true
+          description: Must be a valid URL when provided as a string; send null to clear.
         geo:
           type: string
         closesAt:
           type: string
+          nullable: true
+          description: Must be a valid ISO 8601 date string when provided; send null to clear.
         resolutionSource:
           type: string
         sourcePrimary:

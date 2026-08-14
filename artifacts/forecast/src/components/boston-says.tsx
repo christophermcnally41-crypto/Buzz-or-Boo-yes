@@ -47,7 +47,8 @@ export function BostonSays() {
 
   if (!polls.length) return null;
 
-  const activePoll = polls[activeIndex];
+  const safeIndex = Math.min(activeIndex, Math.max(0, polls.length - 1));
+  const activePoll = polls[safeIndex];
 
   return (
     <section className="py-16 border-t border-border/30">

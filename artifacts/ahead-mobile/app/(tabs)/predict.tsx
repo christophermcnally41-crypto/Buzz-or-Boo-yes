@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   FlatList,
+  ScrollView,
   RefreshControl,
   Platform,
   TouchableOpacity,
@@ -12,7 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
-import { useGetTrendingMarkets, useGetPlatformStats } from '@workspace/api-client-react';
+import { useGetTrendingMarkets, useGetPlatformStats, useGetMarketTally, getTallyRefetchInterval } from '@workspace/api-client-react';
 import type { Market } from '@workspace/api-client-react';
 import { getMarketColors } from '@/lib/market-colors';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,17 +32,33 @@ function TrendingCard({ market, rank, onPress }: { market: Market; rank: number;
   const isBuzzOrBoo = market.marketFormat === 'BUZZ_OR_BOO';
   const isTheCall = market.marketFormat === 'THE_CALL';
 
-  if (isTheCall) {
-    return <TheCallCard market={market} rank={rank} onPress={onPress} />;
-  }
-  const yesPercent = market.yesPercent ?? 50;
-  const noPercent = market.noPercent ?? 50;
+  // Live tally polling for open markets
+  const { data: tally } = useGetMarketTally(market.id, {
+    query: { refetchInterval: getTallyRefetchInterval(market.status) },
+  });
+  const liveTallyMap = (tally?.tallies ?? {}) as Record<string, number>;
+  const liveYesCount = liveTallyMap['YES'] ?? 0;
+  const liveNoCount = liveTallyMap['NO'] ?? 0;
+  const liveTotalCount = liveYesCount + liveNoCount;
+  const yesPercent = liveTotalCount > 0
+    ? Math.round((liveYesCount / liveTotalCount) * 100)
+    : (market.yesPercent ?? 50);
+  const noPercent = liveTotalCount > 0
+    ? Math.round((liveNoCount / liveTotalCount) * 100)
+    : (market.noPercent ?? 50);
   const buzzPercent = yesPercent;
   const booPercent = noPercent;
 
+  const isScheduled = market.status === 'SCHEDULED';
+
+  if (isTheCall) {
+    return <TheCallCard market={market} rank={rank} onPress={onPress} />;
+  }
+
   if (isBuzzOrBoo) {
     const dominantBuzz = buzzPercent >= booPercent;
-    const totalVerdicts = market.totalPredictions ?? 0;
+    // Use live tally total when available, fall back to stored count
+    const totalVerdicts = liveTotalCount > 0 ? liveTotalCount : (market.totalPredictions ?? 0);
 
     return (
       <TouchableOpacity activeOpacity={0.88} onPress={onPress}>
@@ -58,46 +75,99 @@ function TrendingCard({ market, rank, onPress }: { market: Market; rank: number;
             <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
               <Text style={styles.catText}>⚡ BUZZ OR BOO</Text>
             </View>
-            <View
-              style={[
-                styles.catChip,
-                {
-                  backgroundColor: dominantBuzz ? BUZZ_COLOR + '22' : BOO_COLOR + '22',
-                  borderWidth: 1,
-                  borderColor: dominantBuzz ? BUZZ_COLOR + '66' : BOO_COLOR + '66',
-                },
-              ]}
-            >
-              <Text style={[styles.catText, { color: dominantBuzz ? BUZZ_COLOR : BOO_COLOR }]}>
-                {dominantBuzz ? '⚡ BUZZING' : "👎 BOO'D"}
-              </Text>
-            </View>
+            {isScheduled ? (
+              <View style={[styles.catChip, { backgroundColor: '#F59E0B22', borderWidth: 1, borderColor: '#F59E0B66' }]}>
+                <Text style={[styles.catText, { color: '#F59E0B' }]}>🗓 Coming Soon</Text>
+              </View>
+            ) : market.status === 'RESOLVED' ? (
+              <View style={[styles.catChip, { backgroundColor: (market.resolvedOutcome === 'YES' ? BUZZ_COLOR : BOO_COLOR) + '22', borderWidth: 1, borderColor: (market.resolvedOutcome === 'YES' ? BUZZ_COLOR : BOO_COLOR) + '66' }]}>
+                <Text style={[styles.catText, { color: market.resolvedOutcome === 'YES' ? BUZZ_COLOR : BOO_COLOR }]}>
+                  {market.resolvedOutcome === 'YES' ? '⚡ BUZZ WON' : '👎 BOO WON'}
+                </Text>
+              </View>
+            ) : market.status === 'CLOSED' ? (
+              <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }]}>
+                <Text style={[styles.catText, { color: 'rgba(255,255,255,0.5)' }]}>🔒 CLOSED</Text>
+              </View>
+            ) : totalVerdicts === 0 ? (
+              <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }]}>
+                <Text style={[styles.catText, { color: 'rgba(255,255,255,0.4)' }]}>No verdicts yet</Text>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.catChip,
+                  {
+                    backgroundColor: dominantBuzz ? BUZZ_COLOR + '22' : BOO_COLOR + '22',
+                    borderWidth: 1,
+                    borderColor: dominantBuzz ? BUZZ_COLOR + '66' : BOO_COLOR + '66',
+                  },
+                ]}
+              >
+                <Text style={[styles.catText, { color: dominantBuzz ? BUZZ_COLOR : BOO_COLOR }]}>
+                  {dominantBuzz ? '⚡ BUZZING' : "👎 BOO'D"}
+                </Text>
+              </View>
+            )}
           </View>
 
           <Text style={styles.trendTitle} numberOfLines={3}>
             {market.title}
           </Text>
 
-          <View style={styles.buzzBottom}>
-            <View style={styles.buzzStat}>
-              <Text style={[styles.trendStatNum, { color: BUZZ_COLOR }]}>{Math.round(buzzPercent)}%</Text>
-              <Text style={[styles.trendStatLabel, { color: BUZZ_COLOR + 'BB' }]}>⚡ BUZZ</Text>
+          {isScheduled ? (
+            <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+              <Text style={{ color: '#F59E0B', fontSize: 12, fontWeight: '600' }}>
+                Opens soon — check back to cast your verdict
+              </Text>
             </View>
-            <View style={[styles.miniBar, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-              <View style={[styles.miniBarFill, { flex: Math.max(buzzPercent, 3), backgroundColor: BUZZ_COLOR }]} />
-              <View style={[styles.miniBarFill, { flex: Math.max(booPercent, 3), backgroundColor: BOO_COLOR }]} />
+          ) : totalVerdicts === 0 ? (
+            <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'Inter_400Regular' }}>
+                No verdicts yet — be first to weigh in
+              </Text>
             </View>
-            <View style={[styles.trendStat, styles.trendStatRight]}>
-              <Text style={[styles.trendStatNum, { color: BOO_COLOR }]}>{Math.round(booPercent)}%</Text>
-              <Text style={[styles.trendStatLabel, { color: BOO_COLOR + 'BB' }]}>👎 BOO</Text>
-            </View>
-          </View>
+          ) : (
+            <>
+              {market.status === 'CLOSED' && market.status !== 'RESOLVED' && totalVerdicts > 0 && (
+                <Text style={{ fontSize: 10, fontFamily: 'Inter_700Bold', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center', marginBottom: 4 }}>🔒 Snapshot at close</Text>
+              )}
+              <View style={[styles.buzzBottom, market.status === 'CLOSED' ? { opacity: 0.75 } : {}]}>
+                <View style={styles.buzzStat}>
+                  <Text style={[styles.trendStatNum, { color: BUZZ_COLOR }]}>{Math.round(buzzPercent)}%</Text>
+                  <Text style={[styles.trendStatLabel, { color: BUZZ_COLOR + 'BB' }]}>⚡ BUZZ</Text>
+                </View>
+                <View style={[styles.miniBar, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                  <View style={[styles.miniBarFill, { flex: Math.max(buzzPercent, 3), backgroundColor: BUZZ_COLOR }]} />
+                  <View style={[styles.miniBarFill, { flex: Math.max(booPercent, 3), backgroundColor: BOO_COLOR }]} />
+                </View>
+                <View style={[styles.trendStat, styles.trendStatRight]}>
+                  <Text style={[styles.trendStatNum, { color: BOO_COLOR }]}>{Math.round(booPercent)}%</Text>
+                  <Text style={[styles.trendStatLabel, { color: BOO_COLOR + 'BB' }]}>👎 BOO</Text>
+                </View>
+              </View>
+            </>
+          )}
 
           <View style={styles.trendFooter}>
             <Feather name="zap" size={12} color="rgba(255,255,255,0.6)" />
             <Text style={styles.trendFooterText}>
               {totalVerdicts} {totalVerdicts === 1 ? 'verdict' : 'verdicts'}
             </Text>
+            {market.closesAt && (() => {
+              const msLeft = new Date(market.closesAt).getTime() - Date.now();
+              const hoursLeft = msLeft / (1000 * 60 * 60);
+              if (hoursLeft > 0 && hoursLeft <= 24) {
+                return (
+                  <View style={{ marginLeft: 'auto' as any, backgroundColor: '#EF4444AA', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700', letterSpacing: 0.5 }}>
+                      {hoursLeft < 1 ? `${Math.ceil(msLeft / 60000)}m left` : `${Math.ceil(hoursLeft)}h left`}
+                    </Text>
+                  </View>
+                );
+              }
+              return null;
+            })()}
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -116,47 +186,154 @@ function TrendingCard({ market, rank, onPress }: { market: Market; rank: number;
           <View style={[styles.rankBadge, { backgroundColor: 'rgba(0,0,0,0.25)' }]}>
             <Text style={styles.rankText}>#{rank}</Text>
           </View>
-          <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <Text style={styles.catText}>{market.category.replace('_', ' ')}</Text>
-          </View>
+          {isScheduled ? (
+            <View style={[styles.catChip, { backgroundColor: '#F59E0B22', borderWidth: 1, borderColor: '#F59E0B66' }]}>
+              <Text style={[styles.catText, { color: '#F59E0B' }]}>🗓 COMING SOON</Text>
+            </View>
+          ) : market.status === 'RESOLVED' ? (
+            <View style={[styles.catChip, { backgroundColor: 'rgba(34,197,94,0.15)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.4)' }]}>
+              <Text style={[styles.catText, { color: '#22C55E' }]}>✓ RESOLVED</Text>
+            </View>
+          ) : market.status === 'CLOSED' ? (
+            <View style={[styles.catChip, { backgroundColor: 'rgba(150,150,150,0.15)', borderWidth: 1, borderColor: 'rgba(150,150,150,0.4)' }]}>
+              <Text style={[styles.catText, { color: '#999' }]}>🔒 CLOSED</Text>
+            </View>
+          ) : market.marketFormat === 'MULTI_CHOICE' ? (
+            <View style={[styles.catChip, { backgroundColor: 'rgba(207,234,59,0.15)', borderWidth: 1, borderColor: 'rgba(207,234,59,0.4)' }]}>
+              <Text style={[styles.catText, { color: '#CFEA3B' }]}>👑 BUZZ BATTLE</Text>
+            </View>
+          ) : market.marketFormat === 'HOT_OR_NOT' ? (
+            <View style={[styles.catChip, { backgroundColor: 'rgba(239,115,60,0.15)', borderWidth: 1, borderColor: 'rgba(239,115,60,0.4)' }]}>
+              <Text style={[styles.catText, { color: '#EF733C' }]}>🔥 HOT OR NOT</Text>
+            </View>
+          ) : market.marketFormat === 'HEAD_TO_HEAD' ? (
+            <View style={[styles.catChip, { backgroundColor: 'rgba(59,130,246,0.15)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.4)' }]}>
+              <Text style={[styles.catText, { color: '#3B82F6' }]}>⚔️ HEAD TO HEAD</Text>
+            </View>
+          ) : (
+            <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Text style={styles.catText}>{market.category.replace(/_/g, ' ')}</Text>
+            </View>
+          )}
         </View>
 
-        <Text style={styles.trendTitle} numberOfLines={3}>
-          {market.question || market.title}
-        </Text>
+        {(() => {
+          // For HEAD_TO_HEAD, parse entity names for display
+          const h2hNames = market.marketFormat === 'HEAD_TO_HEAD' && market.description
+            ? (() => { try { const p = JSON.parse(market.description as string); return p.entityA && p.entityB ? { a: p.entityA as string, b: p.entityB as string } : null; } catch { return null; } })()
+            : null;
+          const mcDesc = market.marketFormat === 'MULTI_CHOICE' && market.description
+            ? (() => { try { return JSON.parse(market.description as string); } catch { return null; } })()
+            : null;
+          const titleText = h2hNames
+            ? `${h2hNames.a} vs ${h2hNames.b}`
+            : mcDesc?.contenders?.length
+            ? (mcDesc.question || market.question || market.title)
+            : (market.question || market.title);
+          return (
+            <Text style={styles.trendTitle} numberOfLines={3}>{titleText}</Text>
+          );
+        })()}
 
-        <View style={styles.trendBottom}>
-          <View style={styles.trendStat}>
-            <Text style={styles.trendStatNum}>{Math.round(yesPercent)}%</Text>
-            <Text style={styles.trendStatLabel}>YES</Text>
+        {isScheduled ? (
+          <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+            <Text style={{ color: '#F59E0B', fontSize: 12, fontWeight: '600' }}>
+              🗓 Coming soon — check back when it opens
+            </Text>
           </View>
-          <View style={[styles.miniBar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <View style={[styles.miniBarFill, { flex: Math.max(yesPercent, 3), backgroundColor: 'rgba(255,255,255,0.9)' }]} />
-            <View style={{ flex: Math.max(noPercent, 3) }} />
-          </View>
-          <View style={[styles.trendStat, styles.trendStatRight]}>
-            <Text style={styles.trendStatNum}>{Math.round(noPercent)}%</Text>
-            <Text style={styles.trendStatLabel}>NO</Text>
-          </View>
-        </View>
+        ) : (() => {
+          const h2hNames = market.marketFormat === 'HEAD_TO_HEAD' && market.description
+            ? (() => { try { const p = JSON.parse(market.description as string); return p.entityA && p.entityB ? { a: p.entityA as string, b: p.entityB as string } : null; } catch { return null; } })()
+            : null;
+          const mcContenders = market.marketFormat === 'MULTI_CHOICE' && market.description
+            ? (() => { try { const p = JSON.parse(market.description as string); return Array.isArray(p.contenders) && p.contenders.length >= 2 ? p.contenders as { key: string; name: string }[] : null; } catch { return null; } })()
+            : null;
+          const yesLabel = market.marketFormat === 'HOT_OR_NOT' ? '🔥 HOT' : market.marketFormat === 'BUZZ_OR_BOO' ? '⚡ BUZZ' : h2hNames ? h2hNames.a : mcContenders ? mcContenders[0].name : 'YES';
+          const noLabel = market.marketFormat === 'HOT_OR_NOT' ? '❄️ NOT' : market.marketFormat === 'BUZZ_OR_BOO' ? '👎 BOO' : h2hNames ? h2hNames.b : mcContenders ? (mcContenders[1]?.name ?? 'Other') : 'NO';
+          const hasData = liveTotalCount > 0 || (market.totalPredictions ?? 0) > 0;
+          if (!hasData) {
+            return (
+              <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Inter_400Regular' }}>
+                  No votes yet — be first to call it
+                </Text>
+              </View>
+            );
+          }
+          return (
+            <View style={styles.trendBottom}>
+              <View style={styles.trendStat}>
+                <Text style={styles.trendStatNum}>{Math.round(yesPercent)}%</Text>
+                <Text style={styles.trendStatLabel} numberOfLines={1}>{yesLabel}</Text>
+              </View>
+              <View style={[styles.miniBar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <View style={[styles.miniBarFill, { flex: Math.max(yesPercent, 3), backgroundColor: 'rgba(255,255,255,0.9)' }]} />
+                <View style={{ flex: Math.max(noPercent, 3) }} />
+              </View>
+              <View style={[styles.trendStat, styles.trendStatRight]}>
+                <Text style={styles.trendStatNum}>{Math.round(noPercent)}%</Text>
+                <Text style={styles.trendStatLabel} numberOfLines={1}>{noLabel}</Text>
+              </View>
+            </View>
+          );
+        })()}
 
+        {(() => {
+          const mcCountFull = market.marketFormat === 'MULTI_CHOICE' && market.description
+            ? (() => { try { const p = JSON.parse(market.description as string); return Array.isArray(p.contenders) ? (p.contenders as { key: string }[]).length : 0; } catch { return 0; } })()
+            : 0;
+          return mcCountFull > 2 ? (
+            <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: 'Inter_400Regular', marginBottom: 4 }}>
+              +{mcCountFull - 2} more contender{mcCountFull - 2 !== 1 ? 's' : ''} — open to see all
+            </Text>
+          ) : null;
+        })()}
         <View style={styles.trendFooter}>
           <Feather name="zap" size={12} color="rgba(255,255,255,0.8)" />
-          <Text style={styles.trendFooterText}>{market.totalPredictions} predictions</Text>
+          <Text style={styles.trendFooterText}>{liveTotalCount > 0 ? liveTotalCount : market.totalPredictions} {market.marketFormat === 'BUZZ_OR_BOO' || market.marketFormat === 'HOT_OR_NOT' ? 'verdicts' : market.marketFormat === 'THE_CALL' ? 'picks' : 'predictions'}</Text>
+          {market.closesAt && (() => {
+            const msLeft = new Date(market.closesAt).getTime() - Date.now();
+            const hoursLeft = msLeft / (1000 * 60 * 60);
+            if (hoursLeft > 0 && hoursLeft <= 24) {
+              return (
+                <View style={{ marginLeft: 'auto' as any, backgroundColor: '#EF4444AA', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 }}>
+                  <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700', letterSpacing: 0.5 }}>
+                    {hoursLeft < 1 ? `${Math.ceil(msLeft / 60000)}m left` : `${Math.ceil(hoursLeft)}h left`}
+                  </Text>
+                </View>
+              );
+            }
+            return null;
+          })()}
         </View>
       </LinearGradient>
     </TouchableOpacity>
   );
 }
 
+const FORMAT_FILTERS = [
+  { key: 'ALL', label: 'All' },
+  { key: 'BUZZ_OR_BOO', label: '⚡ Buzz or Boo' },
+  { key: 'THE_CALL', label: '🎯 The Call' },
+  { key: 'HOT_OR_NOT', label: '🔥 Hot or Not' },
+  { key: 'MULTI_CHOICE', label: '👑 Buzz Battle' },
+  { key: 'HEAD_TO_HEAD', label: '⚔️ Head to Head' },
+  { key: 'STANDARD', label: '📊 Forecast' },
+] as const;
+
 export default function PredictScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  const [formatFilter, setFormatFilter] = useState<string>('ALL');
 
-  const { data: trendingData, refetch: refetchTrending, isLoading } = useGetTrendingMarkets({ limit: 15 });
+  const { data: trendingData, refetch: refetchTrending, isLoading } = useGetTrendingMarkets({ limit: 30 });
   const { data: stats } = useGetPlatformStats();
+
+  const filteredMarkets = formatFilter === 'ALL'
+    ? (trendingData?.markets ?? [])
+    : (trendingData?.markets ?? []).filter(m => m.marketFormat === formatFilter);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -173,7 +350,9 @@ export default function PredictScreen() {
         <View>
           <Text style={[styles.screenTitle, { color: colors.foreground }]}>Trending</Text>
           <Text style={[styles.screenSub, { color: colors.mutedForeground }]}>
-            Most active right now
+            {formatFilter
+              ? FORMAT_FILTERS.find(f => f.key === formatFilter)?.label ?? 'Most active right now'
+              : 'Most active right now'}
           </Text>
         </View>
         {stats && (
@@ -211,6 +390,47 @@ export default function PredictScreen() {
         </View>
       )}
 
+      {/* Format filter pills */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+      >
+        {FORMAT_FILTERS.map(f => (
+          <TouchableOpacity
+            key={f.key}
+            style={[
+              styles.filterPill,
+              {
+                backgroundColor: formatFilter === f.key ? colors.primary : colors.muted,
+                borderColor: formatFilter === f.key ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={() => setFormatFilter(f.key)}
+          >
+            <Text style={[styles.filterPillText, { color: formatFilter === f.key ? '#000' : colors.mutedForeground }]}>
+              {f.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Filtered market count */}
+      {!isLoading && filteredMarkets.length > 0 && formatFilter !== 'ALL' && (
+        <View style={[styles.countBadgeRow, { paddingHorizontal: 16, paddingBottom: 4 }]}>
+          <Text style={[styles.countBadgeText, { color: colors.mutedForeground }]}>
+            {filteredMarkets.length} {
+              formatFilter === 'BUZZ_OR_BOO' ? 'Buzz or Boo' :
+              formatFilter === 'THE_CALL' ? 'The Call' :
+              formatFilter === 'MULTI_CHOICE' ? 'Buzz Battle' :
+              formatFilter === 'HOT_OR_NOT' ? 'Hot or Not' :
+              formatFilter === 'HEAD_TO_HEAD' ? 'Head to Head' :
+              formatFilter === 'STANDARD' ? 'Forecast' : 'Market'
+            } {filteredMarkets.length === 1 ? 'market' : 'markets'} active
+          </Text>
+        </View>
+      )}
+
       {isLoading ? (
         <View style={styles.skeletonList}>
           {[0, 1].map((i) => (
@@ -221,7 +441,7 @@ export default function PredictScreen() {
         </View>
       ) : (
         <FlatList
-          data={trendingData?.markets ?? []}
+          data={filteredMarkets}
           keyExtractor={(m) => `${m.id}`}
           renderItem={({ item, index }) => (
             <TrendingCard
@@ -235,7 +455,7 @@ export default function PredictScreen() {
             { paddingBottom: (Platform.OS === 'web' ? 84 : 80 + insets.bottom) + 16 },
           ]}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={!!(trendingData?.markets?.length)}
+          scrollEnabled={filteredMarkets.length > 0}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -247,8 +467,16 @@ export default function PredictScreen() {
             <View style={styles.empty}>
               <Feather name="trending-up" size={40} color={colors.mutedForeground} />
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                No trending markets yet
+                {formatFilter === 'ALL' ? 'No trending markets yet' : `No ${FORMAT_FILTERS.find(f => f.key === formatFilter)?.label ?? ''} markets trending`}
               </Text>
+              {formatFilter !== 'ALL' && (
+                <TouchableOpacity
+                  style={{ marginTop: 12, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
+                  onPress={() => setFormatFilter('ALL')}
+                >
+                  <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: '600' }}>Show all formats</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
@@ -407,6 +635,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter_400Regular',
   },
+  filterRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+    flexDirection: 'row',
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterPillText: {
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+  },
   empty: {
     flex: 1,
     alignItems: 'center',
@@ -416,6 +660,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
+    fontFamily: 'Inter_400Regular',
+  },
+  countBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  countBadgeText: {
+    fontSize: 12,
     fontFamily: 'Inter_400Regular',
   },
 });

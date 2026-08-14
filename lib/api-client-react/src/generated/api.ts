@@ -1943,6 +1943,149 @@ export const useCreateMarketTemplate = <TError = ErrorType<Error>,
       return useMutation(getCreateMarketTemplateMutationOptions(options));
     }
 
+export const getUpdateMarketTemplateUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/templates/${id}`
+}
+
+/**
+ * @summary Admin — update a franchise template
+ */
+export const updateMarketTemplate = async (id: number,
+    marketTemplateInput: MarketTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<MarketTemplate> => {
+
+  return customFetch<MarketTemplate>(getUpdateMarketTemplateUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(marketTemplateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateMarketTemplateMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMarketTemplate>>, TError,{id: number;data: BodyType<MarketTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMarketTemplate>>, TError,{id: number;data: BodyType<MarketTemplateInput>}, TContext> => {
+
+const mutationKey = ['updateMarketTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMarketTemplate>>, {id: number;data: BodyType<MarketTemplateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMarketTemplate(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMarketTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof updateMarketTemplate>>>
+    export type UpdateMarketTemplateMutationBody = BodyType<MarketTemplateInput>
+    export type UpdateMarketTemplateMutationError = ErrorType<Error>
+
+    /**
+ * @summary Admin — update a franchise template
+ */
+export const useUpdateMarketTemplate = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMarketTemplate>>, TError,{id: number;data: BodyType<MarketTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMarketTemplate>>,
+        TError,
+        {id: number;data: BodyType<MarketTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateMarketTemplateMutationOptions(options));
+    }
+
+export const getDeleteMarketTemplateUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/templates/${id}`
+}
+
+/**
+ * @summary Admin — delete a franchise template
+ */
+export const deleteMarketTemplate = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteMarketTemplateUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteMarketTemplateMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMarketTemplate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMarketTemplate>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteMarketTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMarketTemplate>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteMarketTemplate(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMarketTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMarketTemplate>>>
+
+    export type DeleteMarketTemplateMutationError = ErrorType<Error>
+
+    /**
+ * @summary Admin — delete a franchise template
+ */
+export const useDeleteMarketTemplate = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMarketTemplate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMarketTemplate>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteMarketTemplateMutationOptions(options));
+    }
+
 export const getCreateMarketFromTemplateUrl = (id: number,) => {
 
 
@@ -2164,6 +2307,10 @@ export const useCreateMarket = <TError = ErrorType<Error>,
     }
 
 export const getPatchMarketUrl = (id: number,) => {
+
+
+
+
   return `/api/admin/markets/${id}`
 }
 
@@ -2182,6 +2329,10 @@ export const patchMarket = async (id: number,
   }
 );}
 
+
+
+
+
 export const getPatchMarketMutationOptions = <TError = ErrorType<Error>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchMarket>>, TError,{id: number;data: BodyType<MarketPatch>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof patchMarket>>, TError,{id: number;data: BodyType<MarketPatch>}, TContext> => {
@@ -2193,10 +2344,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       : {...options, mutation: {...options.mutation, mutationKey}}
       : {mutation: { mutationKey, }, request: undefined};
 
+
+
+
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchMarket>>, {id: number;data: BodyType<MarketPatch>}> = (props) => {
           const {id,data} = props ?? {};
+
           return  patchMarket(id,data,requestOptions)
         }
+
+
+
+
+
 
   return  { mutationFn, ...mutationOptions }}
 

@@ -676,6 +676,46 @@ export const CreateMarketTemplateResponse = zod.object({
 
 
 /**
+ * @summary Admin — update a franchise template
+ */
+export const UpdateMarketTemplateParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdateMarketTemplateBody = zod.object({
+  "franchiseName": zod.string(),
+  "engine": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']),
+  "templateQuestion": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
+  "defaultDurationDays": zod.number(),
+  "description": zod.string().optional()
+})
+
+export const UpdateMarketTemplateResponse = zod.object({
+  "id": zod.number(),
+  "franchiseName": zod.string().describe('e.g. HOTTEST IN BOSTON'),
+  "engine": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']),
+  "templateQuestion": zod.string().describe('Question template with [PLACEHOLDER] slots'),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
+  "defaultDurationDays": zod.number(),
+  "description": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Admin — delete a franchise template
+ */
+export const DeleteMarketTemplateParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteMarketTemplateResponse = zod.void()
+
+
+/**
  * @summary Admin — instantiate a market from a franchise template
  */
 export const CreateMarketFromTemplateParams = zod.object({
@@ -843,6 +883,66 @@ export const CreateMarketResponse = zod.object({
 
 
 /**
+ * @summary Admin — edit an existing market's mutable fields
+ */
+export const PatchMarketParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PatchMarketBody = zod.object({
+  "title": zod.string().optional(),
+  "question": zod.string().optional(),
+  "description": zod.string().nullish(),
+  "subcategory": zod.string().optional(),
+  "imageUrl": zod.string().nullish().describe('Must be a valid URL when provided as a string; send null to clear.'),
+  "geo": zod.string().optional(),
+  "closesAt": zod.string().nullish().describe('Must be a valid ISO 8601 date string when provided; send null to clear.'),
+  "resolutionSource": zod.string().optional(),
+  "sourcePrimary": zod.string().optional(),
+  "sourceBackup": zod.string().optional(),
+  "baselineSnapshot": zod.string().optional(),
+  "formula": zod.string().optional(),
+  "voidRule": zod.string().optional()
+}).describe('Mutable fields that can be updated on an existing market. marketFormat is immutable.')
+
+export const PatchMarketResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "question": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.enum(['STYLE', 'HOME', 'CITY', 'REAL_ESTATE', 'WEATHER', 'CULTURE', 'LOCAL_PULSE', 'BEAUTY', 'ACCESSORIES', 'MOVIES']),
+  "subcategory": zod.string(),
+  "marketFormat": zod.enum(['STANDARD', 'HOT_OR_NOT', 'HEAD_TO_HEAD', 'MULTI_CHOICE', 'BUZZ_OR_BOO', 'THE_CALL']).optional(),
+  "imageUrl": zod.string().nullish(),
+  "status": zod.enum(['OPEN', 'CLOSED', 'RESOLVED', 'ARCHIVED']),
+  "yesCount": zod.number(),
+  "noCount": zod.number(),
+  "totalPredictions": zod.number(),
+  "yesPercent": zod.number().optional(),
+  "noPercent": zod.number().optional(),
+  "resolutionSource": zod.string().nullish(),
+  "sourcePrimary": zod.string().nullish(),
+  "sourceBackup": zod.string().nullish(),
+  "baselineSnapshot": zod.string().nullish(),
+  "formula": zod.string().nullish(),
+  "voidRule": zod.string().nullish(),
+  "geo": zod.string().nullish(),
+  "closesAt": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish(),
+  "resolvedOutcome": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "clockType": zod.enum(['EVERGREEN', 'SEASONAL', 'NOW', 'EVENT_DRIVEN', 'ROLLING_FORECAST', 'RECURRING_PULSE']).optional().describe('Market Bible v0.5 §40 clock type controlling freshness and expiry behaviour'),
+  "publishAt": zod.string().nullish().describe('ISO timestamp when this market becomes publicly visible; null = immediately visible'),
+  "peakUntil": zod.string().nullish().describe('ISO timestamp marking the end of the peak-freshness window'),
+  "expireAt": zod.string().nullish().describe('ISO timestamp for hard expiry; null = never expires (EVERGREEN)'),
+  "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
+  "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
+  "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+})
+
+
+/**
  * @summary Admin — resolve a market with an outcome
  */
 export const ResolveMarketParams = zod.object({
@@ -904,7 +1004,7 @@ export const GetCurrentAuthUserResponse = zod.object({
   "firstName": zod.string().nullable(),
   "lastName": zod.string().nullable(),
   "profileImageUrl": zod.string().nullable(),
-  "isAdmin": zod.boolean()
+  "isAdmin": zod.boolean().describe('True if this user has platform-admin privileges.')
 }),zod.null()])
 })
 
@@ -963,39 +1063,6 @@ export const InitMobileAuthTransactionResponse = zod.object({
 
 
 
-
-/**
- * @summary Admin — edit an existing market's mutable fields
- */
-export const PatchMarketParams = zod.object({
-  "id": zod.number()
-})
-
-export const PatchMarketBody = zod.object({
-  "title": zod.string().min(3).max(200).optional(),
-  "question": zod.string().min(10).max(500).optional(),
-  "description": zod.union([zod.string(), zod.null()]).optional(),
-  "subcategory": zod.string().min(2).max(100).optional(),
-  "imageUrl": zod.union([zod.string().url(), zod.null()]).optional(),
-  "geo": zod.union([zod.string(), zod.null()]).optional(),
-  "closesAt": zod.union([zod.string().datetime(), zod.null()]).optional(),
-  "resolutionSource": zod.union([zod.string(), zod.null()]).optional(),
-  "sourcePrimary": zod.union([zod.string(), zod.null()]).optional(),
-  "sourceBackup": zod.union([zod.string(), zod.null()]).optional(),
-  "baselineSnapshot": zod.union([zod.string(), zod.null()]).optional(),
-  "formula": zod.union([zod.string(), zod.null()]).optional(),
-  "voidRule": zod.union([zod.string(), zod.null()]).optional()
-})
-
-export const PatchMarketResponse = zod.object({
-  "id": zod.number(),
-  "title": zod.string(),
-  "question": zod.string(),
-  "status": zod.string(),
-  "marketFormat": zod.string(),
-  "category": zod.string(),
-  "subcategory": zod.string()
-})
 
 export const ExchangeMobileAuthorizationCodeBody = zod.object({
   "code": zod.string().min(1),

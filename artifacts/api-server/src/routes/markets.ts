@@ -169,21 +169,31 @@ router.get("/markets/:id/predictions", async (req, res): Promise<void> => {
   }
 
   // Import here to avoid circular module issues at top level
-  const { predictionsTable } = await import("@workspace/db");
+  const { predictionsTable, usersTable } = await import("@workspace/db");
   const predictions = await db
-    .select()
+    .select({
+      id: predictionsTable.id,
+      userId: predictionsTable.userId,
+      marketId: predictionsTable.marketId,
+      choice: predictionsTable.choice,
+      amount: predictionsTable.amount,
+      isCorrect: predictionsTable.isCorrect,
+      tokensEarned: predictionsTable.tokensEarned,
+      createdAt: predictionsTable.createdAt,
+      username: usersTable.username,
+      avatarUrl: usersTable.avatarUrl,
+    })
     .from(predictionsTable)
+    .leftJoin(usersTable, eq(predictionsTable.userId, usersTable.id))
     .where(eq(predictionsTable.marketId, params.data.id))
     .orderBy(desc(predictionsTable.createdAt))
     .limit(50);
 
   res.json(
-    GetMarketPredictionsResponse.parse(
-      predictions.map((p) => ({
-        ...p,
-        createdAt: p.createdAt.toISOString(),
-      }))
-    )
+    predictions.map((p) => ({
+      ...p,
+      createdAt: p.createdAt.toISOString(),
+    }))
   );
 });
 

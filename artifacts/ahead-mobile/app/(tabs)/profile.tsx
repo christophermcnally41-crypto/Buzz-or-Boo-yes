@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -7,6 +8,8 @@ import {
   Platform,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
@@ -23,16 +26,25 @@ interface StatCardProps {
   value: string;
   label: string;
   color: string;
+  onPress?: () => void;
 }
 
-function StatCard({ value, label, color }: StatCardProps) {
+function StatCard({ value, label, color, onPress }: StatCardProps) {
   const colors = useColors();
-  return (
-    <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+  const inner = (
+    <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }, onPress ? { opacity: 1 } : {}]}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{label}{onPress ? ' →' : ''}</Text>
     </View>
   );
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.75}>
+        {inner}
+      </TouchableOpacity>
+    );
+  }
+  return inner;
 }
 
 /**
@@ -87,15 +99,41 @@ function resolveChoiceLabel(
     return `🎯 ${raw}`;
   }
 
-  return raw;
+  if (format === 'HEAD_TO_HEAD') {
+    try {
+      const parsed = JSON.parse(market?.description ?? '{}') as {
+        entityA?: string;
+        entityB?: string;
+      };
+      if (raw === 'YES' && parsed.entityA) return `⚔️ ${parsed.entityA}`;
+      if (raw === 'NO' && parsed.entityB) return `⚔️ ${parsed.entityB}`;
+    } catch {
+      // fallthrough
+    }
+    return raw === 'YES' ? '⚔️ Side A' : raw === 'NO' ? '⚔️ Side B' : raw;
+  }
+
+  if (format === 'HOT_OR_NOT') {
+    return raw === 'YES' ? '🔥 HOT' : raw === 'NO' ? '❄️ NOT HOT' : raw;
+  }
+
+  if (format === 'STANDARD') {
+    return raw === 'YES' ? '✓ YES' : raw === 'NO' ? '✗ NO' : raw;
+  }
+
+  // Generic YES/NO fallback
+  return raw === 'YES' ? '✓ YES' : raw === 'NO' ? '✗ NO' : raw;
 }
 
 const BUZZ_COLOR = '#CFEA3B';
 const BOO_COLOR = '#E8503E';
+const HOT_COLOR = '#f97316';
+const NOT_COLOR = '#60a5fa';
 
 /**
  * Returns the color to use for a prediction choice label.
- * BUZZ_OR_BOO: BUZZ_COLOR for YES, BOO_COLOR for everything else.
+ * BUZZ_OR_BOO: BUZZ_COLOR for YES, BOO_COLOR for NO.
+ * HOT_OR_NOT: HOT_COLOR for YES, NOT_COLOR for NO.
  * All other formats: null (use default muted color).
  */
 function resolveChoiceColor(
@@ -104,6 +142,12 @@ function resolveChoiceColor(
 ): string | null {
   if (market?.marketFormat === 'BUZZ_OR_BOO') {
     return choice === 'YES' ? BUZZ_COLOR : BOO_COLOR;
+  }
+  if (market?.marketFormat === 'HOT_OR_NOT') {
+    return choice === 'YES' ? HOT_COLOR : NOT_COLOR;
+  }
+  if (market?.marketFormat === 'HEAD_TO_HEAD') {
+    return choice === 'YES' ? '#22d3ee' : '#f472b6';
   }
   return null;
 }
@@ -118,15 +162,152 @@ function SectionRow({ icon, label, value, colors }: { icon: string; label: strin
   );
 }
 
+function PredictionHistory({ predictions, colors, onNavigate }: { predictions: any[]; colors: any; onNavigate: (id: number) => void }) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? predictions : predictions.slice(0, 5);
+  const hasMore = predictions.length > 5;
+
+  if (predictions.length === 0) {
+    return (
+      <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>PREDICTION HISTORY</Text>
+        <View style={{ alignItems: 'center', paddingVertical: 28, gap: 8 }}>
+          <Text style={{ fontSize: 32 }}>🎯</Text>
+          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: colors.foreground }}>No calls yet</Text>
+          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.mutedForeground, textAlign: 'center', maxWidth: 240 }}>Head to the Discover tab and make your first prediction.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>
+        PREDICTION HISTORY · {predictions.length}{predictions.length >= 50 ? ' (most recent 50)' : ''}
+      </Text>
+      {visible.map((pred: any) => {
+        const isResolved = pred.market?.status === 'RESOLVED';
+        const won = isResolved && pred.isCorrect;
+        return (
+          <TouchableOpacity key={pred.id} style={[styles.predRow, { borderBottomColor: colors.border }]} onPress={() => pred.market?.id ? onNavigate(pred.market.id) : undefined} activeOpacity={pred.market?.id ? 0.7 : 1}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.predFormat, { color: colors.mutedForeground }]}>
+                {pred.market?.marketFormat === 'BUZZ_OR_BOO' ? '⚡ Buzz or Boo'
+                  : pred.market?.marketFormat === 'THE_CALL' ? '🎯 The Call'
+                  : pred.market?.marketFormat === 'MULTI_CHOICE' ? '👑 Buzz Battle'
+                  : pred.market?.marketFormat === 'HOT_OR_NOT' ? '🔥 Hot or Not'
+                  : pred.market?.marketFormat === 'HEAD_TO_HEAD' ? '⚔️ Head to Head'
+                  : '📊 Forecast'}
+                {pred.market?.category ? ` · ${pred.market.category.charAt(0).toUpperCase() + pred.market.category.slice(1).toLowerCase().replace(/_/g, ' ')}` : ''}
+                {pred.createdAt ? (() => {
+                  const ms = Date.now() - new Date(pred.createdAt).getTime();
+                  const d = Math.floor(ms / 86400000);
+                  const h = Math.floor(ms / 3600000);
+                  const m = Math.floor(ms / 60000);
+                  const label = d >= 1 ? `${d}d ago` : h >= 1 ? `${h}h ago` : m >= 1 ? `${m}m ago` : 'just now';
+                  return ` · ${label}`;
+                })() : ''}
+              </Text>
+              <Text style={[styles.predQuestion, { color: colors.foreground }]} numberOfLines={2}>
+                {pred.market?.question}
+              </Text>
+              <Text style={[styles.predChoice, { color: colors.mutedForeground }]}>
+                <Text style={{ color: resolveChoiceColor(pred.choice, pred.market) ?? colors.mutedForeground }}>
+                  {resolveChoiceLabel(pred.choice, pred.market)}
+                </Text>
+                {' · '}{(pred.amount ?? 0).toLocaleString()} FP
+              </Text>
+            </View>
+            <View style={{ alignItems: 'center' }}>
+              {isResolved ? (
+                <>
+                  <Feather
+                    name={won ? 'check-circle' : 'x-circle'}
+                    size={20}
+                    color={won ? '#16a34a' : colors.destructive ?? '#dc2626'}
+                  />
+                  {pred.market?.resolvedOutcome ? (
+                    <Text style={{ fontSize: 9, fontWeight: '700', marginTop: 1, color: colors.mutedForeground, textTransform: 'uppercase', letterSpacing: 0.4 }} numberOfLines={1}>
+                      {(() => {
+                        const fmt = pred.market?.marketFormat;
+                        const outcome = pred.market?.resolvedOutcome;
+                        if (fmt === 'HOT_OR_NOT') return outcome === 'YES' ? '🔥 HOT' : '❄️ NOT HOT';
+                        if (fmt === 'BUZZ_OR_BOO') return outcome === 'YES' ? '⚡ BUZZ' : '👎 BOO';
+                        if (fmt === 'HEAD_TO_HEAD') {
+                          try {
+                            const d = JSON.parse(pred.market?.description ?? '{}');
+                            return outcome === 'YES' ? (d.entityA ?? 'Side A') : (d.entityB ?? 'Side B');
+                          } catch { return outcome === 'YES' ? 'Side A' : 'Side B'; }
+                        }
+                        if (fmt === 'MULTI_CHOICE') {
+                          try {
+                            const d = JSON.parse(pred.market?.description ?? '{}');
+                            if (Array.isArray(d.contenders)) {
+                              const c = d.contenders.find((x: {key:string;name:string}) => x.key === outcome);
+                              if (c) return `👑 ${c.name}`;
+                            }
+                          } catch { /* fallthrough */ }
+                          return `👑 ${outcome ?? '?'}`;
+                        }
+                        if (fmt === 'THE_CALL') {
+                          try {
+                            const d = JSON.parse(pred.market?.description ?? '{}');
+                            if (Array.isArray(d.options)) {
+                              const o = d.options.find((x: {key:string;label:string}) => x.key === outcome);
+                              if (o) return `🏆 ${o.label}`;
+                            }
+                          } catch { /* fallthrough */ }
+                          return `🏆 ${outcome ?? '?'}`;
+                        }
+                        return outcome === 'YES' ? '✓ YES' : '✗ NO';
+                      })()}
+                    </Text>
+                  ) : null}
+                  <Text style={{ fontSize: 9, fontWeight: '700', marginTop: 1, color: won ? '#16a34a' : colors.destructive ?? '#dc2626', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {won ? `+${(pred.tokensEarned ?? 0).toLocaleString()} FP` : `-${(pred.amount ?? 0).toLocaleString()} FP`}
+                  </Text>
+                </>
+              ) : pred.market?.status === 'CLOSED' ? (
+                <View style={{ alignItems: 'center', gap: 2 }}>
+                  <View style={[styles.openBadge, { backgroundColor: '#3333' }]}>
+                    <Text style={[styles.openBadgeText, { color: colors.mutedForeground }]}>CLOSED</Text>
+                  </View>
+                  <Text style={{ fontSize: 8, color: colors.mutedForeground, textAlign: 'center', maxWidth: 54, lineHeight: 11 }}>Awaiting resolution</Text>
+                </View>
+              ) : (
+                <View style={[styles.openBadge, { backgroundColor: colors.muted }]}>
+                  <Text style={[styles.openBadgeText, { color: colors.mutedForeground }]}>OPEN</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+      {hasMore && (
+        <TouchableOpacity
+          onPress={() => setShowAll(prev => !prev)}
+          style={[styles.showMoreBtn, { borderTopColor: colors.border }]}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.showMoreText, { color: colors.primary }]}>
+            {showAll ? 'Show less' : `Show all ${predictions.length} predictions`}
+          </Text>
+          <Feather name={showAll ? 'chevron-up' : 'chevron-down'} size={14} color={colors.primary} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
 function SignInPrompt({ onLogin, colors }: { onLogin: () => void; colors: any }) {
   return (
     <View style={[styles.signInCard, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '30' }]}>
       <Feather name="user-plus" size={28} color={colors.primary} />
       <Text style={[styles.signInTitle, { color: colors.foreground }]}>
-        Create your account
+        Sign in to get started
       </Text>
       <Text style={[styles.signInSub, { color: colors.mutedForeground }]}>
-        Sign up to track your predictions, earn tokens, and climb the rankings.
+        Track your predictions, earn Forecast Points, and climb the rankings.
       </Text>
       <TouchableOpacity
         style={[styles.signInBtn, { backgroundColor: colors.primary }]}
@@ -134,7 +315,7 @@ function SignInPrompt({ onLogin, colors }: { onLogin: () => void; colors: any })
         activeOpacity={0.85}
       >
         <Text style={[styles.signInBtnText, { color: colors.primaryForeground }]}>
-          Log in
+          Sign in
         </Text>
       </TouchableOpacity>
     </View>
@@ -149,16 +330,24 @@ export default function ProfileScreen() {
 
   const { user: authUser, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
 
+  const router = useRouter();
   const platformUserId = authUser ? parseInt(authUser.id, 10) : null;
   const { data: platformUser } = useGetMe({
     query: { enabled: isAuthenticated, queryKey: getGetMeQueryKey() },
   });
-  const { data: predictions } = useGetUserPredictions(platformUserId ?? 0, {
+  const { data: predictions, isLoading: predictionsLoading, refetch: refetchPredictions } = useGetUserPredictions(platformUserId ?? 0, {
     query: {
       enabled: isAuthenticated && !!platformUserId,
       queryKey: getGetUserPredictionsQueryKey(platformUserId ?? 0),
     },
   });
+
+  // Refresh prediction history when screen gains focus (picks up new calls made elsewhere)
+  useFocusEffect(useCallback(() => {
+    if (isAuthenticated && platformUserId) {
+      refetchPredictions();
+    }
+  }, [isAuthenticated, platformUserId, refetchPredictions]));
 
   const initials = platformUser?.username
     ? platformUser.username.slice(0, 2).toUpperCase()
@@ -178,8 +367,14 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <Text style={[styles.screenTitle, { color: colors.foreground }]}>You</Text>
         {isAuthenticated && (
-          <TouchableOpacity onPress={logout} activeOpacity={0.7}>
-            <Feather name="log-out" size={20} color={colors.mutedForeground} />
+          <TouchableOpacity onPress={() => {
+            Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign Out', style: 'destructive', onPress: logout },
+            ]);
+          }} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Feather name="log-out" size={16} color={colors.mutedForeground} />
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: colors.mutedForeground }}>Sign out</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -192,79 +387,122 @@ export default function ProfileScreen() {
         <>
           {/* Avatar & name */}
           <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: colors.primary + '22' }]}>
-              <Text style={[styles.avatarInitial, { color: colors.primary }]}>{initials}</Text>
-            </View>
+            {platformUser?.avatarUrl ? (
+              <Image
+                source={{ uri: platformUser.avatarUrl }}
+                style={[styles.avatar, { backgroundColor: colors.muted }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: colors.primary + '22' }]}>
+                <Text style={[styles.avatarInitial, { color: colors.primary }]}>{initials}</Text>
+              </View>
+            )}
             <Text style={[styles.displayName, { color: colors.foreground }]}>{displayName}</Text>
             {platformUser?.rank && (
-              <View style={[styles.memberBadge, { backgroundColor: colors.muted }]}>
+              <TouchableOpacity
+                onPress={() => router.push('/rankings')}
+                activeOpacity={0.7}
+                style={[styles.memberBadge, { backgroundColor: colors.muted }]}
+              >
+                <Feather name="award" size={11} color={colors.mutedForeground} style={{ marginRight: 3 }} />
                 <Text style={[styles.memberText, { color: colors.mutedForeground }]}>
-                  Global Rank #{platformUser.rank}
+                  Global Rank #{platformUser.rank} →
                 </Text>
-              </View>
+              </TouchableOpacity>
             )}
           </View>
 
           {/* Stats grid */}
           <View style={styles.statsGrid}>
             <StatCard
+              value={platformUser?.tokenBalance != null ? platformUser.tokenBalance.toLocaleString() : '—'}
+              label="Forecast Points"
+              color={colors.primary}
+            />
+            <StatCard
               value={platformUser ? String(platformUser.totalPredictions) : '—'}
               label="Predictions"
               color={colors.primary}
+              onPress={() => setActiveTab('calls')}
             />
+            {(() => {
+              const rawScore = platformUser?.buzzScore != null ? Math.round(platformUser.buzzScore) : null;
+              const tier = rawScore == null ? null : rawScore >= 80 ? 'Elite' : rawScore >= 65 ? 'Expert' : 'Developing';
+              const isFallback = rawScore == null && platformUser?.overallAccuracy != null;
+              const scoreDisplay = rawScore != null ? String(rawScore) : isFallback ? `${Math.round(platformUser!.overallAccuracy! * 100)}%` : '—';
+              const label = rawScore != null ? (tier ? `BuzzScore · ${tier}` : 'BuzzScore') : isFallback ? 'Accuracy' : 'BuzzScore';
+              return <StatCard value={scoreDisplay} label={label} color={colors.primary} onPress={() => router.push('/rankings')} />;
+            })()}
             <StatCard
-              value={platformUser?.overallAccuracy ? `${platformUser.overallAccuracy.toFixed(1)}%` : '—'}
-              label="Accuracy"
-              color={colors.primary}
-            />
-            <StatCard
-              value={platformUser ? platformUser.tokenBalance.toLocaleString() : '—'}
-              label="Tokens"
+              value={platformUser?.totalCorrect != null ? String(platformUser.totalCorrect) : '—'}
+              label="Correct"
               color={colors.accent}
+              onPress={() => setActiveTab('calls')}
             />
             <StatCard
-              value={platformUser?.rank ? `#${platformUser.rank}` : '—'}
+              value={platformUser?.rank ? `#${platformUser.rank}` : 'Unranked'}
               label="Rank"
               color={colors.accent}
+              onPress={() => router.push('/rankings')}
             />
           </View>
 
-          {/* Recent predictions */}
-          {predictions && predictions.length > 0 && (
+          {/* Quick actions */}
+          <View style={[styles.quickActions, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/')}
+              activeOpacity={0.8}
+            >
+              <Feather name="zap" size={16} color="#000" />
+              <Text style={[styles.quickActionText, { color: '#000' }]}>Make a Call</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+              onPress={() => router.push('/(tabs)/predict' as any)}
+              activeOpacity={0.8}
+            >
+              <Feather name="search" size={16} color={colors.foreground} />
+              <Text style={[styles.quickActionText, { color: colors.foreground }]}>Browse Markets</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+              onPress={() => router.push('/rankings')}
+              activeOpacity={0.8}
+            >
+              <Feather name="award" size={16} color={colors.foreground} />
+              <Text style={[styles.quickActionText, { color: colors.foreground }]}>Rankings</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Prediction history — show list or empty state */}
+          {predictionsLoading && !predictions ? (
             <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>RECENT PREDICTIONS</Text>
-              {predictions.slice(0, 5).map((pred) => {
-                const isResolved = pred.market?.status === 'RESOLVED';
-                const won = isResolved && pred.isCorrect;
-                return (
-                  <View key={pred.id} style={[styles.predRow, { borderBottomColor: colors.border }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.predQuestion, { color: colors.foreground }]} numberOfLines={2}>
-                        {pred.market?.question}
-                      </Text>
-                      <Text style={[styles.predChoice, { color: colors.mutedForeground }]}>
-                        <Text style={{ color: resolveChoiceColor(pred.choice, pred.market) ?? colors.mutedForeground }}>
-                          {resolveChoiceLabel(pred.choice, pred.market)}
-                        </Text>
-                        {' · '}{pred.amount.toLocaleString()} FP
-                      </Text>
-                    </View>
-                    <View>
-                      {isResolved ? (
-                        <Feather
-                          name={won ? 'check-circle' : 'x-circle'}
-                          size={20}
-                          color={won ? '#16a34a' : colors.destructive ?? '#dc2626'}
-                        />
-                      ) : (
-                        <View style={[styles.openBadge, { backgroundColor: colors.muted }]}>
-                          <Text style={[styles.openBadgeText, { color: colors.mutedForeground }]}>OPEN</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
+              <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>PREDICTION HISTORY</Text>
+              <View style={{ padding: 16, gap: 10 }}>
+                {[0, 1, 2].map((i) => (
+                  <View key={i} style={{ height: 64, borderRadius: 12, backgroundColor: colors.muted, opacity: 0.5 }} />
+                ))}
+              </View>
+            </View>
+          ) : predictions && predictions.length > 0 ? (
+            <PredictionHistory predictions={predictions} colors={colors} onNavigate={(id) => router.push(`/market/${id}` as any)} />
+          ) : predictions !== undefined && (
+            <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>PREDICTION HISTORY</Text>
+              <View style={{ paddingHorizontal: 16, paddingBottom: 20, alignItems: 'center', gap: 12 }}>
+                <Feather name="inbox" size={28} color={colors.mutedForeground} style={{ marginTop: 12 }} />
+                <Text style={[{ color: colors.mutedForeground, fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center' }]}>
+                  No predictions yet. Make your first call!
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/(tabs)/' as any)}
+                  style={{ marginTop: 4, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 20 }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Inter_700Bold' }}>Browse Markets</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </>
@@ -280,9 +518,10 @@ export default function ProfileScreen() {
 
           {/* Stats grid (empty) */}
           <View style={styles.statsGrid}>
+            <StatCard value="—" label="Forecast Points" color={colors.primary} />
             <StatCard value="—" label="Predictions" color={colors.primary} />
-            <StatCard value="—" label="Accuracy" color={colors.primary} />
-            <StatCard value="—" label="Tokens" color={colors.accent} />
+            <StatCard value="—" label="BuzzScore" color={colors.primary} />
+            <StatCard value="—" label="Correct" color={colors.accent} />
             <StatCard value="—" label="Rank" color={colors.accent} />
           </View>
 
@@ -303,10 +542,10 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>HOW IT WORKS</Text>
         <View style={styles.howItWorks}>
           {[
-            { icon: 'compass', text: 'Browse market cards in Discover' },
-            { icon: 'trending-up', text: 'Make YES or NO predictions' },
-            { icon: 'award', text: 'Earn tokens for accurate calls' },
-            { icon: 'trophy', text: 'Climb the rankings leaderboard' },
+            { icon: 'compass', text: 'Discover markets — Buzz or Boo, The Call, Buzz Battle, and more' },
+            { icon: 'trending-up', text: 'Make your call — pick a side, back a contender, or cast a verdict' },
+            { icon: 'award', text: 'Earn Forecast Points for accurate predictions' },
+            { icon: 'trophy', text: 'Build your BuzzScore and climb the rankings' },
           ].map((step, i) => (
             <View key={i} style={styles.howRow}>
               <View style={[styles.stepNum, { backgroundColor: colors.primary + '22' }]}>
@@ -436,6 +675,13 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  predFormat: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
   predQuestion: {
     fontSize: 14,
     fontFamily: 'Inter_500Medium',
@@ -454,6 +700,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.5,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+    borderTopWidth: 0,
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontFamily: 'Inter_600SemiBold',
   },
   section: {
     borderRadius: 16,
@@ -511,5 +776,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontFamily: 'Inter_400Regular',
+  },
+  showMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  showMoreText: {
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
   },
 });

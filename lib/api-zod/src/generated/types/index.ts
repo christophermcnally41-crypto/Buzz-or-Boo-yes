@@ -38,6 +38,7 @@ export * from './marketInputClockType';
 export * from './marketInputMarketFormat';
 export * from './marketList';
 export * from './marketMarketFormat';
+export * from './marketPatch';
 export * from './marketResolution';
 export * from './marketStatus';
 export * from './marketTally';

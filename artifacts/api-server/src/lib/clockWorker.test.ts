@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, lt, sql as drizzleSql, not, like } from "drizzle-orm";
 import { db, pool, marketsTable } from "@workspace/db";
 import { tick, startClockWorker, stopClockWorker } from "./clockWorker.js";
 import * as loggerModule from "./logger.js";
@@ -661,8 +661,21 @@ describe("tick() — recovery after a transient DB error mid-tick", () => {
 describe("startClockWorker() — startup catch-up after server restart", () => {
   // Guarantee a clean worker state before each test: a previously running
   // interval would cause startClockWorker() to return early with no-op.
-  beforeEach(() => {
+  // Also pre-archive any real expired OPEN markets in the dev DB so the
+  // clean-restart test starts from a state where startClockWorker() finds
+  // nothing to catch up (only the test's own future market is OPEN).
+  beforeEach(async () => {
     stopClockWorker();
+    await db
+      .update(marketsTable)
+      .set({ status: "ARCHIVED", freshnessScore: 0 })
+      .where(
+        and(
+          eq(marketsTable.status, "OPEN"),
+          not(like(marketsTable.title, "_test_%")),
+          lt(marketsTable.expireAt, drizzleSql`NOW()`),
+        ),
+      );
   });
 
   afterEach(() => {

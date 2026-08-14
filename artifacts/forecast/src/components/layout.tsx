@@ -38,20 +38,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", label: "What's Buzzing", icon: Sparkles },
     { href: "/leaderboard", label: "BuzzRank", icon: BarChart2 },
     { href: "/markets?format=HOT_OR_NOT", label: "Hot or Not", icon: Flame },
-    { href: "/markets?format=BUZZ_OR_BOO", label: "Buzz or Boo", icon: Zap },
+    { href: "/markets?format=BUZZ_OR_BOO", label: "Buzz or Boo", icon: Zap, activeColor: "#CFEA3B" },
     ...(userId ? [{ href: `/profile/${userId}`, label: "My Calls", icon: User }] : []),
     { href: "/markets", label: "Markets", icon: Search },
-  ];
+  ] as { href: string; label: string; icon: React.ElementType; activeColor?: string }[];
 
   // Mobile nav omits the generic Markets link to stay within 360px — format-specific
   // shortcuts (Hot or Not, Buzz or Boo) already cover the main discovery paths.
   const mobileNavItems = [
     { href: "/", label: "Home", icon: Sparkles },
     { href: "/markets?format=HOT_OR_NOT", label: "Hot or Not", icon: Flame },
-    { href: "/markets?format=BUZZ_OR_BOO", label: "Buzz or Boo", icon: Zap },
+    { href: "/markets?format=BUZZ_OR_BOO", label: "Buzz or Boo", icon: Zap, activeColor: "#CFEA3B" },
     { href: "/leaderboard", label: "BuzzRank", icon: BarChart2 },
     ...(userId ? [{ href: `/profile/${userId}`, label: "My Calls", icon: User }] : []),
-  ];
+  ] as { href: string; label: string; icon: React.ElementType; activeColor?: string }[];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -81,6 +81,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               const isActive = itemQuery
                 ? location === itemPath && search.includes(itemQuery)
                 : location === item.href || (item.href !== "/" && location.startsWith(item.href));
+              const activeStyle = isActive && item.activeColor ? { color: item.activeColor } : undefined;
               return (
                 <Link
                   key={item.href}
@@ -89,6 +90,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )}
+                  style={activeStyle}
                 >
                   <Icon className="w-4 h-4" />
                   {item.label}
@@ -168,6 +170,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             const isActive = itemQuery
               ? location === itemPath && search.includes(itemQuery)
               : location === item.href || (item.href !== "/" && location.startsWith(item.href));
+            const activeStyle = isActive && item.activeColor ? { color: item.activeColor } : undefined;
             return (
               <Link
                 key={item.href}
@@ -176,6 +179,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   "flex flex-col items-center gap-1 p-2 min-w-[56px] rounded-xl transition-colors",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-primary"
                 )}
+                style={activeStyle}
               >
                 <Icon className={cn("w-5 h-5", isActive && "animate-slide-up")} />
                 <span className="text-[10px] font-medium">{item.label}</span>

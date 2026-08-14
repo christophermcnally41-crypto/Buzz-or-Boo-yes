@@ -31,6 +31,7 @@ export function PollCard({ poll, onVote }: { poll: Poll; onVote?: (pollId: numbe
   const [localTally, setLocalTally] = useState<Record<string, number>>(poll.tally);
   const [localTotal, setLocalTotal] = useState(poll.totalVotes);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleVote = async (key: string) => {
     if (voted || submitting) return;
@@ -49,7 +50,11 @@ export function PollCard({ poll, onVote }: { poll: Poll; onVote?: (pollId: numbe
         setLocalTotal(data.totalVotes);
         setVoted(key);
         onVote?.(poll.id, key);
+      } else {
+        setError("Couldn't record your vote — try again.");
       }
+    } catch {
+      setError("Network error — check your connection.");
     } finally {
       setSubmitting(false);
     }
@@ -125,6 +130,9 @@ export function PollCard({ poll, onVote }: { poll: Poll; onVote?: (pollId: numbe
 
       {!showResults && (
         <p className="text-xs text-muted-foreground text-center">Tap to vote — results reveal instantly</p>
+      )}
+      {error && (
+        <p className="text-xs text-red-500 text-center -mt-1">{error}</p>
       )}
     </div>
   );

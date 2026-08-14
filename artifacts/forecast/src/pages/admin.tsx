@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { 
   useAdminListMarkets, 
   useCreateMarket, 
@@ -6,6 +6,8 @@ import {
   usePatchMarket,
   useListMarketTemplates,
   useCreateMarketFromTemplate,
+  useUpdateMarketTemplate,
+  useDeleteMarketTemplate,
   getAdminListMarketsQueryKey,
   getListMarketsQueryKey,
   getGetTrendingMarketsQueryKey,
@@ -24,8 +26,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getCategoryLabel } from "@/lib/categories";
-import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2, Layers, Pencil, ChevronLeft, Copy, Check } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2, Layers, Pencil, ChevronLeft, Copy, Check, Search, X } from "lucide-react";
 import { Link } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE", "BEAUTY", "ACCESSORIES", "MOVIES"] as const;
 const ALL_FORMATS = ["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE", "BUZZ_OR_BOO", "THE_CALL"] as const;
@@ -44,7 +48,7 @@ const ENGINE_LABELS: Record<string, string> = {
   STANDARD:     "Standard (YES / NO)",
   HOT_OR_NOT:   "Hot or Not",
   HEAD_TO_HEAD: "Head to Head",
-  MULTI_CHOICE: "⚡ Buzz Battle",
+  MULTI_CHOICE: "👑 Buzz Battle",
   BUZZ_OR_BOO:  "⚡ Buzz or Boo",
   THE_CALL:     "🎯 The Call",
 };
@@ -382,6 +386,12 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
       </div>
 
       <div className="space-y-3">
+        {/* Read-only format indicator — marketFormat is immutable after creation */}
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/50 border border-border/50">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Format</span>
+          <Badge variant="secondary" className="text-[10px] py-0">{ENGINE_LABELS[market.marketFormat ?? ""] ?? market.marketFormat}</Badge>
+          <span className="text-[10px] text-muted-foreground/60 italic ml-auto">immutable</span>
+        </div>
         <div className="space-y-1">
           <Label className="text-xs">Title</Label>
           <Input value={title} onChange={e => setTitle(e.target.value)} className="h-8 text-sm" />
@@ -885,10 +895,78 @@ interface TemplateSectionProps {
   onSelectTemplate: (t: Template) => void;
 }
 
+const templateEditSchema = z.object({
+  franchiseName: z.string().min(2),
+  engine: z.enum(ALL_FORMATS),
+  templateQuestion: z.string().min(10),
+  clockType: z.enum(ALL_CLOCK_TYPES),
+  category: z.enum(ALL_CATEGORIES),
+  defaultDurationDays: z.coerce.number().int().positive(),
+  description: z.string().optional(),
+});
+type TemplateEditForm = z.infer<typeof templateEditSchema>;
+
 function TemplateSection({ onSelectTemplate }: TemplateSectionProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { data, isLoading } = useListMarketTemplates({
     query: { queryKey: getListMarketTemplatesQueryKey() },
   });
+
+  const [editTarget, setEditTarget] = useState<Template | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const updateMutation = useUpdateMarketTemplate();
+  const deleteMutation = useDeleteMarketTemplate();
+
+  const editForm = useForm<TemplateEditForm>({
+    resolver: zodResolver(templateEditSchema),
+  });
+
+  function openEdit(t: Template, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditTarget(t);
+    editForm.reset({
+      franchiseName: t.franchiseName,
+      engine: t.engine as TemplateEditForm["engine"],
+      templateQuestion: t.templateQuestion,
+      clockType: t.clockType as TemplateEditForm["clockType"],
+      category: t.category as TemplateEditForm["category"],
+      defaultDurationDays: t.defaultDurationDays,
+      description: t.description ?? "",
+    });
+  }
+
+  async function handleEditSave(values: TemplateEditForm) {
+    if (!editTarget) return;
+    setIsSubmitting(true);
+    try {
+      await updateMutation.mutateAsync({ id: editTarget.id, data: values });
+      await queryClient.invalidateQueries({ queryKey: getListMarketTemplatesQueryKey() });
+      toast({ title: "Template updated" });
+      setEditTarget(null);
+    } catch {
+      toast({ title: "Failed to update template", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setIsSubmitting(true);
+    try {
+      await deleteMutation.mutateAsync({ id: deleteTarget.id });
+      await queryClient.invalidateQueries({ queryKey: getListMarketTemplatesQueryKey() });
+      toast({ title: "Template deleted" });
+      setDeleteTarget(null);
+    } catch {
+      toast({ title: "Failed to delete template", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -911,43 +989,168 @@ function TemplateSection({ onSelectTemplate }: TemplateSectionProps) {
   }
 
   return (
-    <div className="space-y-3">
-      {templates.map(t => (
-        <button
-          key={t.id}
-          className="w-full text-left group"
-          onClick={() => onSelectTemplate(t)}
-        >
-          <Card className="border-border hover:border-primary/50 transition-colors hover:shadow-md cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="font-editorial font-bold text-sm group-hover:text-primary transition-colors">{t.franchiseName}</span>
-                    <Badge variant="secondary" className="text-[10px] py-0">{ENGINE_LABELS[t.engine] ?? t.engine}</Badge>
-                    <Badge variant="outline" className="text-[10px] py-0">{getCategoryLabel(t.category)}</Badge>
+    <>
+      <div className="space-y-3">
+        {templates.map(t => (
+          <button
+            key={t.id}
+            className="w-full text-left group"
+            onClick={() => onSelectTemplate(t)}
+          >
+            <Card className="border-border hover:border-primary/50 transition-colors hover:shadow-md cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="font-editorial font-bold text-sm group-hover:text-primary transition-colors">{t.franchiseName}</span>
+                      <Badge variant="secondary" className="text-[10px] py-0">{ENGINE_LABELS[t.engine] ?? t.engine}</Badge>
+                      <Badge variant="outline" className="text-[10px] py-0">{getCategoryLabel(t.category)}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 font-mono leading-relaxed">
+                      {t.templateQuestion}
+                    </p>
+                    {t.description && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-1 line-clamp-1">{t.description}</p>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 font-mono leading-relaxed">
-                    {t.templateQuestion}
-                  </p>
-                  {t.description && (
-                    <p className="text-[10px] text-muted-foreground/70 mt-1 line-clamp-1">{t.description}</p>
-                  )}
+                  {/* Edit / Delete action buttons */}
+                  <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                    <button
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                      title="Edit template"
+                      onClick={e => openEdit(t, e)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Delete template"
+                      onClick={e => { e.stopPropagation(); setDeleteTarget(t); }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
-                  <Pencil className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
+                  <span>{CLOCK_TYPE_LABELS[t.clockType]?.label ?? t.clockType}</span>
+                  <span>·</span>
+                  <span>Default {t.defaultDurationDays}d window</span>
                 </div>
+              </CardContent>
+            </Card>
+          </button>
+        ))}
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={open => !open && setEditTarget(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Template</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={editForm.handleSubmit(handleEditSave)} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Franchise name</Label>
+              <Input {...editForm.register("franchiseName")} placeholder="e.g. Trend Watch" />
+              {editForm.formState.errors.franchiseName && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.franchiseName.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Engine (format)</Label>
+              <Select
+                value={editForm.watch("engine")}
+                onValueChange={v => editForm.setValue("engine", v as TemplateEditForm["engine"])}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ALL_FORMATS.map(f => (
+                    <SelectItem key={f} value={f}>{ENGINE_LABELS[f] ?? f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Template question</Label>
+              <Textarea {...editForm.register("templateQuestion")} rows={3} placeholder="Will {{subject}} be..." />
+              {editForm.formState.errors.templateQuestion && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.templateQuestion.message}</p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Category</Label>
+                <Select
+                  value={editForm.watch("category")}
+                  onValueChange={v => editForm.setValue("category", v as TemplateEditForm["category"])}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ALL_CATEGORIES.map(c => (
+                      <SelectItem key={c} value={c}>{getCategoryLabel(c)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
-                <span>{CLOCK_TYPE_LABELS[t.clockType]?.label ?? t.clockType}</span>
-                <span>·</span>
-                <span>Default {t.defaultDurationDays}d window</span>
+              <div className="space-y-1.5">
+                <Label>Clock type</Label>
+                <Select
+                  value={editForm.watch("clockType")}
+                  onValueChange={v => editForm.setValue("clockType", v as TemplateEditForm["clockType"])}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ALL_CLOCK_TYPES.map(c => (
+                      <SelectItem key={c} value={c}>{CLOCK_TYPE_LABELS[c]?.label ?? c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-        </button>
-      ))}
-    </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Default duration (days)</Label>
+              <Input
+                type="number"
+                min={1}
+                {...editForm.register("defaultDurationDays")}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Textarea {...editForm.register("description")} rows={2} placeholder="Short summary for admins" />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setEditTarget(null)}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving…" : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.franchiseName}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the franchise template. Markets already created from it are unaffected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isSubmitting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -973,6 +1176,8 @@ export default function Admin() {
   // "from-template" | "custom" creation mode
   const [createMode, setCreateMode] = useState<"template" | "custom">("template");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+
+  const [marketSearch, setMarketSearch] = useState("");
 
   const { data: markets, isLoading } = useAdminListMarkets({
     query: { queryKey: getAdminListMarketsQueryKey() }
@@ -1097,19 +1302,60 @@ export default function Admin() {
     });
   };
 
-  const openMarkets = markets?.markets?.filter(m => m.status === 'OPEN') ?? [];
+  const allOpenMarkets = markets?.markets?.filter(m => m.status === 'OPEN') ?? [];
+  const openMarkets = marketSearch.trim()
+    ? allOpenMarkets.filter(m =>
+        m.title.toLowerCase().includes(marketSearch.toLowerCase()) ||
+        m.question.toLowerCase().includes(marketSearch.toLowerCase()) ||
+        m.subcategory?.toLowerCase().includes(marketSearch.toLowerCase()) ||
+        m.category?.toLowerCase().includes(marketSearch.toLowerCase())
+      )
+    : allOpenMarkets;
+  const recentlyResolved = (markets?.markets ?? [])
+    .filter(m => m.status === 'RESOLVED' || m.status === 'CLOSED')
+    .slice(0, 10);
 
   return (
     <div className="min-h-screen bg-muted/20 pb-24">
       <div className="bg-foreground text-background py-8">
-        <div className="container mx-auto px-4 flex items-center gap-3">
-          <Shield className="w-8 h-8 text-primary" />
-          <div>
-            <h1 className="text-3xl font-editorial font-bold">BuzzOrBoo Admin</h1>
-            <p className="text-background/70 text-sm">Launch markets and declare outcomes</p>
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-8 h-8 text-primary" />
+              <div>
+                <h1 className="text-3xl font-editorial font-bold">BuzzOrBoo Admin</h1>
+                <p className="text-background/70 text-sm">Launch markets and declare outcomes</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link href="/" className="text-xs text-background/60 hover:text-background transition-colors">← Public feed</Link>
+              <Link href="/markets" className="text-xs text-background/60 hover:text-background transition-colors">Markets</Link>
+              <Link href="/leaderboard" className="text-xs text-background/60 hover:text-background transition-colors">BuzzRank</Link>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Quick stats bar */}
+      {markets && (
+        <div className="container mx-auto px-4 pt-6 pb-0">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
+            {[
+              { label: "Open Markets", value: allOpenMarkets.length },
+              { label: "Total Markets", value: markets.markets?.length ?? 0 },
+              { label: "Resolved", value: (markets?.markets ?? []).filter(m => m.status === 'RESOLVED' || m.status === 'CLOSED').length },
+              { label: "Total Predictions", value: (markets?.markets ?? []).reduce((s, m) => s + (m.totalPredictions ?? 0), 0).toLocaleString() },
+              { label: "Buzz Battle", value: (markets?.markets ?? []).filter(m => m.marketFormat === 'MULTI_CHOICE').length },
+              { label: "Hot or Not", value: (markets?.markets ?? []).filter(m => m.marketFormat === 'HOT_OR_NOT').length },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-background/10 border border-background/20 rounded-xl px-4 py-3">
+                <div className="text-2xl font-editorial font-bold text-background">{value}</div>
+                <div className="text-[11px] text-background/60 font-medium uppercase tracking-wider mt-0.5">{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left column: Create market (template or custom) */}
@@ -1217,7 +1463,7 @@ export default function Admin() {
                         <SelectItem value="STANDARD">Standard (YES / NO)</SelectItem>
                         <SelectItem value="HOT_OR_NOT">Hot or Not (vibe check)</SelectItem>
                         <SelectItem value="HEAD_TO_HEAD">Head to Head (A vs B)</SelectItem>
-                        <SelectItem value="MULTI_CHOICE">⚡ Buzz Battle (3–5 contenders)</SelectItem>
+                        <SelectItem value="MULTI_CHOICE">👑 Buzz Battle (3–5 contenders)</SelectItem>
                         <SelectItem value="BUZZ_OR_BOO">⚡ Buzz or Boo (one-tap verdict)</SelectItem>
                         <SelectItem value="THE_CALL">🎯 The Call (crowd intelligence)</SelectItem>
                       </SelectContent>
@@ -1467,7 +1713,32 @@ export default function Admin() {
 
         {/* Manage Open Markets */}
         <div className="lg:col-span-2">
-          <h2 className="text-2xl font-editorial font-bold mb-6">Open Markets — Awaiting Resolution</h2>
+          <div className="flex items-center justify-between mb-6 gap-4">
+            <h2 className="text-2xl font-editorial font-bold shrink-0">Open Markets — Awaiting Resolution</h2>
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={marketSearch}
+                onChange={e => setMarketSearch(e.target.value)}
+                placeholder="Search markets…"
+                className="w-full pl-8 pr-8 h-9 rounded-lg border border-input bg-background text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              {marketSearch && (
+                <button
+                  onClick={() => setMarketSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+          {marketSearch && (
+            <p className="text-xs text-muted-foreground mb-3">
+              {openMarkets.length} of {allOpenMarkets.length} markets
+            </p>
+          )}
 
           {isLoading ? (
             <div className="space-y-4">
@@ -1510,6 +1781,16 @@ export default function Admin() {
                             {isTheCall && (
                               <Badge variant="outline" className="gap-1 text-cyan-600 border-cyan-300">
                                 🎯 The Call
+                              </Badge>
+                            )}
+                            {market.marketFormat === 'HOT_OR_NOT' && (
+                              <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
+                                🔥 Hot or Not
+                              </Badge>
+                            )}
+                            {market.marketFormat === 'HEAD_TO_HEAD' && (
+                              <Badge variant="outline" className="gap-1 text-blue-500 border-blue-300">
+                                ⚔️ Head to Head
                               </Badge>
                             )}
                             {(market as any).templateId && (
@@ -1591,27 +1872,29 @@ export default function Admin() {
                             <p className="text-[10px] text-muted-foreground mt-2">Locks the crowd snapshot — no token redistribution</p>
                           </div>
                         )}
+
+                        {isMultiChoice && contenders.length > 0 && (
+                          <div className="border-t border-border pt-4">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">👑 Declare Buzz Battle Winner</p>
+                            <div className="flex flex-wrap gap-2">
+                              {contenders.map((c: any) => (
+                                <Button
+                                  key={c.key}
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5 hover:bg-amber-500 hover:text-white border-amber-300/50"
+                                  onClick={() => handleResolve(market.id, c.key)}
+                                  disabled={isResolving}
+                                >
+                                  👑 {c.name}
+                                </Button>
+                              ))}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-2">Selects the winner — locks the market</p>
+                          </div>
+                        )}
                       </div>
 
-                      {isMultiChoice && contenders.length > 0 && (
-                        <div className="border-t border-border pt-4">
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Declare Winner</p>
-                          <div className="flex flex-wrap gap-2">
-                            {contenders.map(c => (
-                              <Button
-                                key={c.key}
-                                size="sm"
-                                variant="outline"
-                                className="gap-1.5 hover:bg-primary hover:text-primary-foreground border-primary/30"
-                                onClick={() => handleResolve(market.id, c.key)}
-                                disabled={isResolving}
-                              >
-                                <Crown className="w-3 h-3" /> {c.name}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
 
                       {isEditing && (
                         <EditMarketForm
@@ -1628,6 +1911,43 @@ export default function Admin() {
           ) : (
             <div className="text-center py-12 bg-card rounded-xl border border-border">
               <p className="text-muted-foreground font-medium">No open markets.</p>
+            </div>
+          )}
+
+          {/* Recently resolved / closed */}
+          {recentlyResolved.length > 0 && (
+            <div className="mt-10">
+              <h2 className="text-xl font-editorial font-bold mb-4 text-muted-foreground">Recently Resolved</h2>
+              <div className="space-y-2">
+                {recentlyResolved.map(m => (
+                  <div key={m.id} className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-card border border-border/50">
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/markets/${m.id}`} className="text-sm font-medium hover:text-primary transition-colors truncate block">
+                        {m.question || m.title}
+                      </Link>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Badge variant="secondary" className="text-[10px] shrink-0">{m.category}</Badge>
+                        <span className="text-[11px] text-muted-foreground truncate">ID: {m.id}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {m.resolvedOutcome && (
+                        <Badge variant="outline" className={cn(
+                          "text-[10px]",
+                          m.resolvedOutcome === 'YES' ? "border-green-500/40 text-green-600 bg-green-500/8" :
+                          m.resolvedOutcome === 'NO' ? "border-red-500/40 text-red-600 bg-red-500/5" :
+                          "border-primary/40 text-primary bg-primary/8"
+                        )}>
+                          {m.resolvedOutcome}
+                        </Badge>
+                      )}
+                      <Badge variant={m.status === 'RESOLVED' ? 'default' : 'secondary'} className="text-[10px]">
+                        {m.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
