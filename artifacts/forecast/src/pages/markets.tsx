@@ -136,21 +136,24 @@ export default function Markets() {
                   </div>
                   <h1 className="text-4xl md:text-5xl font-editorial font-bold mb-4">{fmtTitle}</h1>
                   <p className="text-lg text-muted-foreground max-w-2xl mb-8">{fmtDesc}</p>
-                  <Tabs value={category} onValueChange={(val) => {
-                    setCategory(val);
-                    const parts: string[] = [];
-                    if (val !== "ALL") parts.push(`category=${val}`);
-                    if (urlFormat) parts.push(`format=${urlFormat}`);
-                    if (urlStatus) parts.push(`status=${urlStatus}`);
-                    navigate(parts.length ? `/markets?${parts.join("&")}` : "/markets");
-                  }} className="w-full overflow-x-auto hide-scrollbar">
-                    <TabsList className="h-auto p-1 bg-background/50 backdrop-blur-sm border border-border/50 rounded-full inline-flex min-w-max">
-                      <TabsTrigger value="ALL" className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">All Categories</TabsTrigger>
-                      {CATEGORIES.map(cat => (
-                        <TabsTrigger key={cat} value={cat} className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">{getCategoryLabel(cat)}</TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Tabs>
+                  <div className="relative">
+                    <Tabs value={category} onValueChange={(val) => {
+                      setCategory(val);
+                      const parts: string[] = [];
+                      if (val !== "ALL") parts.push(`category=${val}`);
+                      if (urlFormat) parts.push(`format=${urlFormat}`);
+                      if (urlStatus) parts.push(`status=${urlStatus}`);
+                      navigate(parts.length ? `/markets?${parts.join("&")}` : "/markets");
+                    }} className="w-full overflow-x-auto scrollbar-hide">
+                      <TabsList className="h-auto p-1 bg-background/50 backdrop-blur-sm border border-border/50 rounded-full inline-flex min-w-max">
+                        <TabsTrigger value="ALL" className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">All Categories</TabsTrigger>
+                        {CATEGORIES.map(cat => (
+                          <TabsTrigger key={cat} value={cat} className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">{getCategoryLabel(cat)}</TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-muted/60 to-transparent md:hidden" />
+                  </div>
                 </>
               );
             })()
@@ -163,21 +166,24 @@ export default function Markets() {
               <p className="text-lg text-muted-foreground max-w-2xl mb-8">
                 See which calls were right and how the crowd did across every market that's been settled.
               </p>
-              <Tabs value={category} onValueChange={(val) => {
-                setCategory(val);
-                const parts: string[] = [];
-                if (val !== "ALL") parts.push(`category=${val}`);
-                if (urlFormat) parts.push(`format=${urlFormat}`);
-                parts.push(`status=RESOLVED`);
-                navigate(parts.length ? `/markets?${parts.join("&")}` : "/markets");
-              }} className="w-full overflow-x-auto hide-scrollbar">
-                <TabsList className="h-auto p-1 bg-background/50 backdrop-blur-sm border border-border/50 rounded-full inline-flex min-w-max">
-                  <TabsTrigger value="ALL" className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">All Categories</TabsTrigger>
-                  {CATEGORIES.map(cat => (
-                    <TabsTrigger key={cat} value={cat} className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">{getCategoryLabel(cat)}</TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+              <div className="relative">
+                <Tabs value={category} onValueChange={(val) => {
+                  setCategory(val);
+                  const parts: string[] = [];
+                  if (val !== "ALL") parts.push(`category=${val}`);
+                  if (urlFormat) parts.push(`format=${urlFormat}`);
+                  parts.push(`status=RESOLVED`);
+                  navigate(parts.length ? `/markets?${parts.join("&")}` : "/markets");
+                }} className="w-full overflow-x-auto scrollbar-hide">
+                  <TabsList className="h-auto p-1 bg-background/50 backdrop-blur-sm border border-border/50 rounded-full inline-flex min-w-max">
+                    <TabsTrigger value="ALL" className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">All Categories</TabsTrigger>
+                    {CATEGORIES.map(cat => (
+                      <TabsTrigger key={cat} value={cat} className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">{getCategoryLabel(cat)}</TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-muted/60 to-transparent md:hidden" />
+              </div>
             </>
           ) : isScheduledView ? (
             <>
@@ -188,21 +194,24 @@ export default function Markets() {
               <p className="text-lg text-muted-foreground max-w-2xl mb-8">
                 These markets open soon. Bookmark them now and be ready to make your call the moment they go live.
               </p>
-              <Tabs value={category} onValueChange={(val) => {
-                setCategory(val);
-                const parts: string[] = [];
-                if (val !== "ALL") parts.push(`category=${val}`);
-                if (urlFormat) parts.push(`format=${urlFormat}`);
-                parts.push(`status=SCHEDULED`);
-                navigate(parts.length ? `/markets?${parts.join("&")}` : "/markets");
-              }} className="w-full overflow-x-auto hide-scrollbar">
-                <TabsList className="h-auto p-1 bg-background/50 backdrop-blur-sm border border-border/50 rounded-full inline-flex min-w-max">
-                  <TabsTrigger value="ALL" className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">All Categories</TabsTrigger>
-                  {CATEGORIES.map(cat => (
-                    <TabsTrigger key={cat} value={cat} className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">{getCategoryLabel(cat)}</TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+              <div className="relative">
+                <Tabs value={category} onValueChange={(val) => {
+                  setCategory(val);
+                  const parts: string[] = [];
+                  if (val !== "ALL") parts.push(`category=${val}`);
+                  if (urlFormat) parts.push(`format=${urlFormat}`);
+                  parts.push(`status=SCHEDULED`);
+                  navigate(parts.length ? `/markets?${parts.join("&")}` : "/markets");
+                }} className="w-full overflow-x-auto scrollbar-hide">
+                  <TabsList className="h-auto p-1 bg-background/50 backdrop-blur-sm border border-border/50 rounded-full inline-flex min-w-max">
+                    <TabsTrigger value="ALL" className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">All Categories</TabsTrigger>
+                    {CATEGORIES.map(cat => (
+                      <TabsTrigger key={cat} value={cat} className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">{getCategoryLabel(cat)}</TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-muted/60 to-transparent md:hidden" />
+              </div>
             </>
           ) : (
             <>
@@ -211,37 +220,41 @@ export default function Markets() {
                 Browse every open market. Filter by format or category — pick a side and put your BuzzScore on the line.
               </p>
 
-              <Tabs value={category} onValueChange={(val) => {
-                setCategory(val);
-                const parts: string[] = [];
-                if (val !== "ALL") parts.push(`category=${val}`);
-                if (urlFormat) parts.push(`format=${urlFormat}`);
-                if (urlStatus) parts.push(`status=${urlStatus}`);
-                navigate(parts.length ? `/markets?${parts.join("&")}` : "/markets");
-              }} className="w-full overflow-x-auto hide-scrollbar">
-                <TabsList className="h-auto p-1 bg-background/50 backdrop-blur-sm border border-border/50 rounded-full inline-flex min-w-max">
-                  <TabsTrigger
-                    value="ALL"
-                    className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background"
-                  >
-                    All Markets
-                  </TabsTrigger>
-                  {CATEGORIES.map(cat => (
+              <div className="relative">
+                <Tabs value={category} onValueChange={(val) => {
+                  setCategory(val);
+                  const parts: string[] = [];
+                  if (val !== "ALL") parts.push(`category=${val}`);
+                  if (urlFormat) parts.push(`format=${urlFormat}`);
+                  if (urlStatus) parts.push(`status=${urlStatus}`);
+                  navigate(parts.length ? `/markets?${parts.join("&")}` : "/markets");
+                }} className="w-full overflow-x-auto scrollbar-hide">
+                  <TabsList className="h-auto p-1 bg-background/50 backdrop-blur-sm border border-border/50 rounded-full inline-flex min-w-max">
                     <TabsTrigger
-                      key={cat}
-                      value={cat}
+                      value="ALL"
                       className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background"
                     >
-                      {getCategoryLabel(cat)}
+                      All Markets
                     </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+                    {CATEGORIES.map(cat => (
+                      <TabsTrigger
+                        key={cat}
+                        value={cat}
+                        className="rounded-full px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background"
+                      >
+                        {getCategoryLabel(cat)}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-muted/60 to-transparent md:hidden" />
+              </div>
             </>
           )}
 
           {/* Status filter */}
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="relative mt-6">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide">
             {[
               { statusParam: undefined, label: "🟢 Open", active: !resolvedStatus && !isScheduledView && urlStatus !== 'CLOSED' },
               { statusParam: "SCHEDULED", label: "🗓 Scheduled", active: isScheduledView },
@@ -257,7 +270,7 @@ export default function Markets() {
               <a
                 key={statusParam ?? "open"}
                 href={href}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all no-underline ${
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all no-underline ${
                   active
                     ? "bg-foreground text-background border-foreground"
                     : "bg-transparent text-muted-foreground border-border/50 hover:border-foreground/30 hover:text-foreground"
@@ -268,39 +281,44 @@ export default function Markets() {
               );
             })}
           </div>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-muted/60 to-transparent md:hidden" />
+          </div>
 
           {/* Format filter — shown on all views */}
-          <div className="mt-3 flex flex-wrap gap-2 items-center">
-            {[
-              { value: "ALL", label: "All Formats" },
-              { value: "HOT_OR_NOT", label: "🔥 Hot or Not" },
-              { value: "BUZZ_OR_BOO", label: "⚡ Buzz or Boo" },
-              { value: "THE_CALL", label: "🎯 The Call" },
-              { value: "MULTI_CHOICE", label: "👑 Buzz Battle" },
-              { value: "HEAD_TO_HEAD", label: "⚔️ Head to Head" },
-              { value: "STANDARD", label: "📊 Forecast" },
-            ].map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => handleFormatChange(value)}
-                aria-pressed={activeFormat === value}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 ${
-                  activeFormat === value
-                    ? "bg-foreground text-background border-foreground"
-                    : "bg-transparent text-muted-foreground border-border/50 hover:border-foreground/30 hover:text-foreground"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-            {(activeFormat !== "ALL" || urlStatus) && (
-              <a
-                href="/markets"
-                className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-dashed border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all no-underline"
-              >
-                ✕ Clear filters
-              </a>
-            )}
+          <div className="relative mt-3">
+            <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide items-center">
+              {[
+                { value: "ALL", label: "All Formats" },
+                { value: "HOT_OR_NOT", label: "🔥 Hot or Not" },
+                { value: "BUZZ_OR_BOO", label: "⚡ Buzz or Boo" },
+                { value: "THE_CALL", label: "🎯 The Call" },
+                { value: "MULTI_CHOICE", label: "👑 Buzz Battle" },
+                { value: "HEAD_TO_HEAD", label: "⚔️ Head to Head" },
+                { value: "STANDARD", label: "📊 Forecast" },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => handleFormatChange(value)}
+                  aria-pressed={activeFormat === value}
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 ${
+                    activeFormat === value
+                      ? "bg-foreground text-background border-foreground"
+                      : "bg-transparent text-muted-foreground border-border/50 hover:border-foreground/30 hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              {(activeFormat !== "ALL" || urlStatus) && (
+                <a
+                  href="/markets"
+                  className="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-dashed border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all no-underline"
+                >
+                  ✕ Clear filters
+                </a>
+              )}
+            </div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-muted/60 to-transparent md:hidden" />
           </div>
         </div>
       </div>
