@@ -14,7 +14,8 @@
  */
 
 import { db, marketsTable } from "@workspace/db";
-import { and, eq, lt, isNotNull, isNull, or, sql, ne } from "drizzle-orm";
+import { and, eq, lt, isNotNull, isNull, or, sql, ne, notExists } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { logger } from "./logger";
 
 const TICK_MS = 5 * 60 * 1000; // run every 5 minutes
@@ -89,6 +90,7 @@ export interface TickResult {
   archived: number;
   rolledForward: number;
   scored: number;
+  respawned: number;
 }
 
 export async function tick(): Promise<TickResult> {
@@ -225,15 +227,83 @@ export async function tick(): Promise<TickResult> {
     }
   }
 
+  // ─── 4. Re-spawn orphaned RECURRING_PULSE series ────────────────────────────
+  // If a CLOSED successor existed when the parent was archived (causing spawn to
+  // be skipped) and that CLOSED row is later deleted, the parent stays ARCHIVED
+  // forever and never re-enters the expired loop above. This scan finds ARCHIVED
+  // RECURRING_PULSE markets with no living successor (neither OPEN nor CLOSED)
+  // and spawns one, making the closed-successor guard idempotent across deletions.
+  const successorAlias = alias(marketsTable, "successor");
+  const orphanedParents = await db
+    .select()
+    .from(marketsTable)
+    .where(
+      and(
+        eq(marketsTable.status, "ARCHIVED"),
+        eq(marketsTable.clockType, "RECURRING_PULSE"),
+        notExists(
+          db
+            .select({ id: successorAlias.id })
+            .from(successorAlias)
+            .where(
+              and(
+                eq(successorAlias.title, marketsTable.title),
+                or(
+                  eq(successorAlias.status, "OPEN"),
+                  eq(successorAlias.status, "CLOSED"),
+                ),
+              ),
+            ),
+        ),
+      ),
+    );
+
+  let respawned = 0;
+
+  for (const market of orphanedParents) {
+    try {
+      const nextDates = nextRecurrenceDates(market, now);
+      if (!nextDates) continue;
+
+      const rootSeriesId = market.seriesId ?? market.id;
+
+      await db.execute(sql`
+        INSERT INTO markets
+          (title, question, description, category, subcategory,
+           market_format, image_url, resolution_source, source_primary,
+           source_backup, formula, void_rule, geo,
+           status, clock_type, publish_at, peak_until,
+           expire_at, refresh_rule, closes_at, series_id)
+        VALUES
+          (${market.title}, ${market.question}, ${market.description},
+           ${market.category}, ${market.subcategory},
+           ${market.marketFormat}, ${market.imageUrl}, ${market.resolutionSource},
+           ${market.sourcePrimary}, ${market.sourceBackup},
+           ${market.formula}, ${market.voidRule}, ${market.geo},
+           ${'OPEN'}, ${'RECURRING_PULSE'}, ${nextDates.publishAt}, ${nextDates.peakUntil},
+           ${nextDates.expireAt}, ${market.refreshRule}, ${nextDates.expireAt}, ${rootSeriesId})
+        ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING
+      `);
+
+      respawned += 1;
+      logger.info(
+        { parentId: market.id, seriesId: rootSeriesId },
+        "[clockWorker] respawned successor for orphaned ARCHIVED RECURRING_PULSE market",
+      );
+    } catch (err) {
+      logger.error({ err, marketId: market.id }, "[clockWorker] failed to respawn orphaned successor");
+    }
+  }
+
   const archived = expired.length - rolledForward;
-  if (archived > 0 || rolledForward > 0 || openWithExpiry.length > 0) {
+  if (archived > 0 || rolledForward > 0 || openWithExpiry.length > 0 || respawned > 0) {
     logger.info(
-      { archived, rolledForward, scored: openWithExpiry.length },
+      { archived, rolledForward, scored: openWithExpiry.length, respawned },
       "[clockWorker] tick complete",
     );
   }
 
-  return { archived, rolledForward, scored: openWithExpiry.length };
+  return { archived, rolledForward, scored: openWithExpiry.length, respawned };
 }
 
 let _interval: ReturnType<typeof setInterval> | null = null;

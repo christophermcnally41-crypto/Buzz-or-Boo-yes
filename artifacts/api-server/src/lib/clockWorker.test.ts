@@ -491,6 +491,82 @@ describe("tick() — RECURRING_PULSE successor spawning", () => {
     expect(successorsAfterRetry[0].id).toBe(committedSuccessorId);
   });
 
+  it("spawns a new OPEN successor after a CLOSED successor is deleted (idempotent closed-successor guard)", async () => {
+    // Scenario that previously caused permanent stalling:
+    //   1. A RECURRING_PULSE parent was archived on a previous tick.
+    //   2. At that time a CLOSED successor existed (spawn correctly skipped).
+    //   3. The CLOSED successor is later deleted by an admin or cleanup script.
+    //   4. tick() must detect the orphaned ARCHIVED parent and spawn a fresh successor.
+
+    const title = `_test_cw_deletedclosed_${RUN_ID}`;
+
+    // Step 1: insert the parent as already ARCHIVED (previous tick processed it).
+    const [parent] = await db
+      .insert(marketsTable)
+      .values({
+        title,
+        question: "Will the closed-successor guard be idempotent?",
+        category: "CULTURE",
+        subcategory: "test",
+        status: "ARCHIVED",
+        marketFormat: "STANDARD",
+        clockType: "RECURRING_PULSE",
+        refreshRule: "MONTHLY",
+        expireAt: PAST,
+        freshnessScore: 0,
+      })
+      .returning({ id: marketsTable.id });
+    createdMarketIds.push(parent.id);
+
+    // Step 2: insert a CLOSED successor (simulates the row that blocked spawn).
+    const [closedSuccessor] = await db
+      .insert(marketsTable)
+      .values({
+        title,
+        question: "Will the closed-successor guard be idempotent?",
+        category: "CULTURE",
+        subcategory: "test",
+        status: "CLOSED",
+        marketFormat: "STANDARD",
+        clockType: "RECURRING_PULSE",
+        refreshRule: "MONTHLY",
+        expireAt: FUTURE,
+        seriesId: parent.id,
+      })
+      .returning({ id: marketsTable.id });
+    createdMarketIds.push(closedSuccessor.id);
+
+    // Step 3: delete the CLOSED successor (admin cleanup).
+    await db.delete(marketsTable).where(eq(marketsTable.id, closedSuccessor.id));
+    // Remove from cleanup list since it's already deleted.
+    const closedIdx = createdMarketIds.indexOf(closedSuccessor.id);
+    if (closedIdx !== -1) createdMarketIds.splice(closedIdx, 1);
+
+    // Step 4: tick() must find the orphaned ARCHIVED parent and spawn a fresh successor.
+    const result = await tick();
+
+    // respawned counter must reflect the new spawn.
+    expect(result.respawned).toBe(1);
+
+    // Exactly one OPEN successor must exist now.
+    const openSuccessors = await db
+      .select()
+      .from(marketsTable)
+      .where(and(eq(marketsTable.title, title), eq(marketsTable.status, "OPEN")));
+
+    for (const s of openSuccessors) {
+      if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
+    }
+
+    expect(openSuccessors).toHaveLength(1);
+    const successor = openSuccessors[0];
+    expect(successor.clockType).toBe("RECURRING_PULSE");
+    expect(successor.refreshRule).toBe("MONTHLY");
+    expect(successor.seriesId).toBe(parent.id);
+    expect(successor.publishAt).not.toBeNull();
+    expect(successor.publishAt!.getTime()).toBeGreaterThan(PAST.getTime());
+  });
+
   it("does NOT spawn a successor for an unknown refreshRule", async () => {
     const title = `_test_cw_unknownrule_${RUN_ID}`;
 
