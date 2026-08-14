@@ -1006,6 +1006,134 @@ describe("tick() — recovery after a transient DB error mid-tick", () => {
   });
 });
 
+  it("recovers cleanly when a DB error interrupts the freshness-score UPDATE after a successful RECURRING_PULSE spawn", async () => {
+    // Scenario
+    // ────────────────────────────────────────────────────────────────────────
+    // tick() step order:
+    //   1. Archive expired OPEN markets  (db.update — 1st call)
+    //   2. Spawn RECURRING_PULSE successor (db.execute — separate call path)
+    //   3. Recompute freshness_score for all OPEN markets with expiry
+    //      (db.update — 2nd call, outside any try/catch)
+    //
+    // We inject a DB error on the 2nd db.update() call so it fires during the
+    // freshness recompute loop (step 3).  tick() is expected to throw because
+    // the freshness loop has no try/catch.
+    //
+    // After the first (failed) tick:
+    //   - The RECURRING_PULSE parent is ARCHIVED
+    //   - Exactly one OPEN successor was spawned
+    //   - The OPEN market's freshnessScore may be stale (update never committed)
+    //
+    // The second (clean) tick must:
+    //   - NOT spawn a second successor (duplicate guard holds)
+    //   - Recompute and update the freshnessScore for the OPEN market
+    //   - Return accurate TickResult counts
+
+    const pulseTitle = `_test_cw_freshnesserr_pulse_${RUN_ID}`;
+
+    // Market A: expired RECURRING_PULSE — will be archived + spawn successor
+    const [pulseParent] = await db
+      .insert(marketsTable)
+      .values({
+        title: pulseTitle,
+        question: "Will this recur after a freshness error?",
+        category: "CULTURE",
+        subcategory: "test",
+        status: "OPEN",
+        marketFormat: "STANDARD",
+        clockType: "RECURRING_PULSE",
+        refreshRule: "MONTHLY",
+        expireAt: PAST,
+      })
+      .returning({ id: marketsTable.id });
+    createdMarketIds.push(pulseParent.id);
+
+    // Market B: a non-expired OPEN market whose freshness will need updating.
+    // Window: started 2 h ago, expires 2 h from now → computed score ≈ 50,
+    // but we store 0 so the tick() freshness loop must issue an UPDATE.
+    const windowStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const windowEnd   = new Date(Date.now() + 2 * 60 * 60 * 1000);
+
+    const openId = await insertMarket({
+      publishAt: windowStart,
+      expireAt: windowEnd,
+      freshnessScore: 0,
+    });
+
+    // ── Phase 1: simulated freshness-score error ──────────────────────────
+    // We allow the first db.update() call (archive the pulse parent) to
+    // succeed, then throw on the second call (first freshness-score UPDATE
+    // in step 3).  The spawn INSERT uses db.execute(), which is not mocked.
+
+    let dbUpdateCallCount = 0;
+    const originalUpdate = db.update.bind(db);
+
+    const spy = vi.spyOn(db, "update").mockImplementation(
+      (...args: Parameters<typeof db.update>) => {
+        dbUpdateCallCount++;
+        if (dbUpdateCallCount === 2) {
+          spy.mockRestore();
+          throw new Error("Simulated DB error during freshness-score UPDATE");
+        }
+        return originalUpdate(...args);
+      },
+    );
+
+    // tick() must throw — the freshness loop has no try/catch
+    await expect(tick()).rejects.toThrow(
+      "Simulated DB error during freshness-score UPDATE",
+    );
+    spy.mockRestore();
+
+    // Pulse parent must be ARCHIVED (archive UPDATE fired before the error)
+    const [pulseParentRow] = await db
+      .select({ status: marketsTable.status })
+      .from(marketsTable)
+      .where(eq(marketsTable.id, pulseParent.id));
+    expect(pulseParentRow.status).toBe("ARCHIVED");
+
+    // Exactly one OPEN successor must have been spawned (INSERT succeeded)
+    const successorsAfterTick1 = await db
+      .select({ id: marketsTable.id })
+      .from(marketsTable)
+      .where(and(eq(marketsTable.title, pulseTitle), eq(marketsTable.status, "OPEN")));
+    for (const s of successorsAfterTick1) {
+      if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
+    }
+    expect(successorsAfterTick1).toHaveLength(1);
+    const successorId = successorsAfterTick1[0].id;
+
+    // ── Phase 2: recovery tick — no mock ─────────────────────────────────
+    const result = await tick();
+
+    // No duplicate successor — still exactly one OPEN market with pulseTitle
+    const successorsAfterTick2 = await db
+      .select({ id: marketsTable.id })
+      .from(marketsTable)
+      .where(and(eq(marketsTable.title, pulseTitle), eq(marketsTable.status, "OPEN")));
+    for (const s of successorsAfterTick2) {
+      if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
+    }
+    expect(successorsAfterTick2).toHaveLength(1);
+    expect(successorsAfterTick2[0].id).toBe(successorId);
+
+    // Freshness must have been recomputed for market B
+    const [openMarket] = await db
+      .select({ freshnessScore: marketsTable.freshnessScore })
+      .from(marketsTable)
+      .where(eq(marketsTable.id, openId));
+    // Mid-window market must score well above 0 (the stale stored value)
+    expect(openMarket.freshnessScore).toBeGreaterThan(0);
+
+    // TickResult: recovery tick has nothing to archive (pulse is already
+    // ARCHIVED), but it must score the OPEN markets with expiry (≥ 1: market B
+    // plus the successor if its publishAt is in the future).
+    expect(result.archived).toBe(0);
+    expect(result.scored).toBeGreaterThanOrEqual(1);
+    // No new respawns — the successor already exists
+    expect(result.respawned).toBe(0);
+  });
+
 // ---------------------------------------------------------------------------
 // 6. Startup catch-up — simulating server restart with expired markets
 // ---------------------------------------------------------------------------
