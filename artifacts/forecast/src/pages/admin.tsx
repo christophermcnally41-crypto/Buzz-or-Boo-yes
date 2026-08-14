@@ -30,6 +30,9 @@ import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2, Layers, Pencil, Che
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { buildDescriptionPreview } from "@/lib/admin-preview";
+import { PreviewJsonPanel } from "@/lib/preview-json-panel";
+import { Shield, CheckCircle2, XCircle, Crown, Plus, Trash2, Layers, Pencil, ChevronLeft } from "lucide-react";
 
 const ALL_CATEGORIES = ["STYLE", "HOME", "CITY", "REAL_ESTATE", "WEATHER", "CULTURE", "LOCAL_PULSE", "BEAUTY", "ACCESSORIES", "MOVIES"] as const;
 const ALL_FORMATS = ["STANDARD", "HOT_OR_NOT", "HEAD_TO_HEAD", "MULTI_CHOICE", "BUZZ_OR_BOO", "THE_CALL"] as const;
@@ -119,50 +122,6 @@ function extractPlaceholders(templateQuestion: string): string[] {
 function fillPlaceholders(templateQuestion: string, values: Record<string, string>): string {
   return templateQuestion.replace(/\[([^\]]+)\]/g, (match, key) => values[match] ?? match);
 }
-
-// Build a pretty-printed preview of the description JSON that will be stored
-function buildDescriptionPreview(
-  format: string,
-  contenders: Contender[],
-  metric: string,
-  period: string,
-  recurring: boolean,
-): string | null {
-  if (format === "MULTI_CHOICE") {
-    const valid = contenders.filter(c => c.name.trim());
-    if (valid.length === 0) return null;
-    return JSON.stringify(
-      {
-        contenders: valid.map(c => ({
-          key: c.key,
-          name: c.name.trim(),
-          ...(c.venue?.trim() ? { venue: c.venue.trim() } : {}),
-        })),
-        ...(metric ? { metric } : {}),
-        ...(period ? { period } : {}),
-        ...(recurring ? { recurring: true } : {}),
-      },
-      null,
-      2,
-    );
-  }
-  if (format === "THE_CALL") {
-    const valid = contenders.filter(c => c.name.trim());
-    if (valid.length === 0) return null;
-    return JSON.stringify(
-      {
-        options: valid.map(c => ({ key: c.key, label: c.name.trim() })),
-        ...(metric ? { context: metric } : {}),
-      },
-      null,
-      2,
-    );
-  }
-  return null;
-}
-
-// ── Inline Edit Form ─────────────────────────────────────────────────────────
-
 interface EditMarketFormProps {
   market: {
     id: number;
@@ -190,7 +149,6 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
   const queryClient = useQueryClient();
   const patchMarket = usePatchMarket();
   const [isSaving, setIsSaving] = useState(false);
-  const [copiedEdit, setCopiedEdit] = useState(false);
 
   const isMultiChoice = market.marketFormat === "MULTI_CHOICE";
   const isTheCall = market.marketFormat === "THE_CALL";
@@ -473,33 +431,7 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
         )}
 
         {/* Live JSON preview — only for structured formats */}
-        {editPreviewJson && (
-          <details className="group">
-            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground select-none list-none flex items-center gap-1">
-              <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
-              Preview JSON
-            </summary>
-            <div className="relative mt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(editPreviewJson).then(() => {
-                    setCopiedEdit(true);
-                    setTimeout(() => setCopiedEdit(false), 2000);
-                  });
-                }}
-                className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-                title="Copy JSON"
-              >
-                {copiedEdit ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                {copiedEdit ? "Copied!" : "Copy"}
-              </button>
-              <pre className="p-2 bg-muted/60 rounded text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all border border-border/40">
-                {editPreviewJson}
-              </pre>
-            </div>
-          </details>
-        )}
+        {editPreviewJson && <PreviewJsonPanel json={editPreviewJson} />}
 
         {/* Resolution metadata (collapsed section) */}
         <details className="group">
@@ -548,7 +480,6 @@ function TemplateMarketForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [copiedTemplate, setCopiedTemplate] = useState(false);
 
   const createFromTemplate = useCreateMarketFromTemplate();
 
@@ -803,41 +734,13 @@ function TemplateMarketForm({
           {/* Live JSON preview for structured formats */}
           {(engine === "MULTI_CHOICE" || engine === "THE_CALL") && (() => {
             const preview = buildDescriptionPreview(engine, contenders, metric, period, recurring);
-            return (
-              <details className="group">
-                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground select-none list-none flex items-center gap-1 py-1">
-                  <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
-                  Preview JSON
-                </summary>
-                <div className="mt-2">
-                  {preview ? (
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(preview).then(() => {
-                            setCopiedTemplate(true);
-                            setTimeout(() => setCopiedTemplate(false), 2000);
-                          });
-                        }}
-                        className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-                        title="Copy JSON"
-                      >
-                        {copiedTemplate ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                        {copiedTemplate ? "Copied!" : "Copy"}
-                      </button>
-                      <pre className="text-[11px] bg-muted/60 border border-border rounded-lg p-3 overflow-x-auto whitespace-pre-wrap text-foreground/80 font-mono leading-relaxed">
-                        {preview}
-                      </pre>
-                    </div>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground italic p-3 bg-muted/40 rounded-lg border border-border">
-                      Fill in at least one contender to see the preview.
-                    </p>
-                  )}
-                </div>
-              </details>
-            );
+            return preview
+              ? <PreviewJsonPanel json={preview} />
+              : (
+                <p className="text-[11px] text-muted-foreground italic p-3 bg-muted/40 rounded-lg border border-border">
+                  Fill in at least one contender to see the preview.
+                </p>
+              );
           })()}
 
           <div className="space-y-2">
