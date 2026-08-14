@@ -416,6 +416,48 @@ router.patch("/admin/markets/:id/resolve", requireAdmin, async (req, res): Promi
         }
       }
 
+      // Monthly auto-cycle for recurring THE_CALL markets — mirrors the
+      // MULTI_CHOICE path above but reads `options` instead of `contenders`.
+      if (market.marketFormat === "THE_CALL") {
+        try {
+          const desc = market.description ? JSON.parse(market.description) : null;
+          if (desc?.recurring === true && Array.isArray(desc.options)) {
+            // Derive successor period from the resolved edition's closesAt so
+            // that a late resolution still produces the correct month label.
+            const resolvedCloses = market.closesAt ?? resolvedMarket.resolvedAt ?? new Date();
+            const nextStart = new Date(Date.UTC(
+              resolvedCloses.getUTCFullYear(),
+              resolvedCloses.getUTCMonth() + 1,
+              1,
+            ));
+            const nextMonthName = nextStart.toLocaleString("en-US", { month: "long", timeZone: "UTC" });
+            const nextPeriod = `${nextMonthName} ${nextStart.getUTCFullYear()}`;
+            const nextCloses = new Date(Date.UTC(
+              nextStart.getUTCFullYear(), nextStart.getUTCMonth() + 1, 0, 23, 59, 59,
+            ));
+            const nextDescription = JSON.stringify({ ...desc, period: nextPeriod });
+
+            // Same speculative-insertion guard as the MULTI_CHOICE path:
+            // ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING prevents
+            // duplicate successors under concurrent resolution attempts.
+            await tx.execute(sql`
+              INSERT INTO markets
+                (title, question, description, category, subcategory,
+                 market_format, image_url, resolution_source, status, closes_at)
+              VALUES
+                (${market.title}, ${market.question}, ${nextDescription},
+                 ${market.category}, ${market.subcategory}, ${'THE_CALL'},
+                 ${market.imageUrl ?? null}, ${market.resolutionSource ?? null},
+                 ${'OPEN'}, ${nextCloses})
+              ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING
+            `);
+          }
+        } catch (cycleErr) {
+          console.error("[auto-cycle] Failed to spawn next THE_CALL edition:", cycleErr);
+          throw cycleErr;
+        }
+      }
+
       return resolvedMarket;
     });
   } catch (err: any) {

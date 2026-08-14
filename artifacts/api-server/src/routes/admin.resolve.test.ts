@@ -404,3 +404,72 @@ describe('PATCH /admin/markets/:id/resolve — recurring MULTI_CHOICE auto-cycle
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// THE_CALL auto-cycle — late resolution must derive the successor period from
+// closesAt, not from the current calendar month.
+// ---------------------------------------------------------------------------
+
+describe('PATCH /admin/markets/:id/resolve — recurring THE_CALL auto-cycle', () => {
+  it('uses closesAt — not the resolution date — for the successor period label after a late resolution', async () => {
+    // Scenario: a "July 2026" THE_CALL edition whose closesAt is 2026-07-31 is
+    // resolved weeks late (e.g. in August or September).  The successor must be
+    // labelled "August 2026" — the month immediately following closesAt — not
+    // whatever the current calendar month happens to be at resolution time.
+    const LATE_TITLE = `_test_late_call_${Date.now()}`;
+
+    // closesAt = 2026-07-31 23:59:59 UTC — a full month in the past
+    const julyClosesAt = new Date(Date.UTC(2026, 6, 31, 23, 59, 59));
+
+    const { rows: insertRows } = await pool.query<{ id: number }>(
+      `INSERT INTO markets
+         (title, question, category, subcategory, status, market_format,
+          description, closes_at)
+       VALUES ($1, 'Who will make The Call this month?', 'CULTURE', 'test', 'OPEN', 'THE_CALL',
+               $2, $3)
+       RETURNING id`,
+      [
+        LATE_TITLE,
+        JSON.stringify({
+          recurring: true,
+          period: 'July 2026',
+          options: [
+            { key: 'A', label: 'Option A' },
+            { key: 'B', label: 'Option B' },
+          ],
+        }),
+        julyClosesAt.toISOString(),
+      ],
+    );
+    const lateMarketId = insertRows[0].id;
+
+    try {
+      const app = buildApp();
+      const res = await request(app)
+        .patch(`/admin/markets/${lateMarketId}/resolve`)
+        .send({ outcome: 'A' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ status: 'RESOLVED', resolvedOutcome: 'A' });
+
+      // The successor must exist as a new OPEN market
+      const { rows } = await pool.query<{ description: string }>(
+        `SELECT description FROM markets WHERE title = $1 AND status = 'OPEN'`,
+        [LATE_TITLE],
+      );
+      expect(rows).toHaveLength(1);
+
+      const newDesc = JSON.parse(rows[0].description);
+
+      // The period must be "August 2026" — the month after closesAt (July 31 2026),
+      // regardless of whether today is August, September, October, etc.
+      expect(newDesc.period).toBe('August 2026');
+      expect(newDesc.recurring).toBe(true);
+      // The options array must be carried over to the successor
+      expect(Array.isArray(newDesc.options)).toBe(true);
+      expect(newDesc.options).toHaveLength(2);
+    } finally {
+      await pool.query(`DELETE FROM markets WHERE title = $1`, [LATE_TITLE]);
+    }
+  });
+});
