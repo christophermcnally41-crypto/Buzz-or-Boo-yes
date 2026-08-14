@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "AHEAD — Mobile",
-    "slug": "ahead-mobile",
+    "name": "BuzzorBoo",
+    "slug": "buzzorboo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "ahead-mobile",
+    "scheme": "buzzorboo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -14,11 +14,14 @@
       "backgroundColor": "#130F0C"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.buzzorboo.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.buzzorboo.app"
+    },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       [
