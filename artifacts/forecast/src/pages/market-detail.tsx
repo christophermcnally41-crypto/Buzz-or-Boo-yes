@@ -20,6 +20,11 @@ import {
   getListMarketsQueryKey,
 } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
+import { BuzzOrBooCard } from "@/components/buzz-or-boo-card";
+import { TheCallCard } from "@/components/the-call-card";
+import { MultiChoiceCard } from "@/components/multi-choice-card";
+import { HeadToHeadCard } from "@/components/head-to-head-card";
+import { HotOrNotCard } from "@/components/hot-or-not-card";
 import { CountdownBadge } from "@/components/countdown-badge";
 import { ShareResultModal } from "@/components/share-result-modal";
 import { useAuth } from "@workspace/replit-auth-web";
@@ -45,7 +50,7 @@ function RelatedMarketsSection({ marketId, category, marketFormat }: { marketId:
   // Prefer same-format markets; fall back to same-category if none found
   const { data: sameFormatData, isLoading: loadingFormat } = useListMarkets(
     { category: category as any, status: "OPEN", limit: 6, ...(marketFormat ? { format: marketFormat as any } : {}) },
-    { query: { enabled: !!marketFormat } }
+    { query: { enabled: !!marketFormat, queryKey: getListMarketsQueryKey({ category: category as any, status: "OPEN", limit: 6, ...(marketFormat ? { format: marketFormat as any } : {}) }) } }
   );
   const { data: sameCategoryData, isLoading: loadingCategory } = useListMarkets({ category: category as any, status: "OPEN", limit: 6 });
 
@@ -1905,8 +1910,8 @@ export default function MarketDetail() {
                       const timeStr = openDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
                       return <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mt-1">Opens {dateStr} at {timeStr}</p>;
                     })()}
-                    {market.expiresAt && (() => {
-                      const closeDate = new Date(market.expiresAt);
+                    {market.expireAt && (() => {
+                      const closeDate = new Date(market.expireAt!);
                       const dateStr = closeDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
                       const timeStr = closeDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
                       return <p className="text-xs text-muted-foreground mt-1">Closes {dateStr} at {timeStr}</p>;
@@ -1918,8 +1923,8 @@ export default function MarketDetail() {
                     )}
                     {isAuthenticated && (
                       <button
-                        onClick={togglePin}
-                        disabled={isPinning}
+                        onClick={handlePin}
+                        disabled={pinMarket.isPending || unpinMarket.isPending}
                         className="mt-3 text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline disabled:opacity-50"
                       >
                         {isPinned ? '📌 Pinned' : '💡 Pin this market to track it'}
@@ -2421,9 +2426,9 @@ export default function MarketDetail() {
                           </p>
                         )}
                         {totalTheCallVotes > 0 && (() => {
-                          const topKey = Object.entries(optionCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
-                          const topPct = topKey && totalTheCallVotes > 0 ? (optionCounts[topKey] / totalTheCallVotes) * 100 : 50;
-                          const minPct = Math.max(5, Math.min(...Object.values(optionCounts).map(c => totalTheCallVotes > 0 ? (c / totalTheCallVotes) * 100 : 50)));
+                          const topKey = Object.entries(theCallCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+                          const topPct = topKey && totalTheCallVotes > 0 ? (theCallCounts[topKey] / totalTheCallVotes) * 100 : 50;
+                          const minPct = Math.max(5, Math.min(...Object.values(theCallCounts).map(c => totalTheCallVotes > 0 ? (c / totalTheCallVotes) * 100 : 50)));
                           const maxPayout = Math.round(THE_CALL_STAKE * (100 / minPct));
                           const minPayout = Math.round(THE_CALL_STAKE * (100 / Math.max(topPct, 5)));
                           return (
@@ -2781,7 +2786,7 @@ export default function MarketDetail() {
             {/* Share Result Modal */}
             {showShareModal && market.resolvedOutcome && (
               <ShareResultModal
-                market={market}
+                market={market as any}
                 buzzPercent={liveBuzzPercent}
                 booPercent={liveBooPercent}
                 buzzTotal={buzzTallyTotal}
