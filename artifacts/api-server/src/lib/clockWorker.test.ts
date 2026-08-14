@@ -368,6 +368,129 @@ describe("tick() — RECURRING_PULSE successor spawning", () => {
     expect(openSuccessors).toHaveLength(1);
   });
 
+  it("ON CONFLICT guard prevents a duplicate when the INSERT commits before a DB connection reset and the worker retries the spawn", async () => {
+    // Scenario: the INSERT for the successor reached PostgreSQL and committed,
+    // but the connection was reset before the acknowledgement arrived at the
+    // clock worker, so db.execute() threw inside the try/catch.  The worker
+    // swallows the error (tick() does not throw).  When the worker retries the
+    // spawn — either immediately or on the next tick — the ON CONFLICT (title)
+    // WHERE status='OPEN' partial-unique-index guard must fire silently (DO NOTHING)
+    // and leave exactly one OPEN successor in the database.
+    //
+    // Test phases
+    // ─────────────────────────────────────────────────────────────────────────
+    // Phase 1 — controlled tick():
+    //   Mock db.execute so it (a) commits the INSERT via the real driver, then
+    //   (b) throws to simulate the lost ACK.  tick() catches the error and
+    //   returns normally.  Parent is ARCHIVED; exactly one OPEN successor exists.
+    //
+    // Phase 2 — retry INSERT:
+    //   Run the same INSERT SQL that clockWorker would issue on a retry.  The
+    //   ON CONFLICT guard must absorb the collision silently.  Exactly one OPEN
+    //   successor must still exist — the same row committed in Phase 1.
+
+    const title = `_test_cw_dbretry_${RUN_ID}`;
+
+    const [parent] = await db
+      .insert(marketsTable)
+      .values({
+        title,
+        question: "Will this survive a DB retry?",
+        category: "CULTURE",
+        subcategory: "test",
+        status: "OPEN",
+        marketFormat: "STANDARD",
+        clockType: "RECURRING_PULSE",
+        refreshRule: "MONTHLY",
+        expireAt: PAST,
+      })
+      .returning({ id: marketsTable.id });
+    createdMarketIds.push(parent.id);
+
+    // ── Phase 1: tick() with a simulated post-commit connection reset ─────────
+
+    const originalExecute = db.execute.bind(db);
+
+    // Cast through `unknown` so TypeScript accepts the async wrapper despite
+    // db.execute returning PgRaw (a Promise subclass).  The mock is only used
+    // in test code and the runtime behaviour is correct: tick() awaits the
+    // returned value and receives a rejection, which the inner try/catch handles.
+    const executeSpy = vi.spyOn(db, "execute").mockImplementationOnce(
+      ((...args: Parameters<typeof db.execute>) => {
+        // Commit the INSERT via the real driver, then reject to model the
+        // client-side error a connection reset produces.
+        const committed = originalExecute(...args);
+        return committed.then(() => {
+          throw new Error("Simulated DB connection reset after INSERT committed");
+        }) as unknown as ReturnType<typeof db.execute>;
+      }) as unknown as typeof db.execute,
+    );
+
+    // tick() must not surface the error — the try/catch inside the spawn block
+    // swallows it and logs it.
+    await expect(tick()).resolves.not.toThrow();
+    executeSpy.mockRestore();
+
+    // Parent must be ARCHIVED (the archive UPDATE runs before the try/catch).
+    const [parentRow] = await db
+      .select({ status: marketsTable.status })
+      .from(marketsTable)
+      .where(eq(marketsTable.id, parent.id));
+    expect(parentRow.status).toBe("ARCHIVED");
+
+    // Exactly one OPEN successor must exist, committed by the real driver call.
+    const successorsAfterTick1 = await db
+      .select({ id: marketsTable.id })
+      .from(marketsTable)
+      .where(and(eq(marketsTable.title, title), eq(marketsTable.status, "OPEN")));
+    for (const s of successorsAfterTick1) {
+      if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
+    }
+    expect(successorsAfterTick1).toHaveLength(1);
+    const committedSuccessorId = successorsAfterTick1[0].id;
+
+    // ── Phase 2: retry INSERT — ON CONFLICT guard must fire silently ──────────
+    //
+    // The worker doesn't know whether the first INSERT committed.  On the next
+    // opportunity it would re-issue the same INSERT SQL.  We reproduce that
+    // exact INSERT here (including the ON CONFLICT clause) to verify the guard.
+
+    const futurePublish = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const futureExpire = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+
+    // This must resolve without error even though a successor already exists.
+    await expect(
+      db.execute(drizzleSql`
+        INSERT INTO markets
+          (title, question, description, category, subcategory,
+           market_format, image_url, resolution_source, source_primary,
+           source_backup, formula, void_rule, geo,
+           status, clock_type, publish_at, peak_until,
+           expire_at, refresh_rule, closes_at, series_id)
+        VALUES
+          (${title}, ${"Will this survive a DB retry?"}, ${null},
+           ${"CULTURE"}, ${"test"},
+           ${"STANDARD"}, ${null}, ${null},
+           ${null}, ${null},
+           ${null}, ${null}, ${null},
+           ${"OPEN"}, ${"RECURRING_PULSE"}, ${futurePublish}, ${null},
+           ${futureExpire}, ${"MONTHLY"}, ${futureExpire}, ${parent.id})
+        ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING
+      `),
+    ).resolves.not.toThrow();
+
+    // The guard must have fired — still exactly one OPEN successor, the same row.
+    const successorsAfterRetry = await db
+      .select({ id: marketsTable.id })
+      .from(marketsTable)
+      .where(and(eq(marketsTable.title, title), eq(marketsTable.status, "OPEN")));
+    for (const s of successorsAfterRetry) {
+      if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
+    }
+    expect(successorsAfterRetry).toHaveLength(1);
+    expect(successorsAfterRetry[0].id).toBe(committedSuccessorId);
+  });
+
   it("does NOT spawn a successor for an unknown refreshRule", async () => {
     const title = `_test_cw_unknownrule_${RUN_ID}`;
 
