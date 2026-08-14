@@ -368,6 +368,98 @@ describe("tick() — RECURRING_PULSE successor spawning", () => {
     expect(openSuccessors).toHaveLength(1);
   });
 
+  it("spawn guard holds across two concurrent workers with an interleaved delay between SELECT and INSERT (TOCTOU window)", async () => {
+    // Scenario: two clock-worker processes both restart after a DB outage.
+    // Both SELECT the same expired OPEN parent before either has archived it.
+    // An artificial pause injected into the first INSERT gives the second worker
+    // time to commit its INSERT first.  When the paused INSERT finally fires it
+    // must be silently swallowed by the ON CONFLICT (title) WHERE status='OPEN'
+    // DO NOTHING partial-unique-index guard, leaving exactly one OPEN successor.
+    //
+    // This is the cross-process TOCTOU window:
+    //   Worker A: SELECT expired → finds parent (OPEN)
+    //   Worker B: SELECT expired → finds parent (OPEN)
+    //   Worker A: UPDATE parent → ARCHIVED
+    //   Worker A: INSERT successor → [paused here]
+    //   Worker B: UPDATE parent → ARCHIVED (no-op, already ARCHIVED)
+    //   Worker B: INSERT successor → commits, resolves A's gate
+    //   Worker A: INSERT successor → ON CONFLICT DO NOTHING (guard fires)
+    //
+    // Neither tick() call should surface an error; the result is exactly one
+    // OPEN successor in the database.
+
+    const title = `_test_cw_toctou_${RUN_ID}`;
+
+    const [parent] = await db
+      .insert(marketsTable)
+      .values({
+        title,
+        question: "Will the TOCTOU guard hold?",
+        category: "CULTURE",
+        subcategory: "test",
+        status: "OPEN",
+        marketFormat: "STANDARD",
+        clockType: "RECURRING_PULSE",
+        refreshRule: "MONTHLY",
+        expireAt: PAST,
+      })
+      .returning({ id: marketsTable.id });
+    createdMarketIds.push(parent.id);
+
+    // Gate: the first INSERT call waits here until the second INSERT has
+    // committed, then proceeds.  This reliably forces the TOCTOU interleaving
+    // without relying on wall-clock timing.
+    let resolveGate!: () => void;
+    const gate = new Promise<void>((res) => {
+      resolveGate = res;
+    });
+
+    let insertCallCount = 0;
+    const originalExecute = db.execute.bind(db);
+
+    const spy = vi.spyOn(db, "execute").mockImplementation(
+      ((...args: Parameters<typeof db.execute>) => {
+        const callIndex = ++insertCallCount;
+
+        if (callIndex === 1) {
+          // First INSERT to arrive: hold it open until the second INSERT has
+          // committed, then release it to hit the ON CONFLICT guard.
+          return gate.then(
+            () => originalExecute(...args),
+          ) as unknown as ReturnType<typeof db.execute>;
+        }
+
+        // Second INSERT: execute immediately and open the gate once committed
+        // (or if it throws) so the first INSERT can proceed.
+        const result = originalExecute(...args);
+        void (result as Promise<unknown>)
+          .then(() => resolveGate())
+          .catch(() => resolveGate());
+        return result;
+      }) as unknown as typeof db.execute,
+    );
+
+    // Both tick() calls must complete without throwing, even though their INSERTs
+    // overlap at the DB level.
+    const [r1, r2] = await Promise.all([tick(), tick()]);
+    spy.mockRestore();
+
+    expect(r1).toBeDefined();
+    expect(r2).toBeDefined();
+
+    // Exactly one OPEN successor must exist — not zero, not two.
+    const openSuccessors = await db
+      .select({ id: marketsTable.id })
+      .from(marketsTable)
+      .where(and(eq(marketsTable.title, title), eq(marketsTable.status, "OPEN")));
+
+    for (const s of openSuccessors) {
+      if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
+    }
+
+    expect(openSuccessors).toHaveLength(1);
+  });
+
   it("ON CONFLICT guard prevents a duplicate when the INSERT commits before a DB connection reset and the worker retries the spawn", async () => {
     // Scenario: the INSERT for the successor reached PostgreSQL and committed,
     // but the connection was reset before the acknowledgement arrived at the
