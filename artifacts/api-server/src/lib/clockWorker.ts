@@ -267,7 +267,7 @@ export async function tick(): Promise<TickResult> {
 
       const rootSeriesId = market.seriesId ?? market.id;
 
-      await db.execute(sql`
+      const orphanInsertResult = await db.execute(sql`
         INSERT INTO markets
           (title, question, description, category, subcategory,
            market_format, image_url, resolution_source, source_primary,
@@ -285,7 +285,14 @@ export async function tick(): Promise<TickResult> {
         ON CONFLICT (title) WHERE status = 'OPEN' DO NOTHING
       `);
 
-      respawned += 1;
+      // Only count the respawn when the INSERT actually created a row.
+      // ON CONFLICT DO NOTHING returns rowCount = 0 when a concurrent worker
+      // already inserted the successor — that outcome is a success (the guard
+      // held), not a new spawn, so we must not double-count it.
+      const rowsInserted = (orphanInsertResult as { rowCount?: number | null }).rowCount ?? 0;
+      if (rowsInserted > 0) {
+        respawned += 1;
+      }
       logger.info(
         { parentId: market.id, seriesId: rootSeriesId },
         "[clockWorker] respawned successor for orphaned ARCHIVED RECURRING_PULSE market",

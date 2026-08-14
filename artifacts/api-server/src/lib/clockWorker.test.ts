@@ -659,6 +659,64 @@ describe("tick() — RECURRING_PULSE successor spawning", () => {
     expect(successor.publishAt!.getTime()).toBeGreaterThan(PAST.getTime());
   });
 
+  it("concurrent tick() calls on an orphaned ARCHIVED parent spawn exactly one OPEN successor (orphan-scan concurrent guard)", async () => {
+    // Scenario: two clock-worker processes both fire tick() simultaneously while
+    // an ARCHIVED RECURRING_PULSE parent has no living successor (the CLOSED
+    // successor that previously blocked the spawn was deleted).  Both workers
+    // reach step 4 (orphan-revival scan), both SELECT the same orphaned parent,
+    // and both attempt the INSERT.  The ON CONFLICT (title) WHERE status='OPEN'
+    // DO NOTHING partial-unique-index guard must absorb the second INSERT
+    // silently — leaving exactly one OPEN successor and a combined respawned
+    // count of at most 1.
+
+    const title = `_test_cw_orphan_concurrent_${RUN_ID}`;
+
+    // Insert the parent already ARCHIVED — simulates a previous tick that
+    // skipped the spawn because a CLOSED successor existed at the time.
+    const [parent] = await db
+      .insert(marketsTable)
+      .values({
+        title,
+        question: "Will the orphan-scan concurrent guard hold?",
+        category: "CULTURE",
+        subcategory: "test",
+        status: "ARCHIVED",
+        marketFormat: "STANDARD",
+        clockType: "RECURRING_PULSE",
+        refreshRule: "MONTHLY",
+        expireAt: PAST,
+        freshnessScore: 0,
+      })
+      .returning({ id: marketsTable.id });
+    createdMarketIds.push(parent.id);
+
+    // No successor row exists at all — this is the orphaned state that step 4
+    // is designed to recover from (the CLOSED successor was already deleted).
+
+    // Run two concurrent tick() calls — both will reach the orphan scan,
+    // select the same parent, and race to INSERT the successor.
+    const [r1, r2] = await Promise.all([tick(), tick()]);
+
+    // Neither call must have thrown.
+    expect(r1).toBeDefined();
+    expect(r2).toBeDefined();
+
+    // Exactly one OPEN successor must exist — not zero, not two.
+    const openSuccessors = await db
+      .select({ id: marketsTable.id })
+      .from(marketsTable)
+      .where(and(eq(marketsTable.title, title), eq(marketsTable.status, "OPEN")));
+
+    for (const s of openSuccessors) {
+      if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
+    }
+
+    expect(openSuccessors).toHaveLength(1);
+
+    // The combined respawned count across both ticks must not exceed 1.
+    expect(r1.respawned + r2.respawned).toBeLessThanOrEqual(1);
+  });
+
   it("successor period is the month after closesAt — not the current calendar month — for a late-processed market", async () => {
     // Scenario: a RECURRING_PULSE market whose closesAt/expireAt is two months in the
     // past (simulating server downtime or a delayed clock tick).  The clock worker must
