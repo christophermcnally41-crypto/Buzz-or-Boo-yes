@@ -1003,6 +1003,9 @@ components:
         templateId:
           type: ["number", "null"]
           description: "ID of the franchise template this market was created from"
+        whyNow:
+          type: ["string", "null"]
+          description: "Optional editorial blurb explaining why this market is timely right now"
 
     MarketList:
       type: object
@@ -1253,6 +1256,10 @@ components:
           type: string
         voidRule:
           type: string
+        whyNow:
+          type: string
+          nullable: true
+          description: Optional "Why Now?" editorial blurb; send null to clear.
 
     MarketInput:
       type: object
@@ -1307,6 +1314,9 @@ components:
           type: string
         seriesId:
           type: number
+        whyNow:
+          type: string
+          description: Optional "Why Now?" editorial blurb explaining timely context
 
     AuthUser:
       type: object
@@ -1575,6 +1585,9 @@ components:
           type: string
         seriesId:
           type: number
+        whyNow:
+          type: string
+          description: Optional "Why Now?" editorial blurb explaining timely context
 
     MarketResolution:
       type: object

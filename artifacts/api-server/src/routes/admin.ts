@@ -52,7 +52,7 @@ router.post("/admin/markets", requireAdmin, async (req, res): Promise<void> => {
     return;
   }
 
-  const { title, question, description, category, subcategory, imageUrl, resolutionSource, sourcePrimary, sourceBackup, baselineSnapshot, formula, voidRule, geo, closesAt, marketFormat, clockType, publishAt, peakUntil, expireAt, refreshRule, seriesId } = parsed.data;
+  const { title, question, description, category, subcategory, imageUrl, resolutionSource, sourcePrimary, sourceBackup, baselineSnapshot, formula, voidRule, geo, closesAt, marketFormat, clockType, publishAt, peakUntil, expireAt, refreshRule, seriesId, whyNow } = parsed.data;
 
   const [market] = await db
     .insert(marketsTable)
@@ -79,6 +79,7 @@ router.post("/admin/markets", requireAdmin, async (req, res): Promise<void> => {
       expireAt: expireAt ? new Date(expireAt) : null,
       refreshRule: refreshRule ?? null,
       seriesId: seriesId ?? null,
+      whyNow: whyNow ?? null,
     })
     .returning();
 
@@ -137,7 +138,7 @@ router.patch("/admin/markets/:id", requireAdmin, async (req, res): Promise<void>
   const {
     title, question, description, subcategory, imageUrl,
     geo, closesAt, resolutionSource, sourcePrimary, sourceBackup,
-    baselineSnapshot, formula, voidRule,
+    baselineSnapshot, formula, voidRule, whyNow,
   } = parsed.data;
 
   // Guard: when patching description for a choice-keyed format, ensure that
@@ -216,6 +217,7 @@ router.patch("/admin/markets/:id", requireAdmin, async (req, res): Promise<void>
   if (baselineSnapshot !== undefined) update.baselineSnapshot = baselineSnapshot ?? null;
   if (formula !== undefined) update.formula = formula ?? null;
   if (voidRule !== undefined) update.voidRule = voidRule ?? null;
+  if (whyNow !== undefined) update.whyNow = whyNow ?? null;
 
   if (Object.keys(update).length === 0) {
     res.status(400).json({ error: "No fields to update" });

@@ -69,6 +69,7 @@ const formSchema = z.object({
   baselineSnapshot: z.string().optional(),
   formula: z.string().optional(),
   voidRule: z.string().optional(),
+  whyNow: z.string().optional(),
   geo: z.string().optional(),
   closesAt: z.string().optional(),
   clockType: z.enum(ALL_CLOCK_TYPES).default("EVERGREEN"),
@@ -137,6 +138,7 @@ interface EditMarketFormProps {
     baselineSnapshot?: string | null;
     formula?: string | null;
     voidRule?: string | null;
+    whyNow?: string | null;
     marketFormat?: string;
   };
   onClose: () => void;
@@ -167,6 +169,7 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
   const [baselineSnapshot, setBaselineSnapshot] = useState(market.baselineSnapshot ?? "");
   const [formula, setFormula] = useState(market.formula ?? "");
   const [voidRule, setVoidRule] = useState(market.voidRule ?? "");
+  const [whyNow, setWhyNow] = useState((market as any).whyNow ?? "");
 
   // MULTI_CHOICE contender state — pre-populated from description
   const initialContenders: Contender[] = isMultiChoice
@@ -317,6 +320,7 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
         baselineSnapshot: baselineSnapshot.trim() || undefined,
         formula: formula.trim() || undefined,
         voidRule: voidRule.trim() || undefined,
+        whyNow: whyNow.trim() || null,
         ...(description !== undefined ? { description } : {}),
       },
     }, {
@@ -447,6 +451,7 @@ function EditMarketForm({ market, onClose, onSuccess }: EditMarketFormProps) {
             <Input value={baselineSnapshot} onChange={e => setBaselineSnapshot(e.target.value)} placeholder="Baseline snapshot" className="h-8 text-xs" />
             <Input value={formula} onChange={e => setFormula(e.target.value)} placeholder="Formula / scoring rule" className="h-8 text-xs" />
             <Input value={voidRule} onChange={e => setVoidRule(e.target.value)} placeholder="Void criteria" className="h-8 text-xs" />
+            <Input value={whyNow} onChange={e => setWhyNow(e.target.value)} placeholder='Why Now? (e.g. "Drops next Friday")' className="h-8 text-xs" />
           </div>
         </details>
       </div>
@@ -1164,6 +1169,7 @@ export default function Admin() {
         peakUntil: data.peakUntil ? new Date(data.peakUntil).toISOString() : undefined,
         expireAt: data.expireAt ? new Date(data.expireAt).toISOString() : undefined,
         refreshRule: data.refreshRule || undefined,
+        whyNow: (data as any).whyNow || undefined,
       }
     }, {
       onSuccess: () => {
@@ -1596,6 +1602,11 @@ export default function Admin() {
                     <div className="space-y-1">
                       <Label className="text-xs">Void Criteria</Label>
                       <Input {...form.register("voidRule")} placeholder="e.g. Market voids if venue closes" className="h-8 text-sm" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Why Now? <span className="text-muted-foreground">(optional editorial blurb)</span></Label>
+                      <Input {...form.register("whyNow")} placeholder='e.g. "Drops next Friday" or "Rates decision is tomorrow"' className="h-8 text-sm" />
                     </div>
 
                     <div className="space-y-1">

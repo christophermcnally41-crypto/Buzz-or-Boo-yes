@@ -135,7 +135,8 @@ export const ListMarketsResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 })),
   "total": zod.number()
 })
@@ -185,7 +186,8 @@ export const GetTrendingMarketsResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 })),
   "total": zod.number()
 })
@@ -244,7 +246,8 @@ export const GetMarketResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 })
 
 
@@ -475,7 +478,8 @@ export const GetUserPinsResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 }))
 })
 
@@ -524,7 +528,8 @@ export const GetUserPredictionsResponseItem = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 }).optional(),
   "choice": zod.string().describe('YES or NO for standard markets; contender key (A–E) for MULTI_CHOICE markets'),
   "amount": zod.number(),
@@ -771,7 +776,8 @@ export const CreateMarketFromTemplateResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 })
 
 
@@ -812,7 +818,8 @@ export const AdminListMarketsResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 })),
   "total": zod.number()
 })
@@ -842,7 +849,8 @@ export const CreateMarketBody = zod.object({
   "peakUntil": zod.string().optional(),
   "expireAt": zod.string().optional(),
   "refreshRule": zod.string().optional(),
-  "seriesId": zod.number().optional()
+  "seriesId": zod.number().optional(),
+  "whyNow": zod.string().optional()
 })
 
 export const CreateMarketResponse = zod.object({
@@ -878,7 +886,8 @@ export const CreateMarketResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 })
 
 
@@ -902,7 +911,8 @@ export const PatchMarketBody = zod.object({
   "sourceBackup": zod.string().optional(),
   "baselineSnapshot": zod.string().optional(),
   "formula": zod.string().optional(),
-  "voidRule": zod.string().optional()
+  "voidRule": zod.string().optional(),
+  "whyNow": zod.string().nullish().describe('Optional "Why Now?" editorial blurb; send null to clear.')
 }).describe('Mutable fields that can be updated on an existing market. marketFormat is immutable.')
 
 export const PatchMarketResponse = zod.object({
@@ -938,7 +948,8 @@ export const PatchMarketResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 })
 
 
@@ -986,7 +997,8 @@ export const ResolveMarketResponse = zod.object({
   "refreshRule": zod.string().nullish().describe('Recurrence cadence for RECURRING_PULSE markets (e.g. MONTHLY, WEEKLY)'),
   "freshnessScore": zod.number().nullish().describe('0–100 freshness score recomputed by the clock worker; 100 = fully fresh'),
   "seriesId": zod.number().nullish().describe('ID of the root market in a recurring series'),
-  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from')
+  "templateId": zod.number().nullish().describe('ID of the franchise template this market was created from'),
+  "whyNow": zod.string().nullish().describe('Optional editorial blurb explaining why this market is timely right now')
 })
 
 

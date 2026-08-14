@@ -128,6 +128,11 @@ function StandardMarketCard({ market, featured }: { market: Market; featured: bo
 
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">📊 Forecast</span>
+            {!isResolved && !isClosed && !isScheduled && market.closesAt && (
+              <span className="text-[10px] font-bold tracking-widest text-muted-foreground/50 uppercase">
+                · RESOLVES {new Date(market.closesAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            )}
           </div>
           
           <h3 className={cn(
@@ -136,6 +141,11 @@ function StandardMarketCard({ market, featured }: { market: Market; featured: bo
           )}>
             {market.question}
           </h3>
+          {(market as any).whyNow && !isResolved && !isClosed && (
+            <p className="text-[11px] text-amber-500/80 font-medium mt-1.5">
+              ⚡ WHY NOW — {(market as any).whyNow}
+            </p>
+          )}
         </CardHeader>
         
         <CardContent className="relative z-10 mt-auto pt-4 border-t border-border/30">

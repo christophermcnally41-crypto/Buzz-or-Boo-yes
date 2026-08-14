@@ -6,3 +6,6 @@
 - Expo API URL: use `EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN` in the dev script; call `setBaseUrl` outside any component in `app/_layout.tsx`.
 - Expo predict gate: never submit mutations with a hardcoded userId from mobile; show a sign-in prompt until auth is implemented.
 - Expo useColors typing: cast `colors.dark` directly as `typeof colors.light` to avoid TS2352 from the numeric `radius` field.
+- [WHY NOW field](why-now-field.md) — nullable whyNow text column added to markets; full-stack: DB, openapi, api-zod, admin route, UI, cards.
+- [Guest voting gate](guest-voting-gate.md) — guests see vote buttons; localStorage key `boo_guest_votes` tracks taps; prompt shows after first tap, urgent after 3; Python-only edits for market-detail.tsx.
+- [Share Result Modal](share-result-modal.md) — resolved-market share card at artifacts/forecast/src/components/share-result-modal.tsx; state/button/render wired into market-detail.tsx via Python edits.

@@ -36,6 +36,7 @@ export const marketsTable = pgTable("markets", {
   freshnessScore: real("freshness_score"),                      // 0–100, recomputed by the clock worker
   seriesId: integer("series_id"),                               // links recurring editions back to the first market in the series
   templateId: integer("template_id"),                           // FK to market_templates — which franchise mold was used
+  whyNow: text("why_now"),                                      // Optional editorial blurb explaining why this market is timely
 }, (table) => ({
   // Partial unique index: at most one OPEN market may share a given title at any time.
   // Recurring series deliberately reuse the same title across editions (one per month),

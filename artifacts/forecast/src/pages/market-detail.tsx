@@ -21,6 +21,7 @@ import {
 } from "@workspace/api-client-react";
 import { MarketCard } from "@/components/market-card";
 import { CountdownBadge } from "@/components/countdown-badge";
+import { ShareResultModal } from "@/components/share-result-modal";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ import { getCategoryLabel } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { formatNumber, cn, formatTimeAgo } from "@/lib/utils";
 import { getMarketColors } from "@/lib/market-colors";
-import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck, ChevronDown, ChevronUp, Database, FlaskConical, MapPin, Shield, Link2, Copy, Check } from "lucide-react";
+import { ArrowLeft, Clock, Info, CheckCircle2, XCircle, LogIn, Crown, Bookmark, BookmarkCheck, ChevronDown, ChevronUp, Database, FlaskConical, MapPin, Shield, Link2, Copy, Check, Share2 } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { computeCountdownState } from "@/lib/market-countdown";
@@ -361,6 +362,13 @@ export default function MarketDetail() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user: authUser, isAuthenticated, login } = useAuth();
+  // Guest voting: track attempts in localStorage before showing sign-up wall
+  const [guestVoteAttempts, setGuestVoteAttempts] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    return parseInt(localStorage.getItem('boo_guest_votes') ?? '0', 10);
+  });
+  const [guestVoteChoice, setGuestVoteChoice] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const { data: market, isLoading, error: marketError } = useGetMarket(marketId, {
     query: { enabled: !!marketId, queryKey: getGetMarketQueryKey(marketId), refetchInterval: (q: any) => q.state.data?.status === 'OPEN' ? 30000 : false }
@@ -474,7 +482,10 @@ export default function MarketDetail() {
 
   const handlePredict = (choice: string) => {
     if (!isAuthenticated || !authUser) {
-      login();
+      const newCount = guestVoteAttempts + 1;
+      setGuestVoteAttempts(newCount);
+      localStorage.setItem('boo_guest_votes', String(newCount));
+      setGuestVoteChoice(choice);
       return;
     }
 
@@ -664,6 +675,14 @@ export default function MarketDetail() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <CopyLinkButton marketId={market.id} />
+                {isResolved && market.resolvedOutcome && (
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium transition-all bg-muted text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"
+                  >
+                    <Share2 className="w-4 h-4" /> Share Result
+                  </button>
+                )}
                 <button
                   onClick={handlePin}
                   title={isPinned ? "Unpin from profile" : "Pin to profile"}
@@ -714,6 +733,11 @@ export default function MarketDetail() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-editorial font-bold leading-[1.1] text-balance mb-2">
               {market.question}
             </h1>
+            {(market as any).whyNow && !isResolved && !isClosed && (
+              <p className="text-sm font-semibold text-amber-500/90 mb-3">
+                ⚡ WHY NOW — {(market as any).whyNow}
+              </p>
+            )}
             {/* Format instruction hint */}
             <p className="text-sm text-muted-foreground/70 italic mb-4">
               {isBuzzOrBoo ? "Give your verdict — ⚡ Buzz it up or 👎 Boo it down."
@@ -1904,18 +1928,32 @@ export default function MarketDetail() {
                   </div>
                 )}
 
-                {/* Not authenticated */}
-                {!isAuthenticated && !isClosed && !isScheduled && (
-                  <div className="text-center py-6 bg-muted/50 rounded-xl border border-dashed border-border mb-4">
-                    <LogIn className="w-8 h-8 mx-auto text-muted-foreground mb-3 opacity-50" />
-                    <p className="font-medium mb-1">
-                      {isBuzzOrBoo ? "Cast your verdict" : isTheCall ? "Make your pick" : isHotOrNot ? "Give your verdict" : isHeadToHead ? "Pick your side" : isMultiChoice ? "Back a contender" : "Make your forecast"}
+                {/* Not authenticated — show prompt after guest taps a button */}
+                {!isAuthenticated && !isClosed && !isScheduled && guestVoteChoice !== null && (
+                  <div className="text-center py-5 bg-muted/50 rounded-xl border border-dashed border-border mb-4">
+                    <p className="text-xs font-black tracking-widest text-primary/70 uppercase mb-1">
+                      {guestVoteAttempts >= 3 ? "Lock in your calls" : "Nice call"}
                     </p>
-                    <p className="text-sm text-muted-foreground mb-4">Free to join — earn Forecast Points and climb the leaderboard.</p>
+                    <p className="font-medium mb-1">
+                      {isBuzzOrBoo
+                        ? `You said ${guestVoteChoice === "YES" ? "⚡ BUZZ" : "👎 BOO"} — join to record it`
+                        : guestVoteAttempts >= 3
+                        ? "You've made 3 guest calls. Join to keep your streak."
+                        : "Join to lock in your pick and earn Forecast Points"}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">Free forever · No credit card needed</p>
                     <div className="flex items-center justify-center gap-3">
                       <Button onClick={login} className="rounded-full px-6">Sign up free</Button>
                       <Button onClick={login} variant="outline" className="rounded-full px-6">Log in</Button>
                     </div>
+                    {guestVoteAttempts < 3 && (
+                      <button
+                        onClick={() => setGuestVoteChoice(null)}
+                        className="mt-2 text-xs text-muted-foreground/60 hover:text-muted-foreground underline"
+                      >
+                        Dismiss
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -1924,6 +1962,37 @@ export default function MarketDetail() {
                   const userChoice = userPrediction.choice;
                   const isCorrect = isResolved && market.resolvedOutcome != null && userChoice === market.resolvedOutcome;
                   const isWrong = isResolved && market.resolvedOutcome != null && userChoice !== market.resolvedOutcome;
+                  // Crowd-position message — only while market is open and tally data exists
+                  const crowdMessage = (() => {
+                    if (isResolved) return null;
+                    if (isBuzzOrBoo && buzzTallyTotal > 0) {
+                      const pct = userChoice === "YES" ? liveBuzzPercent : liveBooPercent;
+                      return pct >= 50 ? "YOU'RE WITH THE CROWD" : "YOU'RE IN THE MINORITY";
+                    }
+                    if (isHotOrNot && liveTotalCount > 0) {
+                      const pct = userChoice === "YES" ? liveYesPercent : liveNoPercent;
+                      return pct >= 50 ? "YOU'RE WITH THE CROWD" : "YOU'RE IN THE MINORITY";
+                    }
+                    if (isHeadToHead && liveTotalCount > 0) {
+                      const pct = userChoice === "YES" ? liveYesPercent : liveNoPercent;
+                      return pct >= 50 ? "YOU'RE WITH THE CROWD" : "YOU'RE IN THE MINORITY";
+                    }
+                    if (isTheCall && theCallCounts && totalTheCallVotes > 0) {
+                      const myCount = theCallCounts[userChoice] ?? 0;
+                      const isTop = !Object.entries(theCallCounts).some(([k, v]) => k !== userChoice && v > myCount);
+                      return isTop ? "YOU'RE WITH THE CROWD" : "YOU'RE IN THE MINORITY";
+                    }
+                    if (isMultiChoice && contenderCounts && totalContenderVotes > 0) {
+                      const myCount = contenderCounts[userChoice] ?? 0;
+                      const isTop = !Object.entries(contenderCounts).some(([k, v]) => k !== userChoice && v > myCount);
+                      return isTop ? "YOU'RE WITH THE CROWD" : "YOU'RE IN THE MINORITY";
+                    }
+                    if (!isBuzzOrBoo && !isHotOrNot && !isHeadToHead && !isTheCall && !isMultiChoice && liveTotalCount > 0) {
+                      const pct = userChoice === "YES" ? liveYesPercent : liveNoPercent;
+                      return pct >= 50 ? "YOU'RE WITH THE CROWD" : "YOU'RE IN THE MINORITY";
+                    }
+                    return null;
+                  })();
                   return (
                     <div className={cn(
                       "mb-4 p-4 rounded-xl border",
@@ -1947,6 +2016,14 @@ export default function MarketDetail() {
                           <XCircle className="w-4 h-4 text-red-400" />
                           <p className="text-sm font-bold text-red-500 dark:text-red-400">Didn't land this time</p>
                         </div>
+                      )}
+                      {crowdMessage && (
+                        <p className={cn(
+                          "text-[10px] font-black tracking-widest uppercase mb-2",
+                          crowdMessage === "YOU'RE IN THE MINORITY" ? "text-amber-500" : "text-primary/80"
+                        )}>
+                          {crowdMessage}
+                        </p>
                       )}
                       <p className="text-sm font-bold mb-1" style={
                         isCorrect ? { color: "rgb(34 197 94)" } :
@@ -2196,7 +2273,7 @@ export default function MarketDetail() {
                       </div>
                     )}
                   </div>
-                ) : isAuthenticated && !userPrediction && !isScheduled ? (
+                ) : !userPrediction && !isScheduled && !isClosed && !isResolved ? (
                   <>
                     {/* BUZZ_OR_BOO / THE_CALL: one-tap verdict — no amount slider */}
                     {isBuzzOrBoo ? (
@@ -2701,6 +2778,30 @@ export default function MarketDetail() {
               </CardContent>
             </Card>
 
+            {/* Share Result Modal */}
+            {showShareModal && market.resolvedOutcome && (
+              <ShareResultModal
+                market={market}
+                buzzPercent={liveBuzzPercent}
+                booPercent={liveBooPercent}
+                buzzTotal={buzzTallyTotal}
+                yesPercent={liveYesPercent}
+                noPercent={liveNoPercent}
+                totalCount={liveTotalCount}
+                entityA={h2hData?.entityA}
+                entityB={h2hData?.entityB}
+                winnerLabel={
+                  isMultiChoice
+                    ? multiChoiceData?.contenders.find(c => c.key === market.resolvedOutcome)?.name
+                    : isTheCall
+                    ? theCallData?.options.find(o => o.key === market.resolvedOutcome)?.label
+                    : undefined
+                }
+                userChoice={userPrediction?.choice ?? null}
+                isCorrect={!!(userPrediction && market.resolvedOutcome && userPrediction.choice === market.resolvedOutcome)}
+                onClose={() => setShowShareModal(false)}
+              />
+            )}
             {/* Related Markets — same category */}
             <RelatedMarketsSection marketId={market.id} category={market.category} marketFormat={market.marketFormat} />
 
