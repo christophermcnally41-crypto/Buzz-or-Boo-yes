@@ -567,6 +567,72 @@ describe("tick() — RECURRING_PULSE successor spawning", () => {
     expect(successor.publishAt!.getTime()).toBeGreaterThan(PAST.getTime());
   });
 
+  it("successor period is the month after closesAt — not the current calendar month — for a late-processed market", async () => {
+    // Scenario: a RECURRING_PULSE market whose closesAt/expireAt is two months in the
+    // past (simulating server downtime or a delayed clock tick).  The clock worker must
+    // derive the successor's publishAt from closesAt — NOT from new Date() — so the
+    // next edition covers the month immediately after the expired market's window, not
+    // the current calendar month.
+    //
+    // Today is 2026-08-14.  If closesAt = 2026-06-30, the successor must open on
+    // 2026-07-01 and close on 2026-07-31 (month+1 of the base), not on 2026-08-01.
+
+    const title = `_test_cw_latecycle_${RUN_ID}`;
+
+    // Use a fixed past date so the month arithmetic is deterministic.
+    // June 30 2026 23:59:59 UTC — clearly two months before the August test run.
+    const parentClosesAt = new Date(Date.UTC(2026, 5, 30, 23, 59, 59)); // June 30
+
+    const [parent] = await db
+      .insert(marketsTable)
+      .values({
+        title,
+        question: "Late cycle — which month is the successor?",
+        category: "CULTURE",
+        subcategory: "test",
+        status: "OPEN",
+        marketFormat: "STANDARD",
+        clockType: "RECURRING_PULSE",
+        refreshRule: "MONTHLY",
+        // expireAt drives nextRecurrenceDates; set it to the same past date.
+        expireAt: parentClosesAt,
+        closesAt: parentClosesAt,
+      })
+      .returning({ id: marketsTable.id });
+    createdMarketIds.push(parent.id);
+
+    await tick();
+
+    const successors = await db
+      .select()
+      .from(marketsTable)
+      .where(and(eq(marketsTable.title, title), eq(marketsTable.status, "OPEN")));
+
+    for (const s of successors) {
+      if (!createdMarketIds.includes(s.id)) createdMarketIds.push(s.id);
+    }
+
+    expect(successors).toHaveLength(1);
+    const successor = successors[0];
+
+    // The successor must open on the 1st of the month AFTER parentClosesAt (July 2026),
+    // not on the 1st of the current calendar month (August 2026).
+    const expectedPublishAt = new Date(Date.UTC(2026, 6, 1)); // July 1 2026
+    const expectedExpireAt  = new Date(Date.UTC(2026, 7, 0, 23, 59, 59)); // July 31 2026
+
+    expect(successor.publishAt).not.toBeNull();
+    expect(successor.publishAt!.getTime()).toBe(expectedPublishAt.getTime());
+
+    expect(successor.expireAt).not.toBeNull();
+    expect(successor.expireAt!.getTime()).toBe(expectedExpireAt.getTime());
+
+    // Confirm the successor does NOT start in the current month (August 2026),
+    // which would indicate the worker used new Date() instead of closesAt.
+    const successorMonth = successor.publishAt!.getUTCMonth(); // 0-indexed; July = 6
+    const currentMonth = new Date().getUTCMonth();            // August = 7
+    expect(successorMonth).not.toBe(currentMonth);
+  });
+
   it("does NOT spawn a successor for an unknown refreshRule", async () => {
     const title = `_test_cw_unknownrule_${RUN_ID}`;
 
