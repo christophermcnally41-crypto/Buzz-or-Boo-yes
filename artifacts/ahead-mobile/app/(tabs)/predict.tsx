@@ -25,11 +25,14 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BUZZ_COLOR = '#CFEA3B';
 const BOO_COLOR = '#E8503E';
+const HOT_COLOR = '#F97316';
+const NOT_COLOR = '#60A5FA';
 
 function TrendingCard({ market, rank, onPress }: { market: Market; rank: number; onPress: () => void }) {
   const colors = useColors();
   const pair = getMarketColors(market.id);
   const isBuzzOrBoo = market.marketFormat === 'BUZZ_OR_BOO';
+  const isHotOrNot = market.marketFormat === 'HOT_OR_NOT';
   const isTheCall = market.marketFormat === 'THE_CALL';
 
   // Live tally polling for open markets
@@ -153,6 +156,115 @@ function TrendingCard({ market, rank, onPress }: { market: Market; rank: number;
             <Feather name="zap" size={12} color="rgba(255,255,255,0.6)" />
             <Text style={styles.trendFooterText}>
               {totalVerdicts} {totalVerdicts === 1 ? 'verdict' : 'verdicts'}
+            </Text>
+            {market.closesAt && (() => {
+              const msLeft = new Date(market.closesAt).getTime() - Date.now();
+              const hoursLeft = msLeft / (1000 * 60 * 60);
+              if (hoursLeft > 0 && hoursLeft <= 24) {
+                return (
+                  <View style={{ marginLeft: 'auto' as any, backgroundColor: '#EF4444AA', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700', letterSpacing: 0.5 }}>
+                      {hoursLeft < 1 ? `${Math.ceil(msLeft / 60000)}m left` : `${Math.ceil(hoursLeft)}h left`}
+                    </Text>
+                  </View>
+                );
+              }
+              return null;
+            })()}
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+
+  if (isHotOrNot) {
+    const dominantHot = yesPercent >= noPercent;
+    const totalVotes = liveTotalCount > 0 ? liveTotalCount : (market.totalPredictions ?? 0);
+
+    return (
+      <TouchableOpacity activeOpacity={0.88} onPress={onPress}>
+        <LinearGradient
+          colors={['#1A1A1A', '#2A2A2A']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.trendCard}
+        >
+          <View style={styles.trendTop}>
+            <View style={[styles.rankBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+              <Text style={styles.rankText}>#{rank}</Text>
+            </View>
+            <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+              <Text style={styles.catText}>🔥 HOT OR NOT</Text>
+            </View>
+            {isScheduled ? (
+              <View style={[styles.catChip, { backgroundColor: '#F59E0B22', borderWidth: 1, borderColor: '#F59E0B66' }]}>
+                <Text style={[styles.catText, { color: '#F59E0B' }]}>🗓 Coming Soon</Text>
+              </View>
+            ) : market.status === 'RESOLVED' ? (
+              <View style={[styles.catChip, { backgroundColor: (market.resolvedOutcome === 'YES' ? HOT_COLOR : NOT_COLOR) + '22', borderWidth: 1, borderColor: (market.resolvedOutcome === 'YES' ? HOT_COLOR : NOT_COLOR) + '66' }]}>
+                <Text style={[styles.catText, { color: market.resolvedOutcome === 'YES' ? HOT_COLOR : NOT_COLOR }]}>
+                  {market.resolvedOutcome === 'YES' ? '🔥 HOT WINS' : '❄️ NOT WINS'}
+                </Text>
+              </View>
+            ) : market.status === 'CLOSED' ? (
+              <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }]}>
+                <Text style={[styles.catText, { color: 'rgba(255,255,255,0.5)' }]}>🔒 CLOSED</Text>
+              </View>
+            ) : totalVotes === 0 ? (
+              <View style={[styles.catChip, { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }]}>
+                <Text style={[styles.catText, { color: 'rgba(255,255,255,0.4)' }]}>No votes yet</Text>
+              </View>
+            ) : (
+              <View style={[styles.catChip, { backgroundColor: dominantHot ? HOT_COLOR + '22' : NOT_COLOR + '22', borderWidth: 1, borderColor: dominantHot ? HOT_COLOR + '66' : NOT_COLOR + '66' }]}>
+                <Text style={[styles.catText, { color: dominantHot ? HOT_COLOR : NOT_COLOR }]}>
+                  {dominantHot ? '🔥 RUNNING HOT' : '❄️ NOT FEELING IT'}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={styles.trendTitle} numberOfLines={3}>
+            {market.title}
+          </Text>
+
+          {isScheduled ? (
+            <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+              <Text style={{ color: '#F59E0B', fontSize: 12, fontWeight: '600' }}>
+                Opens soon — check back to cast your vote
+              </Text>
+            </View>
+          ) : totalVotes === 0 ? (
+            <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'Inter_400Regular' }}>
+                No votes yet — be first to weigh in
+              </Text>
+            </View>
+          ) : (
+            <>
+              {market.status === 'CLOSED' && market.status !== 'RESOLVED' && totalVotes > 0 && (
+                <Text style={{ fontSize: 10, fontFamily: 'Inter_700Bold', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center', marginBottom: 4 }}>🔒 Snapshot at close</Text>
+              )}
+              <View style={[styles.buzzBottom, market.status === 'CLOSED' ? { opacity: 0.75 } : {}]}>
+                <View style={styles.buzzStat}>
+                  <Text style={[styles.trendStatNum, { color: HOT_COLOR }]}>{Math.round(yesPercent)}%</Text>
+                  <Text style={[styles.trendStatLabel, { color: HOT_COLOR + 'BB' }]}>🔥 HOT</Text>
+                </View>
+                <View style={[styles.miniBar, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                  <View style={[styles.miniBarFill, { flex: Math.max(yesPercent, 3), backgroundColor: HOT_COLOR }]} />
+                  <View style={[styles.miniBarFill, { flex: Math.max(noPercent, 3), backgroundColor: NOT_COLOR }]} />
+                </View>
+                <View style={[styles.trendStat, styles.trendStatRight]}>
+                  <Text style={[styles.trendStatNum, { color: NOT_COLOR }]}>{Math.round(noPercent)}%</Text>
+                  <Text style={[styles.trendStatLabel, { color: NOT_COLOR + 'BB' }]}>❄️ NOT</Text>
+                </View>
+              </View>
+            </>
+          )}
+
+          <View style={styles.trendFooter}>
+            <Feather name="zap" size={12} color="rgba(255,255,255,0.6)" />
+            <Text style={styles.trendFooterText}>
+              {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}
             </Text>
             {market.closesAt && (() => {
               const msLeft = new Date(market.closesAt).getTime() - Date.now();

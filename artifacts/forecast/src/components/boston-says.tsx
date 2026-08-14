@@ -118,8 +118,8 @@ export function BostonSays() {
             <p className="font-editorial font-bold text-lg">Opinions become predictions.</p>
             <p className="text-sm text-muted-foreground">The top Boston Says result auto-creates a real prediction market. Your read on the city could pay off.</p>
           </div>
-          <a href="/markets" className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity">
-            See Markets →
+          <a href="/markets?status=OPEN" className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity">
+            See Open Markets →
           </a>
         </div>
       </div>

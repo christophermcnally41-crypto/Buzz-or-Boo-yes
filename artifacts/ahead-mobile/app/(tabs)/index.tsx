@@ -19,6 +19,7 @@ import { useListMarkets } from '@workspace/api-client-react';
 import type { Market } from '@workspace/api-client-react';
 import { MarketCard } from '@/components/MarketCard';
 import { BuzzOrBooCard } from '@/components/BuzzOrBooCard';
+import { HotOrNotCard } from '@/components/HotOrNotCard';
 import { TheCallCard } from '@/components/TheCallCard';
 import { MarketCardSkeleton } from '@/components/SkeletonLoader';
 import { Feather } from '@expo/vector-icons';
@@ -181,6 +182,12 @@ export default function DiscoverScreen() {
             style={styles.card}
             onPress={() => router.push(`/market/${item.market.id}`)}
           />
+        ) : item.market.marketFormat === 'HOT_OR_NOT' ? (
+          <HotOrNotCard
+            market={item.market}
+            style={styles.card}
+            onPress={() => router.push(`/market/${item.market.id}`)}
+          />
         ) : (
           <MarketCard
             market={item.market}
@@ -200,11 +207,12 @@ export default function DiscoverScreen() {
         <View>
           <Text style={[styles.brand, { color: colors.primary }]}>AHEAD</Text>
           <Text style={[styles.date, { color: colors.mutedForeground }]}>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-            })}
+            {(() => {
+              const h = new Date().getHours();
+              const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+              const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+              return `${greeting} · ${dateStr}`;
+            })()}
           </Text>
         </View>
         <TouchableOpacity

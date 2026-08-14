@@ -103,6 +103,7 @@ export default function Leaderboard() {
           </Tabs>
         </div>
       </div>
+    </div>
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         {isLoading ? (

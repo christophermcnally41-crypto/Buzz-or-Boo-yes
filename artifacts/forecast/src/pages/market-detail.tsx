@@ -2492,6 +2492,7 @@ export default function MarketDetail() {
                                 <p className="text-xs text-muted-foreground text-center mb-2">
                                   Est. payout: Leader ~{leaderPay != null ? `${formatNumber(leaderPay)} FP` : '—'}
                                   {underdogPay != null && ` · underdog up to ~${formatNumber(underdogPay)} FP`} <span className="opacity-50">(varies with crowd)</span>
+                                 </p>
                               );
                             })()}
                              {tallyLoading ? (

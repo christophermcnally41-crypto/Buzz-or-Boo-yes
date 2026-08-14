@@ -325,6 +325,17 @@ export function MarketCard({ market, isHot, onPress, style }: MarketCardProps) {
               <View style={[styles.yesBar, { flex: yesFloor }]} />
               <View style={[styles.noBar, { flex: noFloor }]} />
             </View>
+            {!isClosed && !isResolved && !isScheduled && liveBinaryTotal > 0 && (() => {
+              const margin = Math.abs(Math.round(yesPercent) - Math.round(noPercent));
+              const yesLabel = market.marketFormat === 'HOT_OR_NOT' ? '🔥 HOT' : market.marketFormat === 'BUZZ_OR_BOO' ? '⚡ BUZZ' : market.marketFormat === 'HEAD_TO_HEAD' ? (h2hData?.entityA ?? 'Side A') : 'YES';
+              const noLabel = market.marketFormat === 'HOT_OR_NOT' ? '❄️ NOT HOT' : market.marketFormat === 'BUZZ_OR_BOO' ? '👎 BOO' : market.marketFormat === 'HEAD_TO_HEAD' ? (h2hData?.entityB ?? 'Side B') : 'NO';
+              const leader = yesPercent > noPercent ? yesLabel : noPercent > yesPercent ? noLabel : null;
+              return (
+                <Text style={{ fontSize: 10, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.35)', textAlign: 'center', marginTop: 3 }}>
+                  {leader ? `${leader} leads +${margin}pp` : '⚖️ Dead even'}
+                </Text>
+              );
+            })()}
           </>
         )}
 

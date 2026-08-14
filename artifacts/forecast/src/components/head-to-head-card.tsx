@@ -139,7 +139,7 @@ export function HeadToHeadCard({ market, featured = false }: { market: Market; f
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             {/* Entity A */}
             <div className={`text-left transition-opacity ${isResolved && market.resolvedOutcome === 'NO' ? "opacity-40" : ""}`}>
-              {!isScheduled && hasRealData && (
+              {!isScheduled && tallyHasData && (
                 <div
                   className="text-xs font-bold tracking-wider uppercase mb-1"
                   style={{ color: colors.yes }}
@@ -169,7 +169,7 @@ export function HeadToHeadCard({ market, featured = false }: { market: Market; f
 
             {/* Entity B */}
             <div className={`text-right transition-opacity ${isResolved && market.resolvedOutcome === 'YES' ? "opacity-40" : ""}`}>
-              {!isScheduled && hasRealData && (
+              {!isScheduled && tallyHasData && (
                 <div
                   className="text-xs font-bold tracking-wider uppercase mb-1"
                   style={{ color: colors.no }}

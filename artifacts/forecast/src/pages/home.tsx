@@ -180,11 +180,13 @@ export default function Home() {
             ) : (
               categories.map((cat) => (
                 <Link key={cat.category} href={`/markets?category=${cat.category}`}>
-                  <div className="flex-none flex items-center gap-3 px-6 py-4 rounded-2xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer whitespace-nowrap min-w-[200px] group">
+                  <div className={`flex-none flex items-center gap-3 px-6 py-4 rounded-2xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer whitespace-nowrap min-w-[200px] group${cat.openMarkets === 0 ? ' opacity-40' : ''}`}>
                     <CategoryIcon category={cat.category} className="w-8 h-8 group-hover:scale-110 transition-transform" />
                     <div className="flex flex-col">
                       <span className="font-bold">{getCategoryLabel(cat.category)}</span>
-                      <span className="text-xs text-muted-foreground font-mono-numbers">{cat.openMarkets} open markets</span>
+                      <span className="text-xs text-muted-foreground font-mono-numbers">
+                        {cat.openMarkets > 0 ? `${cat.openMarkets} open` : 'None open'}
+                      </span>
                     </div>
                   </div>
                 </Link>
@@ -199,13 +201,14 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 block mb-1">Right Now</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-3" style={{ backgroundColor: "rgba(34,197,94,0.10)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.25)" }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" /> Right Now
+              </div>
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-3xl md:text-4xl font-editorial font-bold">Trending Now</h2>
                 {trendingMarkets?.total != null && trendingMarkets.total > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-mono-numbers font-semibold self-end mb-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-                    {trendingMarkets.total} live
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-mono-numbers font-semibold self-end mb-1" style={{ backgroundColor: "rgba(34,197,94,0.10)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.25)" }}>
+                    {trendingMarkets.total} open
                   </span>
                 )}
               </div>
@@ -723,7 +726,7 @@ export default function Home() {
                     <span className="ml-2 text-base font-mono-numbers text-muted-foreground font-normal">({upcomingData.total})</span>
                   )}
                 </h2>
-                <p className="text-muted-foreground text-sm mt-1">Browse what's opening soon and get ready to call it</p>
+                <p className="text-muted-foreground text-sm mt-1">Browse what's opening soon and get ready to call it.</p>
               </div>
               <Link href="/markets?status=SCHEDULED">
                 <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground shrink-0">
@@ -805,6 +808,7 @@ export default function Home() {
                     <span className="text-xs font-mono-numbers text-muted-foreground">{resolvedData.total}</span>
                   )}
                 </div>
+                <p className="text-muted-foreground text-sm mt-1">The crowd has spoken — see how the calls landed.</p>
               </div>
               <Link href="/markets?status=RESOLVED">
                 <Button variant="ghost" size="sm">See All <ArrowRight className="w-4 h-4 ml-1" /></Button>
@@ -861,9 +865,9 @@ export default function Home() {
           {user ? (
             <>
               <div className="text-4xl mb-4">⚡</div>
-              <h2 className="font-editorial text-3xl font-bold mb-3">Keep your streak alive.</h2>
+              <h2 className="font-editorial text-3xl font-bold mb-3">Your next call is waiting.</h2>
               <p className="text-muted-foreground mb-6">
-                Every market you call right raises your BuzzScore — stay on top of the leaderboard.
+                Every correct call raises your BuzzScore. Keep making picks to climb BuzzRank.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link href="/markets?status=OPEN">
